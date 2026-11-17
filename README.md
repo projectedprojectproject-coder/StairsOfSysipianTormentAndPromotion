@@ -14,6 +14,8 @@ Figma 에이전트 맵(페이지 "에이전트 맵")의 세 에이전트를 Pyth
 | Publisher | stairs_agents/publisher.py | 1. 확장자 확인과 변환 2. 코드와 디자인 연결 3. 동작 확인 4. 게임 내보내기 |
 | 실행 순서 | stairs_agents/pipeline.py | Designer와 Developer를 동시에 실행한 뒤 Publisher를 실행 |
 
+같은 에이전트를 Claude Code 서브에이전트로도 쓸 수 있도록 `.claude/agents/`에 md 파일로 정리했습니다(역할, 지시문, 전체 코드 포함): `stairs-designer.md`, `stairs-developer.md`, `stairs-publisher.md`, `stairs-pipeline.md`.
+
 두 에이전트가 같은 에셋 이름을 쓰도록 docs/ASSET_LIST.md에 에셋 ID, 변형, 애니메이션 이름을 정해 두었습니다.
 각 에이전트에게 주는 지시문은 prompts/ 폴더에 있습니다.
 
@@ -76,6 +78,7 @@ python -m stairs_agents publisher
 | 구간 안 난이도 증가 | 일수 감소 속도 최대 +50%, 공격 간격 2.6초에서 1.3초로 |
 | 불협화음 루프 전환 | 11층부터 |
 | 패링 판정 0.20초의 위치 | 서류가 도착하기 직전 0.20초 |
+| 층마다 하트 회복 (플레이테스트 반영) | 새 층에 오를 때마다 하트 1 회복, 최대 3 (`FLOOR_HEAL`) |
 
 ## PoC 범위 밖
 
