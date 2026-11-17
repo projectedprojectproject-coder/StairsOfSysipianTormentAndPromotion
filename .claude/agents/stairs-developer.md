@@ -26,6 +26,7 @@ tools: Read, Grep, Glob, Bash, Edit, Write
 - 계단 방향 실수와 막지 못한 공격은 하트 -1. 남은 일수 0 또는 하트 0이면 구조조정.
 - 플레이테스트 반영: 새 층에 오를 때마다 하트 1 회복(`CONFIG.FLOOR_HEAL`, 최대 3).
 - 재생 모드 응답은 `replay/developer_code.txt`에 있습니다. 게임 코드를 고칠 때는 이 파일을 고친 뒤 파이프라인을 다시 돌리고, 결과(`output/build/game.js`)를 `demo/game.js`에 반영합니다.
+- API 버전(`replay_api/developer_code.txt`, `demo_api/game.js`)에도 같은 규칙이 `CONFIG.floorHeal`로 들어가 있습니다. 확인: `python -m stairs_agents run --replay replay_api --out output_api`
 
 ## 실행
 

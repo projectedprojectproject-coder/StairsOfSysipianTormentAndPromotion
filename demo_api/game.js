@@ -18,6 +18,7 @@ const CONFIG = {
   warnTime: 1.0,           // 공격 예고 1.0초 전 표시 (서류 비행 시간과 같음)
   promoteFloor: 20,        // 승급 20층
   promoteHeal: 1,          // 승급 시 하트 1 회복
+  floorHeal: 1,            // 플레이테스트 반영: 새 층에 오를 때마다 하트 1 회복 (최대 maxHearts)
 
   // ---- 기획서 미정 ----
   stairsPerFloor: 6,       // 기획서 미정: 한 층당 계단 수
@@ -391,6 +392,11 @@ function doStep(dir) {
     r.score += CONFIG.floorPoints * r.mult;
     addText(nf + 'F', 160, 70, PAL.text);
     log('floor ' + nf);
+    if (r.hearts < CONFIG.maxHearts) {  // 새 층 도착: 하트 회복
+      r.hearts = Math.min(CONFIG.maxHearts, r.hearts + CONFIG.floorHeal);
+      addText('하트 +1', 160, 82, PAL.green);
+      log('heart +1 (floor) hearts=' + r.hearts);
+    }
     if (nf >= CONFIG.promoteFloor) promote();
   }
 }
