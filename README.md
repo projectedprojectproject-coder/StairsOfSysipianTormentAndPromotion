@@ -10,11 +10,12 @@ Figma 에이전트 맵(페이지 "에이전트 맵")의 세 에이전트를 Pyth
 | 프로토 기획서 (Figma) | docs/GDD.md | Figma 기획서 00~05의 입력 내용을 옮긴 원문 |
 | 원본 리소스 데이터베이스 파일 | data/원본리소스_DB.json | Designer만 읽는 컨셉아트 기반 원본 데이터 |
 | Designer | stairs_agents/designer.py, render.py, synth.py | Claude에 스프라이트와 사운드 설계를 요청하고, 그 명세를 PNG 스프라이트 맵과 WAV로 만든다 |
-| Developer | stairs_agents/developer.py | Claude에 게임 코드(index.html, game.js)와 스프라이트 정의(sprite_definition.json)를 요청한다 |
+| Mechanics | stairs_agents/mechanics.py | 기획서 04를 근거로 1~100층 규칙과 수치를 mechanics.json으로 확정하고 검사한다 (코드는 쓰지 않음) |
+| Developer | stairs_agents/developer.py | Claude에 게임 코드(index.html, game.js)와 스프라이트 정의(sprite_definition.json)를 요청한다. mechanics.json이 있으면 그 값을 그대로 옮긴다 |
 | Publisher | stairs_agents/publisher.py | 1. 확장자 확인과 변환 2. 코드와 디자인 연결 3. 동작 확인 4. 게임 내보내기 |
-| 실행 순서 | stairs_agents/pipeline.py | Designer와 Developer를 동시에 실행한 뒤 Publisher를 실행 |
+| 실행 순서 | stairs_agents/pipeline.py | Mechanics를 먼저 실행하고, Designer와 Developer를 동시에 실행한 뒤 Publisher를 실행 |
 
-같은 에이전트를 Claude Code 서브에이전트로도 쓸 수 있도록 `.claude/agents/`에 md 파일로 정리했습니다(역할, 지시문, 전체 코드 포함): `stairs-designer.md`, `stairs-developer.md`, `stairs-publisher.md`, `stairs-pipeline.md`.
+같은 에이전트를 Claude Code 서브에이전트로도 쓸 수 있도록 `.claude/agents/`에 md 파일로 정리했습니다(역할, 지시문, 전체 코드 포함): `stairs-mechanics.md`, `stairs-designer.md`, `stairs-developer.md`, `stairs-publisher.md`, `stairs-pipeline.md`.
 
 두 에이전트가 같은 에셋 이름을 쓰도록 docs/ASSET_LIST.md에 에셋 ID, 변형, 애니메이션 이름을 정해 두었습니다.
 각 에이전트에게 주는 지시문은 prompts/ 폴더에 있습니다.
@@ -41,6 +42,7 @@ python -m stairs_agents run --replay replay
 
 # 에이전트 하나씩 실행
 python -m stairs_agents designer
+python -m stairs_agents mechanics
 python -m stairs_agents developer
 python -m stairs_agents publisher
 ```
@@ -50,6 +52,7 @@ python -m stairs_agents publisher
 ## 결과물 (output/)
 
 - design_out/ : Designer가 만든 PNG, WAV, design_manifest.json, Claude가 낸 설계 명세(_spec_*.json)
+- mech_out/ : Mechanics가 만든 mechanics.json(1~100층 규칙·수치 명세), mechanics_report.md
 - dev_out/ : Developer가 만든 index.html, game.js, sprite_definition.json
 - build/ : Publisher가 연결한 실행용 게임. index.html을 브라우저로 바로 열 수 있음
 - dist/ : 승급의계단_PoC_web.zip, publisher_report.md, 동작 확인 화면 캡처(screens/)

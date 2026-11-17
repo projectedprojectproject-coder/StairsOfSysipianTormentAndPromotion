@@ -1,7 +1,8 @@
 """Developer 에이전트.
 
 역할 (에이전트 맵): 코드와 시스템을 개발하고 스프라이트를 정의한다.
-입력: docs/GDD.md (01, 04, 05 중심), docs/ASSET_LIST.md
+입력: docs/GDD.md (01, 04, 05 중심), docs/ASSET_LIST.md,
+      output/mech_out/mechanics.json (Mechanics 명세, 있으면 CONFIG와 진행 값을 그대로 옮긴다)
 출력: output/dev_out/ 의 index.html, game.js, sprite_definition.json
       sprite_definition.json의 accepted_formats는 이미지 JPEG, PNG 스프라이트 맵, 사운드 MP3, OGG.
 """
@@ -33,6 +34,9 @@ class DeveloperAgent:
         p = self.paths
         ctx = ("# 기획서 (GDD)\n" + read(p.docs / "GDD.md") +
                "\n\n# 공통 에셋 목록 (ASSET_LIST)\n" + read(p.docs / "ASSET_LIST.md"))
+        mech = p.mech_out / "mechanics.json"
+        if mech.exists():
+            ctx += "\n\n# 메카니즘 명세 (Mechanics, mechanics.json)\n" + read(mech)
 
         log.info("[Developer] 게임 코드와 스프라이트 정의 작성 요청")
         files = extract_files(self.llm.complete(

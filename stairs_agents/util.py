@@ -26,6 +26,8 @@ class Paths:
     @property
     def design_out(self) -> Path: return self.out / "design_out"
     @property
+    def mech_out(self) -> Path: return self.out / "mech_out"
+    @property
     def dev_out(self) -> Path: return self.out / "dev_out"
     @property
     def build(self) -> Path: return self.out / "build"

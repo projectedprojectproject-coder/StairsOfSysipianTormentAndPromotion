@@ -1,4 +1,4 @@
-"""에이전트 맵대로 실행한다: Designer와 Developer를 동시에 돌린 뒤 Publisher를 돌린다."""
+"""에이전트 맵대로 실행한다: Mechanics로 규칙을 확정하고, Designer와 Developer를 동시에 돌린 뒤 Publisher를 돌린다."""
 from __future__ import annotations
 
 import time
@@ -6,12 +6,15 @@ from concurrent.futures import ThreadPoolExecutor
 
 from .designer import DesignerAgent
 from .developer import DeveloperAgent
+from .mechanics import MechanicsAgent
 from .publisher import PublisherAgent
 from .util import Paths, log
 
 
 def run_pipeline(llm, paths: Paths, use_resource_db: bool = True, skip_test: bool = False) -> dict:
     t0 = time.time()
+    # Developer가 mechanics.json을 읽으므로 Mechanics를 먼저 끝낸다
+    mech = MechanicsAgent(llm, paths).run()
     designer = DesignerAgent(llm, paths, use_resource_db=use_resource_db)
     developer = DeveloperAgent(llm, paths)
     with ThreadPoolExecutor(max_workers=2) as ex:
@@ -30,4 +33,4 @@ def run_pipeline(llm, paths: Paths, use_resource_db: bool = True, skip_test: boo
         publisher.test = lambda: False
     pub = publisher.run()
     log.info("파이프라인 완료 (%.1f초): %s", time.time() - t0, pub["zip"])
-    return {"designer": design, "developer": dev, "publisher": pub}
+    return {"mechanics": mech, "designer": design, "developer": dev, "publisher": pub}

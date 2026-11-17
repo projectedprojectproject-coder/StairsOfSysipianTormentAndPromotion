@@ -3,7 +3,7 @@
   python -m stairs_agents run                       # Claude API로 실행 (ANTHROPIC_API_KEY 필요)
   python -m stairs_agents run --record              # API 응답을 replay/ 에 저장
   python -m stairs_agents run --replay replay       # 저장된 응답으로 실행 (API 키 불필요)
-  python -m stairs_agents designer|developer|publisher [...]   # 에이전트 하나만 실행
+  python -m stairs_agents mechanics|designer|developer|publisher [...]   # 에이전트 하나만 실행
 """
 from __future__ import annotations
 
@@ -15,6 +15,7 @@ from pathlib import Path
 from .designer import DesignerAgent
 from .developer import DeveloperAgent
 from .llm import DEFAULT_MODEL, ClaudeClient, LLMError, RecordingClient, ReplayClient
+from .mechanics import MechanicsAgent
 from .pipeline import run_pipeline
 from .publisher import PublisherAgent
 from .util import ROOT, Paths
@@ -29,7 +30,7 @@ def make_llm(args):
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="stairs_agents", description="승급의 계단 에이전트 PoC")
-    ap.add_argument("command", choices=["run", "designer", "developer", "publisher"])
+    ap.add_argument("command", choices=["run", "mechanics", "designer", "developer", "publisher"])
     ap.add_argument("--model", default=DEFAULT_MODEL, help=f"Claude 모델 (기본 {DEFAULT_MODEL})")
     ap.add_argument("--max-tokens", type=int, default=64000)
     ap.add_argument("--replay", help="저장된 응답 폴더로 실행 (API 호출 없음)")
@@ -50,6 +51,9 @@ def main(argv=None) -> int:
     except LLMError as e:
         print(f"오류: {e}\nAPI 키 없이 시험하려면 --replay replay 를 붙여 실행하세요.", file=sys.stderr)
         return 2
+    if args.command == "mechanics":
+        result = MechanicsAgent(llm, paths).run()
+        return 1 if result["problems"] and not result["skipped"] else 0
     if args.command == "designer":
         DesignerAgent(llm, paths, use_resource_db=not args.no_resource_db).run()
         return 0
