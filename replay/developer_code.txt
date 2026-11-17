@@ -42,6 +42,7 @@
     TELEGRAPH: 1.0,
     PROMO_FLOOR: 20,          // 04: 승급 20층 (PoC 종료 지점)
     PROMO_HEAL: 1,            // 04 난이도 곡선: 승급 심사에서 하트 1 회복
+    FLOOR_HEAL: 1,            // 플레이테스트 반영: 새 층에 오를 때마다 하트 1 회복 (최대 HEARTS)
     RANKS: ["사원", "대리", "과장", "간부", "CEO"],
     // 기획서 미정 (PoC 가정값)
     STEPS_PER_FLOOR: 5,       // 기획서 미정: 한 층을 오르는 계단 칸 수
@@ -292,6 +293,11 @@
       G.pose = "step"; G.poseT = 0.12;
       play("sfx_step", 0.35);
       const f = floorOf(G.step);
+      if (f > floorOf(G.step - 1) && G.hearts < CONFIG.HEARTS) { // 새 층 도착: 하트 회복
+        G.hearts = Math.min(CONFIG.HEARTS, G.hearts + CONFIG.FLOOR_HEAL);
+        G.popups.push({ text: "하트 +1", t: 0.6, side: 0 });
+        T.log.push("heal:floor" + f);
+      }
       if (f >= CONFIG.TENSE_FROM_FLOOR) setBgm("bgm_loop_tense");
       if (f >= CONFIG.PROMO_FLOOR) promote();
     } else {
