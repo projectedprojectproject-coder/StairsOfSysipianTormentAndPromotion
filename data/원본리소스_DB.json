@@ -1,0 +1,105 @@
+{
+  "meta": {
+    "name": "승급의 계단 원본 리소스 데이터베이스",
+    "purpose": "Designer 에이전트가 컨셉아트를 기반으로 스프라이트, 리소스, 사운드를 제작할 때 참조하는 원본 데이터",
+    "access": "Designer",
+    "source": {
+      "document": "Figma 게임 기획서 (프로토 기획서)",
+      "file_key": "oL362BLnqxu3MMFoKvalBw",
+      "url": "https://www.figma.com/design/oL362BLnqxu3MMFoKvalBw/%EA%B2%8C%EC%9E%84-%EA%B8%B0%ED%9A%8D%EC%84%9C",
+      "section": "03 게임 디자인 컨셉 (frame 7:115)"
+    },
+    "created": "2026-11-17",
+    "version": "0.1"
+  },
+
+  "concept_art": [
+    {
+      "id": "CA-01",
+      "name": "무드보드 참고 이미지 1",
+      "figma_node_id": "35:2",
+      "category": "moodboard",
+      "observed_content": "야간 도시 빌딩을 배경으로 책상 조명 아래 앉아 있는 인물",
+      "local_file": null
+    },
+    {
+      "id": "CA-02",
+      "name": "무드보드 참고 이미지 2",
+      "figma_node_id": "35:3",
+      "category": "moodboard",
+      "observed_content": "정장 차림 픽셀 캐릭터의 정면, 측면, 후면 3방향",
+      "local_file": null
+    },
+    {
+      "id": "CA-03",
+      "name": "무드보드 참고 이미지 3",
+      "figma_node_id": "35:4",
+      "category": "moodboard",
+      "observed_content": "어두운 사무실 배경에 서류 더미와 상단 게이지, 서류가방 아이콘",
+      "local_file": null
+    },
+    {
+      "id": "CA-04",
+      "name": "무드보드 참고 이미지 4",
+      "figma_node_id": "35:5",
+      "category": "moodboard",
+      "observed_content": "통창 너머 도시 풍경, 조명 아래 책상과 서 있는 인물",
+      "local_file": null
+    },
+    {
+      "id": "CA-05",
+      "name": "층별 배경 이미지",
+      "figma_node_id": "89:2",
+      "category": "background",
+      "observed_content": "층 구간별 사무실 단면을 나란히 배치한 배경 이미지",
+      "local_file": null
+    }
+  ],
+
+  "style_guide": {
+    "art_style": "16비트 레트로 픽셀아트. 저해상도의 거친 질감으로 관료적 삭막함을 표현. 지그재그 계단을 따라 위로 스크롤되는 측면 시점이며, 화려함보다 절제와 반복성을 강조",
+    "character_design": "4~5등신, 단순화된 픽셀 실루엣. 직급은 정장 색상과 사원증으로만 구분. 표정은 생략하고 자세로 심리 상태를 표현",
+    "ui_tone": "미니멀 기하학적 픽셀 HUD. 층수와 직급, 남은 일수(D-day), 하트, Q/E 패링 아이콘 중심. 텍스트보다 아이콘 위주로 구성",
+    "palette": [
+      { "role": "주색", "hex": "#5A5F66" },
+      { "role": "보조색", "hex": "#8A9A5B" },
+      { "role": "강조색", "hex": "#A13D3D" },
+      { "role": "배경", "hex": "#1E1F22" },
+      { "role": "글자", "hex": "#E8E6DF" }
+    ]
+  },
+
+  "background_levels": [
+    { "floors": "1-20", "setting": "파티션 사무실" },
+    { "floors": "21-40", "setting": "개방형 오피스" },
+    { "floors": "41-60", "setting": "텅 빈 회의실" },
+    { "floors": "61-99", "setting": "임원층" },
+    { "floors": "100", "setting": "CEO실 (유일한 따뜻한 조명)" }
+  ],
+
+  "sound_guide": {
+    "ambience": ["타자기 소리", "도장 소리", "형광등 소리"],
+    "music": "단조로운 8비트 루프",
+    "progression": "층수가 오를수록 불협화음을 섞어 긴장감을 높임"
+  },
+
+  "required_assets": {
+    "characters": ["플레이어 캐릭터 (05 플레이 화면 요소 3)", "경쟁 사원 (05 플레이 화면 요소 5, 몬스터)"],
+    "screens": ["타이틀 화면", "로비 화면", "플레이 화면", "일시정지 화면", "결과 화면"]
+  },
+
+  "output_formats": {
+    "image": ["JPEG", "PNG"],
+    "image_note": "스프라이트 맵 형태로 제작",
+    "sound": ["MP3", "OGG"]
+  },
+
+  "constraints": {
+    "design_pillars": [
+      "두 손, 네 키, 좌우 이동과 Q/E 패링만으로 모든 것을 한다",
+      "한 판은 짧게, 한 층만 더, 즉시 재시작, 기록 경쟁",
+      "웃기지만 씁쓸하게, 직장 풍자를 연출과 문구로 전달한다"
+    ],
+    "excluded": ["튜토리얼", "복잡한 업그레이드와 상점", "실시간 대전", "긴 컷신"]
+  }
+}

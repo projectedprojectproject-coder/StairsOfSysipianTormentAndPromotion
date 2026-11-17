@@ -1,0 +1,5 @@
+stairs 시트를 설계했습니다.
+
+<json>
+{"palette": {"A": "#8C9096", "F": "#5A5F66", "N": "#44484E"}, "sheets": {"stairs": {"frame_w": 32, "frame_h": 8, "variants": {"zone1": {"A": "#8C9096", "F": "#5A5F66", "N": "#44484E"}, "zone2": {"A": "#A3AE85", "F": "#8A9A5B", "N": "#5E6B3D"}, "zone3": {"A": "#B8A07A", "F": "#7A6A50", "N": "#5C4F3B"}, "zone4": {"A": "#C05050", "F": "#A13D3D", "N": "#6E2A2A"}, "zone5": {"A": "#F0D08A", "F": "#E3B65C", "N": "#A8833A"}}, "animations": {"tile": {"fps": 1, "frames": [["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "NFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFN", "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFNN", "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFNN", "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN", "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN"]]}}}}}
+</json>

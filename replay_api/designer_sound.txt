@@ -1,0 +1,124 @@
+<json>
+{
+  "sample_rate": 22050,
+  "music": {
+    "bgm_loop": {
+      "bpm": 128,
+      "loop": true,
+      "channels": [
+        {
+          "wave": "square",
+          "duty": 0.25,
+          "volume": 0.35,
+          "notes": "A4:2 -:2 C5:2 -:2 E5:2 -:2 C5:2 -:2 F4:2 -:2 A4:2 -:2 C5:2 -:2 A4:2 -:2 D5:2 -:2 F5:2 -:2 A4:2 -:2 D5:2 -:2 E5:2 -:2 G#4:2 -:2 B4:2 -:2 E5:4"
+        },
+        {
+          "wave": "triangle",
+          "duty": 0.5,
+          "volume": 0.55,
+          "notes": "A2:2 A2:2 A3:2 A2:2 A2:2 A2:2 A3:2 A2:2 F2:2 F2:2 F3:2 F2:2 F2:2 F2:2 F3:2 F2:2 D2:2 D2:2 D3:2 D2:2 D2:2 D2:2 D3:2 D2:2 E2:2 E2:2 E3:2 E2:2 E2:2 E2:2 E3:2 E2:2"
+        },
+        {
+          "wave": "noise",
+          "duty": 0.5,
+          "volume": 0.18,
+          "notes": "C3:1 -:3 C6:1 -:3 C3:1 -:3 C6:1 -:3 C3:1 -:3 C6:1 -:3 C3:1 -:3 C6:1 -:3 C3:1 -:3 C6:1 -:3 C3:1 -:3 C6:1 -:3 C3:1 -:3 C6:1 -:3 C3:1 -:3 C6:1 -:3"
+        }
+      ]
+    },
+    "bgm_loop_tense": {
+      "bpm": 128,
+      "loop": true,
+      "channels": [
+        {
+          "wave": "square",
+          "duty": 0.25,
+          "volume": 0.35,
+          "notes": "A4:2 -:2 C5:2 -:2 E5:2 -:2 D#5:2 -:2 F4:2 -:2 A4:2 -:2 E5:2 -:2 A4:2 -:2 D5:2 -:2 F5:2 -:2 G#4:2 -:2 D5:2 -:2 E5:2 -:2 G#4:2 -:2 B4:2 -:2 F5:4"
+        },
+        {
+          "wave": "triangle",
+          "duty": 0.5,
+          "volume": 0.6,
+          "notes": "A2:2 A2:2 A3:2 A2:2 A2:2 A2:2 D#3:2 A2:2 F2:2 F2:2 F3:2 F2:2 F2:2 F2:2 B2:2 F2:2 D2:2 D2:2 D3:2 D2:2 D2:2 D2:2 G#2:2 D2:2 E2:2 E2:2 E3:2 E2:2 E2:2 E2:2 A#2:2 E2:2"
+        },
+        {
+          "wave": "noise",
+          "duty": 0.5,
+          "volume": 0.24,
+          "notes": "C3:1 C6:1 -:2 C6:1 C6:1 C6:1 -:1 C3:1 C6:1 -:2 C6:1 C6:1 C6:1 -:1 C3:1 C6:1 -:2 C6:1 C6:1 C6:1 -:1 C3:1 C6:1 -:2 C6:1 C6:1 C6:1 -:1 C3:1 C6:1 -:2 C6:1 C6:1 C6:1 -:1 C3:1 C6:1 -:2 C6:1 C6:1 C6:1 -:1 C3:1 C6:1 -:2 C6:1 C6:1 C6:1 -:1 C3:1 C6:1 -:2 C6:1 C6:1 C6:1 -:1"
+        },
+        {
+          "wave": "square",
+          "duty": 0.125,
+          "volume": 0.16,
+          "notes": "A#4:16 F#4:16 D#4:16 F4:16"
+        }
+      ]
+    }
+  },
+  "ambience": {
+    "amb_office": {
+      "duration": 8,
+      "loop": true,
+      "layers": [
+        { "type": "hum", "freq": 120, "volume": 0.2 },
+        { "type": "typewriter", "rate": 6, "volume": 0.3, "seed": 7 },
+        { "type": "stamp", "times": [1.5, 4.0, 6.2], "volume": 0.5 }
+      ]
+    }
+  },
+  "sfx": {
+    "sfx_step": {
+      "segments": [
+        { "wave": "noise", "f0": 800, "f1": 400, "dur": 0.03, "volume": 0.25, "duty": 0.5 },
+        { "wave": "square", "f0": 220, "f1": 330, "dur": 0.05, "volume": 0.4, "duty": 0.25 }
+      ]
+    },
+    "sfx_parry": {
+      "segments": [
+        { "wave": "noise", "f0": 3000, "f1": 1500, "dur": 0.03, "volume": 0.5, "duty": 0.5 },
+        { "wave": "square", "f0": 880, "f1": 1760, "dur": 0.08, "volume": 0.5, "duty": 0.125 },
+        { "wave": "square", "f0": 1320, "f1": 1760, "dur": 0.12, "volume": 0.45, "duty": 0.125 }
+      ]
+    },
+    "sfx_hit": {
+      "segments": [
+        { "wave": "noise", "f0": 600, "f1": 100, "dur": 0.15, "volume": 0.6, "duty": 0.5 },
+        { "wave": "square", "f0": 200, "f1": 60, "dur": 0.2, "volume": 0.5, "duty": 0.5 }
+      ]
+    },
+    "sfx_warning": {
+      "segments": [
+        { "wave": "square", "f0": 1040, "f1": 1040, "dur": 0.07, "volume": 0.4, "duty": 0.5 },
+        { "wave": "square", "f0": 1040, "f1": 1040, "dur": 0.04, "volume": 0.0, "duty": 0.5 },
+        { "wave": "square", "f0": 1040, "f1": 1040, "dur": 0.07, "volume": 0.4, "duty": 0.5 }
+      ]
+    },
+    "sfx_promote": {
+      "segments": [
+        { "wave": "square", "f0": 440, "f1": 440, "dur": 0.1, "volume": 0.4, "duty": 0.25 },
+        { "wave": "square", "f0": 523, "f1": 523, "dur": 0.1, "volume": 0.4, "duty": 0.25 },
+        { "wave": "square", "f0": 659, "f1": 659, "dur": 0.1, "volume": 0.4, "duty": 0.25 },
+        { "wave": "square", "f0": 880, "f1": 880, "dur": 0.1, "volume": 0.4, "duty": 0.25 },
+        { "wave": "triangle", "f0": 880, "f1": 880, "dur": 0.3, "volume": 0.5, "duty": 0.5 }
+      ]
+    },
+    "sfx_gameover": {
+      "segments": [
+        { "wave": "square", "f0": 440, "f1": 220, "dur": 0.2, "volume": 0.4, "duty": 0.25 },
+        { "wave": "square", "f0": 330, "f1": 165, "dur": 0.2, "volume": 0.4, "duty": 0.25 },
+        { "wave": "square", "f0": 220, "f1": 110, "dur": 0.3, "volume": 0.4, "duty": 0.25 },
+        { "wave": "triangle", "f0": 110, "f1": 55, "dur": 0.5, "volume": 0.55, "duty": 0.5 },
+        { "wave": "noise", "f0": 400, "f1": 80, "dur": 0.3, "volume": 0.3, "duty": 0.5 }
+      ]
+    },
+    "sfx_click": {
+      "segments": [
+        { "wave": "square", "f0": 1200, "f1": 1200, "dur": 0.025, "volume": 0.35, "duty": 0.5 },
+        { "wave": "square", "f0": 1800, "f1": 1800, "dur": 0.03, "volume": 0.35, "duty": 0.5 }
+      ]
+    }
+  }
+}
+</json>

@@ -1,0 +1,5 @@
+projectiles 시트를 설계했습니다.
+
+<json>
+{"palette": {"O": "#141518", "X": "#7A6A50", "Y": "#E8E6DF", "y": "#8C9096", "G": "#5A5F66", "g": "#8C9096"}, "sheets": {"projectiles": {"frame_w": 12, "frame_h": 12, "variants": {"default": {}}, "animations": {"document": {"fps": 1, "frames": [["............", "..OOOOOOO...", "..OYYYYYOO..", "..OYyyyYYO..", "..OYYYYYYO..", "..OYyyyyYO..", "..OYYYYYYO..", "..OYyyyyYO..", "..OYYYYYYO..", "..OYyyyYYO..", "..OOOOOOOO..", "............"]]}, "clipboard": {"fps": 1, "frames": [["....OOOO....", "...OgggGO...", "..OOOOOOOOO.", "..OXXXXXXXO.", "..OXYYYYYXO.", "..OXYyyyYXO.", "..OXYYYYYXO.", "..OXYyyyYXO.", "..OXYYYYYXO.", "..OXXXXXXXO.", "..OOOOOOOOO.", "............"]]}, "phone": {"fps": 1, "frames": [["............", "..OOOOOOOO..", ".OGGOOOOGGO.", ".OGO....OGO.", "..O.OOOO.O..", "...OGGGGO...", "..OGgOgOGO..", "..OGOgOgGO..", "..OGgOgOGO..", "..OGGGGGGO..", "..OOOOOOOO..", "............"]]}}}}}
+</json>
