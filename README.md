@@ -16,6 +16,12 @@ Figma 에이전트 맵(페이지 "에이전트 맵")의 세 에이전트를 Pyth
 | 실행 순서 | stairs_agents/pipeline.py | Mechanics를 먼저 실행하고, Designer와 Developer를 동시에 실행한 뒤 Publisher를 실행 |
 
 같은 에이전트를 Claude Code 서브에이전트로도 쓸 수 있도록 `.claude/agents/`에 md 파일로 정리했습니다(역할, 지시문, 전체 코드 포함): `stairs-mechanics.md`, `stairs-designer.md`, `stairs-developer.md`, `stairs-publisher.md`, `stairs-pipeline.md`.
+md 안의 코드는 원본의 사본이므로, `stairs_agents/`나 `prompts/`를 고친 뒤에는 다시 만들어야 합니다.
+
+```
+python tools/export_agents_md.py           # md 다시 만들기
+python tools/export_agents_md.py --check   # md가 원본과 같은지 검사 (다르면 종료 코드 1)
+```
 
 두 에이전트가 같은 에셋 이름을 쓰도록 docs/ASSET_LIST.md에 에셋 ID, 변형, 애니메이션 이름을 정해 두었습니다.
 각 에이전트에게 주는 지시문은 prompts/ 폴더에 있습니다.
