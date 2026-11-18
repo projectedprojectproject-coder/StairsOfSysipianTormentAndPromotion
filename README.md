@@ -65,6 +65,8 @@ python -m stairs_agents publisher
 
 ## 게임 조작
 
+규칙, 점수, 공략 팁까지 포함한 플레이어용 안내는 [HOWTOPLAY.txt](HOWTOPLAY.txt)에 있습니다.
+
 - 메뉴: 방향키로 선택, Enter 또는 Space로 결정, 마우스 클릭 가능
 - 플레이: ← → 다음 계단 방향으로 이동, Q 왼쪽 패링, E 오른쪽 패링, ESC 일시정지
 - 게임 안에서 보기: 타이틀과 일시정지 메뉴의 "조작법" 버튼 (닫기 버튼 또는 ESC로 닫음)

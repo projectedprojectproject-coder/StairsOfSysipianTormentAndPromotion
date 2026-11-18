@@ -32,6 +32,7 @@ Proof of Concept(PoC)입니다. 에이전트는 Python으로 작성되었고, �
  replay_api/           실제 Claude API로 실행했을 때 저장된 응답
  agent_map/            에이전트 맵 문서(docx), 그림(svg, png). Figma "에이전트 맵" 페이지와 같은 내용
  README.md             개발자용 상세 설명
+ HOWTOPLAY.txt         게임 방법 (조작, 규칙, 점수, 공략 팁)
  requirements.txt      Python 패키지 목록
 
 
