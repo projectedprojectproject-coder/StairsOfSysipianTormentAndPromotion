@@ -206,7 +206,7 @@
   }
 
   // ------------------------------------------------------------------ 게임 상태
-  let screen = "title", prevScreen = "title", settingsOpen = false, clock = 0;
+  let screen = "title", prevScreen = "title", settingsOpen = false, helpOpen = false, clock = 0;
   let G = null;
   const keysDown = {}, keyGlow = { ArrowLeft: 0, ArrowRight: 0, KeyQ: 0, KeyE: 0 };
 
@@ -236,12 +236,13 @@
   }
 
   function go(next) {
-    prevScreen = screen; screen = next; settingsOpen = false;
+    prevScreen = screen; screen = next; settingsOpen = false; helpOpen = false;
     if (next === "title") {
       setBgm("bgm_loop"); setAmb(false);
       setButtons([
         { label: "시작하기", x: 120, y: 112, w: 80, h: 16, on: () => go("lobby") },
-        { label: "설정", x: 120, y: 132, w: 80, h: 14, on: () => (settingsOpen = true, setButtons(settingsButtons())) },
+        { label: "조작법", x: 120, y: 132, w: 38, h: 14, on: openHelp },
+        { label: "설정", x: 162, y: 132, w: 38, h: 14, on: () => (settingsOpen = true, setButtons(settingsButtons())) },
       ]);
     } else if (next === "lobby") {
       newRun(); setAmb(true);
@@ -251,9 +252,10 @@
       setBgm(floorOf(G.step) >= CONFIG.TENSE_FROM_FLOOR ? "bgm_loop_tense" : "bgm_loop");
     } else if (next === "pause") {
       setButtons([
-        { label: "계속하기", x: 120, y: 74, w: 80, h: 16, on: () => go("play") },
-        { label: "설정", x: 120, y: 94, w: 80, h: 16, on: () => (settingsOpen = true, setButtons(settingsButtons())) },
-        { label: "메인으로", x: 120, y: 114, w: 80, h: 16, on: () => go("title") },
+        { label: "계속하기", x: 120, y: 70, w: 80, h: 14, on: () => go("play") },
+        { label: "조작법", x: 120, y: 88, w: 80, h: 14, on: openHelp },
+        { label: "설정", x: 120, y: 106, w: 80, h: 14, on: () => (settingsOpen = true, setButtons(settingsButtons())) },
+        { label: "메인으로", x: 120, y: 124, w: 80, h: 14, on: () => go("title") },
       ]);
     } else if (next === "result") {
       setAmb(false); setBgm(null);
@@ -263,6 +265,11 @@
       ]);
     }
     T.log.push("screen:" + next);
+  }
+  // 조작법: 설정과 같은 겹침 화면 (settingsOpen이 열려 있는 동안 게임은 멈춘다)
+  function openHelp() {
+    settingsOpen = true; helpOpen = true;
+    setButtons([{ label: "닫기", x: 120, y: 146, w: 80, h: 14, on: () => go(screen) }]);
   }
   function settingsButtons() {
     return [
@@ -381,6 +388,7 @@
       else if (code === "Escape") go("pause");
       return;
     }
+    if (settingsOpen && code === "Escape") { go(screen); return; } // 설정·조작법 닫기
     if (screen === "pause" && code === "Escape" && !settingsOpen) { go("play"); return; }
     if (!buttons.length) return;
     if (code === "ArrowLeft" || code === "ArrowUp") focus = (focus + buttons.length - 1) % buttons.length;
@@ -493,7 +501,7 @@
   function drawPause() {
     drawWorld(); drawHud();
     ctx.fillStyle = "rgba(20,21,24,0.7)"; ctx.fillRect(0, 0, LW, LH);                   // 05-4 요소 5
-    panel(100, 40, 120, 100, PAL.bg, PAL.main);
+    panel(100, 40, 120, 108, PAL.bg, PAL.main);
     text("일시정지", LW / 2, 50, 11, PAL.text, "center");                               // 요소 1
     drawButtons();                                                                       // 요소 2, 3, 4
   }
@@ -527,6 +535,29 @@
     drawButtons();
   }
 
+  function drawHelp() {
+    ctx.fillStyle = "rgba(20,21,24,0.8)"; ctx.fillRect(0, 0, LW, LH);
+    panel(56, 18, 208, 146, PAL.bg, PAL.main);
+    text("조작법", LW / 2, 24, 10, PAL.text, "center");
+    const rows = [
+      ["← →", "다음 계단 방향으로 한 칸 오르기"],
+      ["Q", "왼쪽 패링"],
+      ["E", "오른쪽 패링"],
+      ["ESC", "일시정지"],
+      ["Enter", "메뉴 결정 (방향키 선택·클릭)"],
+    ];
+    rows.forEach(([k, d], i) => {
+      const y = 42 + i * 15;
+      panel(66, y, 34, 12, PAL.main, PAL.text);
+      text(k, 83, y + 2, 7, PAL.text, "center");
+      text(d, 108, y + 2, 7, PAL.text, "left", 400);
+    });
+    text("서류 위 \"!\"는 1초 뒤 도착 신호. 도착 직전 0.2초 안에", LW / 2, 120, 6, PAL.warm, "center", 400);
+    text("날아오는 쪽 패링 키를 누르면 막습니다.", LW / 2, 129, 6, PAL.warm, "center", 400);
+    text("틀린 방향·놓친 공격은 하트 -1, 새 층마다 하트 +1", LW / 2, 138, 6, PAL.sub, "center", 400);
+    drawButtons();
+  }
+
   // ------------------------------------------------------------------ 루프
   let last = performance.now();
   function frame(now) {
@@ -543,13 +574,13 @@
     else if (screen === "play") { drawWorld(); drawHud(); }
     else if (screen === "pause") drawPause();
     else if (screen === "result") drawResult();
-    if (settingsOpen) drawSettings();
+    if (settingsOpen) (helpOpen ? drawHelp : drawSettings)();
 
     if (G) Object.assign(T, {
       floor: floorOf(G.step), rank: rankName(), hearts: G.hearts, days: G.days,
       score: G.score, maxMult: G.maxMult, steps: G.step,
     });
-    T.screen = settingsOpen ? screen + ":settings" : screen;
+    T.screen = settingsOpen ? screen + (helpOpen ? ":help" : ":settings") : screen;
     requestAnimationFrame(frame);
   }
 

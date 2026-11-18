@@ -67,13 +67,14 @@ python -m stairs_agents publisher
 
 - 메뉴: 방향키로 선택, Enter 또는 Space로 결정, 마우스 클릭 가능
 - 플레이: ← → 다음 계단 방향으로 이동, Q 왼쪽 패링, E 오른쪽 패링, ESC 일시정지
+- 게임 안에서 보기: 타이틀과 일시정지 메뉴의 "조작법" 버튼 (닫기 버튼 또는 ESC로 닫음)
 - URL 매개변수: `?seed=7` 난수 고정, `?bot=1` 자동 플레이, `?mute=1` 소리 끔
 
 ## 이 PoC에서 확인한 것과 확인하지 못한 것
 
 - replay/ 의 응답은 이 PoC를 만들 때 Claude(대화 세션)가 각 에이전트의 출력 형식에 맞춰 작성한 것입니다.
 - replay_api/ 의 응답은 claude-sonnet-5-5 API로 실제 실행해 저장한 것이며, 그 결과물이 demo_api/ 입니다. Developer 응답 약 6분, Designer 응답(에셋별 8건 동시 요청) 약 3분이 걸렸습니다.
-  - 예외: 플레이테스트 뒤 "새 층마다 하트 1 회복"(`floorHeal`)을 replay_api/developer_code.txt 와 demo_api/game.js 에 손으로 추가했습니다(6줄). 그 밖의 코드는 API가 만든 그대로입니다.
+  - 예외: 플레이테스트 뒤 "새 층마다 하트 1 회복"(`floorHeal`)과 타이틀·일시정지의 "조작법" 화면을 replay_api/developer_code.txt 와 demo_api/game.js 에 손으로 추가했습니다. 그 밖의 코드는 API가 만든 그대로입니다.
 - Designer가 모든 에셋을 한 번에 설계하면 응답이 64000 토큰을 넘어 잘렸기 때문에, 에셋마다 따로 요청하도록 바꾸었습니다.
 - 두 버전 모두 Designer의 렌더링과 합성, Developer의 파일 생성, Publisher의 변환, 연결, 브라우저 동작 확인 9개 항목, 내보내기까지 모두 실행해 통과를 확인했습니다.
 - 실제 API로 실행하면 Claude가 매번 다른 디자인과 코드를 만들기 때문에, Publisher의 동작 확인이 실패할 수 있습니다. 실패 내용은 dist/publisher_report.md에 남습니다.

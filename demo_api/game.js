@@ -303,6 +303,7 @@ let run = null;
 let result = null;
 let resultLock = 0;
 let settingsOpen = false;
+let helpOpen = false; // 조작법 화면
 let runCount = 0;
 let toastText = '', toastUntil = 0;
 const padUntil = [0, 0, 0, 0]; // ←, →, Q, E 키 아이콘 발광
@@ -550,10 +551,13 @@ function btn(id, label, x, y, w, h, fn, size) { return { id: id, label: label, x
 
 function openSettings() { settingsOpen = true; focus = 0; }
 function closeSettings() { settingsOpen = false; focus = 0; }
+function openHelp() { helpOpen = true; focus = 0; }
+function closeHelp() { helpOpen = false; focus = 0; }
 function toast(s) { toastText = s; toastUntil = time + 2.5; }
-function toTitle() { screen = 'title'; focus = 0; settingsOpen = false; }
+function toTitle() { screen = 'title'; focus = 0; settingsOpen = false; helpOpen = false; }
 
 function getButtons() {
+  if (helpOpen) return [btn('close', '닫기', 110, 146, 100, 14, closeHelp)];
   if (settingsOpen) {
     return [
       btn('snd', Snd.muted ? '꺼짐' : '켜짐', 170, 42, 88, 14, function () { Snd.muted = !Snd.muted; syncAudio(true); }),
@@ -572,7 +576,8 @@ function getButtons() {
     case 'title':
       return [
         btn('start', '시작하기', 112, 118, 96, 18, function () { screen = 'lobby'; focus = 0; }, 10),
-        btn('settings', '설정', 112, 140, 96, 16, openSettings),
+        btn('help', '조작법', 112, 140, 46, 16, openHelp),
+        btn('settings', '설정', 162, 140, 46, 16, openSettings),
       ];
     case 'lobby':
       return [
@@ -581,9 +586,10 @@ function getButtons() {
       ];
     case 'pause':
       return [
-        btn('resume', '계속하기', 100, 70, 120, 16, function () { screen = 'play'; focus = 0; }),
-        btn('settings', '설정', 100, 90, 120, 16, openSettings),
-        btn('main', '메인으로', 100, 110, 120, 16, function () { log('quit to title'); toTitle(); }),
+        btn('resume', '계속하기', 100, 66, 120, 14, function () { screen = 'play'; focus = 0; }),
+        btn('help', '조작법', 100, 84, 120, 14, openHelp),
+        btn('settings', '설정', 100, 102, 120, 14, openSettings),
+        btn('main', '메인으로', 100, 120, 120, 14, function () { log('quit to title'); toTitle(); }),
       ];
     case 'result':
       return [
@@ -603,7 +609,7 @@ function activate(b) {
 /* ---------------------------------------------------------------------
  * 입력
  * ------------------------------------------------------------------- */
-function menuMode() { return screen !== 'play' || settingsOpen; }
+function menuMode() { return screen !== 'play' || settingsOpen || helpOpen; }
 window.addEventListener('keydown', function (e) {
   unlockAudio();
   const c = e.code;
@@ -611,6 +617,7 @@ window.addEventListener('keydown', function (e) {
   if (e.repeat) return;
 
   if (c === 'Escape') {
+    if (helpOpen) { closeHelp(); return; }
     if (settingsOpen) { closeSettings(); return; }
     if (screen === 'play') { screen = 'pause'; focus = 0; return; }
     if (screen === 'pause') { screen = 'play'; focus = 0; return; }
@@ -900,6 +907,29 @@ function drawSettings() {
   drawButtons();
 }
 
+function drawHelp() {
+  rect(0, 0, W, H, PAL.bg, 0.7);
+  rect(50, 16, 220, 150, PAL.bg, 0.97); frameRect(50, 16, 220, 150, PAL.gray);
+  txt('조작법', 160, 21, { align: 'center', size: 10, bold: true });
+  const rows = [
+    ['← →', '다음 계단 방향으로 한 칸 오르기'],
+    ['Q', '왼쪽 패링'],
+    ['E', '오른쪽 패링'],
+    ['ESC', '일시정지'],
+    ['Enter', '메뉴 결정 (방향키 선택·클릭)'],
+  ];
+  rows.forEach(function (row, i) {
+    const y = 38 + i * 16;
+    rect(60, y, 36, 13, PAL.gray); frameRect(60, y, 36, 13, PAL.text);
+    txt(row[0], 78, y + 7, { align: 'center', base: 'middle', size: 7, bold: true });
+    txt(row[1], 104, y + 7, { base: 'middle', size: 7 });
+  });
+  txt('서류 위 "!"는 1초 뒤 도착 신호. 도착 직전 0.2초 안에', 160, 120, { align: 'center', size: 6, color: PAL.green });
+  txt('날아오는 쪽 패링 키를 누르면 막습니다.', 160, 129, { align: 'center', size: 6, color: PAL.green });
+  txt('틀린 방향·놓친 공격은 하트 -1, 새 층마다 하트 +1', 160, 138, { align: 'center', size: 6, color: PAL.text });
+  drawButtons();
+}
+
 /* ---------------------------------------------------------------------
  * 05-5 결과
  * ------------------------------------------------------------------- */
@@ -1001,6 +1031,7 @@ function draw() {
     if (screen === 'pause' || screen === 'play') { /* 뒤 화면은 이미 그려짐 */ }
     drawSettings();
   }
+  if (helpOpen) drawHelp();
 }
 function publish() {
   S.ready = assetsReady;
