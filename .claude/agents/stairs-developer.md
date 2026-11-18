@@ -10,7 +10,7 @@ tools: Read, Grep, Glob, Bash, Edit, Write
 
 ## 입력과 출력
 
-- 입력: `docs/GDD.md`(01, 04, 05 중심), `docs/ASSET_LIST.md`
+- 입력: `docs/GDD.md`(01, 04, 05 중심), `docs/ASSET_LIST.md`, `output/mech_out/mechanics.json`(Mechanics 명세, 있으면 CONFIG와 층 진행 값을 그대로 옮김)
 - 출력: `output/dev_out/` 의 `index.html`, `game.js`, `sprite_definition.json`
 - `sprite_definition.json`의 수용 형식: 이미지 JPEG·PNG 스프라이트 맵, 사운드 MP3·OGG
 
@@ -27,6 +27,7 @@ tools: Read, Grep, Glob, Bash, Edit, Write
 - 플레이테스트 반영: 새 층에 오를 때마다 하트 1 회복(`CONFIG.FLOOR_HEAL`, 최대 3).
 - 재생 모드 응답은 `replay/developer_code.txt`에 있습니다. 게임 코드를 고칠 때는 이 파일을 고친 뒤 파이프라인을 다시 돌리고, 결과(`output/build/game.js`)를 `demo/game.js`에 반영합니다.
 - API 버전(`replay_api/developer_code.txt`, `demo_api/game.js`)에도 같은 규칙이 `CONFIG.floorHeal`로 들어가 있습니다. 확인: `python -m stairs_agents run --replay replay_api --out output_api`
+- 재생 응답 두 개는 Mechanics 이전에 만든 것이라 아직 `mechanics.json`을 읽지 않습니다. 명세를 반영한 코드는 API로 다시 실행해야 나옵니다.
 
 ## 실행
 
@@ -73,6 +74,15 @@ index.html은 game.js보다 먼저 <script src="assets/sprite_definition.js"></s
 - assets_dir 기준 상대 경로. 프레임 (열, 행)의 픽셀 위치는 (열*frame_w, 행*frame_h).
 에셋 하나가 없거나 불러오기에 실패해도 게임은 멈추지 말고 색 사각형으로 대신 그리며, 실패 목록을 기록한다.
 
+## 메카니즘 명세 (mechanics.json)를 받았을 때
+- 입력에 "메카니즘 명세 (Mechanics, mechanics.json)"가 있으면, 게임 규칙과 수치는 직접 정하지 말고 이 명세를 그대로 옮긴다.
+  - config의 각 value를 game.js 맨 위 CONFIG에 같은 이름으로 넣고, source가 "기획서 미정"인 값에는 주석으로 "기획서 미정 (Mechanics)"과 reason을 적는다.
+  - floors, threats, scoring, endings는 CONFIG 아래 MECH 객체에 그대로 넣고, 층 진행·공격 생성·점수 계산이 이 표를 읽게 한다.
+  - scope.buildFloors가 이번 빌드 범위다. 마지막 층에 도달하면 그 층의 판정을 결과 화면에 보여 주고 판을 마친다.
+  - events의 이름으로 효과음과 window.__stairs.log 기록을 연결한다.
+- 명세와 아래 기획서 항목이 어긋나 보이면 명세를 따르고, 응답 끝 설명에 어긋난 점을 짧게 적는다.
+- 명세가 없으면 아래 항목대로 직접 정한다.
+
 ## 반드시 구현할 것 (기획서 근거)
 - 화면 5종과 이동 경로: 05-1 타이틀, 05-2 로비, 05-3 플레이, 05-4 일시정지(ESC), 05-5 결과. 각 화면의 번호 요소를 모두 배치한다.
 - 조작 (04): ← → 로 다음 계단 방향으로 한 칸 이동, Q 왼쪽 패링, E 오른쪽 패링, 이동과 패링 동시 입력 가능. 튜토리얼 없음.
@@ -104,7 +114,8 @@ index.html은 game.js보다 먼저 <script src="assets/sprite_definition.js"></s
 """Developer 에이전트.
 
 역할 (에이전트 맵): 코드와 시스템을 개발하고 스프라이트를 정의한다.
-입력: docs/GDD.md (01, 04, 05 중심), docs/ASSET_LIST.md
+입력: docs/GDD.md (01, 04, 05 중심), docs/ASSET_LIST.md,
+      output/mech_out/mechanics.json (Mechanics 명세, 있으면 CONFIG와 진행 값을 그대로 옮긴다)
 출력: output/dev_out/ 의 index.html, game.js, sprite_definition.json
       sprite_definition.json의 accepted_formats는 이미지 JPEG, PNG 스프라이트 맵, 사운드 MP3, OGG.
 """
@@ -136,6 +147,9 @@ class DeveloperAgent:
         p = self.paths
         ctx = ("# 기획서 (GDD)\n" + read(p.docs / "GDD.md") +
                "\n\n# 공통 에셋 목록 (ASSET_LIST)\n" + read(p.docs / "ASSET_LIST.md"))
+        mech = p.mech_out / "mechanics.json"
+        if mech.exists():
+            ctx += "\n\n# 메카니즘 명세 (Mechanics, mechanics.json)\n" + read(mech)
 
         log.info("[Developer] 게임 코드와 스프라이트 정의 작성 요청")
         files = extract_files(self.llm.complete(

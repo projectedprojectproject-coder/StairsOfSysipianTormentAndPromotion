@@ -6,7 +6,7 @@ tools: Read, Grep, Glob, Bash, Edit, Write
 
 # 파이프라인 (조율과 공통 계층)
 
-에이전트 맵의 실행 순서입니다. **Designer와 Developer를 동시에** 돌리고, 둘 다 끝나면 **Publisher**를 돌립니다.
+에이전트 맵의 실행 순서입니다. **Mechanics**로 규칙과 수치를 먼저 확정하고, **Designer와 Developer를 동시에** 돌린 뒤, 둘 다 끝나면 **Publisher**를 돌립니다. 재생 폴더에 Mechanics 응답이 없으면(예: `replay_api`) Mechanics는 건너뜁니다.
 
 ## 구성
 
@@ -24,6 +24,7 @@ tools: Read, Grep, Glob, Bash, Edit, Write
 python -m stairs_agents run                    # Claude API (ANTHROPIC_API_KEY 필요)
 python -m stairs_agents run --record           # 응답을 replay/ 에 저장
 python -m stairs_agents run --replay replay    # API 키 없이 실행, 마지막에 "동작 확인 통과"
+python -m unittest discover tests              # Mechanics 검사기 시험
 ```
 
 선택 사항: `--model`(기본 claude-sonnet-5-5), `--max-tokens`(기본 64000), `--no-resource-db`.
@@ -37,7 +38,7 @@ API 키는 환경 변수 `ANTHROPIC_API_KEY`로만 넘기고, 파일에 적거�
 ### `stairs_agents/pipeline.py`
 
 ```python
-"""에이전트 맵대로 실행한다: Designer와 Developer를 동시에 돌린 뒤 Publisher를 돌린다."""
+"""에이전트 맵대로 실행한다: Mechanics로 규칙을 확정하고, Designer와 Developer를 동시에 돌린 뒤 Publisher를 돌린다."""
 from __future__ import annotations
 
 import time
@@ -45,12 +46,15 @@ from concurrent.futures import ThreadPoolExecutor
 
 from .designer import DesignerAgent
 from .developer import DeveloperAgent
+from .mechanics import MechanicsAgent
 from .publisher import PublisherAgent
 from .util import Paths, log
 
 
 def run_pipeline(llm, paths: Paths, use_resource_db: bool = True, skip_test: bool = False) -> dict:
     t0 = time.time()
+    # Developer가 mechanics.json을 읽으므로 Mechanics를 먼저 끝낸다
+    mech = MechanicsAgent(llm, paths).run()
     designer = DesignerAgent(llm, paths, use_resource_db=use_resource_db)
     developer = DeveloperAgent(llm, paths)
     with ThreadPoolExecutor(max_workers=2) as ex:
@@ -69,7 +73,7 @@ def run_pipeline(llm, paths: Paths, use_resource_db: bool = True, skip_test: boo
         publisher.test = lambda: False
     pub = publisher.run()
     log.info("파이프라인 완료 (%.1f초): %s", time.time() - t0, pub["zip"])
-    return {"designer": design, "developer": dev, "publisher": pub}
+    return {"mechanics": mech, "designer": design, "developer": dev, "publisher": pub}
 ```
 
 ### `stairs_agents/llm.py`
@@ -191,6 +195,8 @@ class Paths:
     def data(self) -> Path: return self.root / "data"
     @property
     def design_out(self) -> Path: return self.out / "design_out"
+    @property
+    def mech_out(self) -> Path: return self.out / "mech_out"
     @property
     def dev_out(self) -> Path: return self.out / "dev_out"
     @property
@@ -316,7 +322,7 @@ def check_manifest(contract: dict, manifest: dict) -> list[str]:
   python -m stairs_agents run                       # Claude API로 실행 (ANTHROPIC_API_KEY 필요)
   python -m stairs_agents run --record              # API 응답을 replay/ 에 저장
   python -m stairs_agents run --replay replay       # 저장된 응답으로 실행 (API 키 불필요)
-  python -m stairs_agents designer|developer|publisher [...]   # 에이전트 하나만 실행
+  python -m stairs_agents mechanics|designer|developer|publisher [...]   # 에이전트 하나만 실행
 """
 from __future__ import annotations
 
@@ -328,6 +334,7 @@ from pathlib import Path
 from .designer import DesignerAgent
 from .developer import DeveloperAgent
 from .llm import DEFAULT_MODEL, ClaudeClient, LLMError, RecordingClient, ReplayClient
+from .mechanics import MechanicsAgent
 from .pipeline import run_pipeline
 from .publisher import PublisherAgent
 from .util import ROOT, Paths
@@ -342,7 +349,7 @@ def make_llm(args):
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="stairs_agents", description="승급의 계단 에이전트 PoC")
-    ap.add_argument("command", choices=["run", "designer", "developer", "publisher"])
+    ap.add_argument("command", choices=["run", "mechanics", "designer", "developer", "publisher"])
     ap.add_argument("--model", default=DEFAULT_MODEL, help=f"Claude 모델 (기본 {DEFAULT_MODEL})")
     ap.add_argument("--max-tokens", type=int, default=64000)
     ap.add_argument("--replay", help="저장된 응답 폴더로 실행 (API 호출 없음)")
@@ -363,6 +370,9 @@ def main(argv=None) -> int:
     except LLMError as e:
         print(f"오류: {e}\nAPI 키 없이 시험하려면 --replay replay 를 붙여 실행하세요.", file=sys.stderr)
         return 2
+    if args.command == "mechanics":
+        result = MechanicsAgent(llm, paths).run()
+        return 1 if result["problems"] and not result["skipped"] else 0
     if args.command == "designer":
         DesignerAgent(llm, paths, use_resource_db=not args.no_resource_db).run()
         return 0
