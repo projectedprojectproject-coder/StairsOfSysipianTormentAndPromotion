@@ -265,6 +265,11 @@
     play("sfx_hit", 0.6); T.log.push("hurt:" + reason);
     if (G.hearts <= 0) endRun("gameover");
   }
+  // 캐릭터 위 문구: lane 0 = 패링, lane 1 = 하트 회복 (12px 위). 같은 줄에는 하나만 둔다
+  function popup(text, side, lane, color) {
+    G.popups = G.popups.filter((q) => q.lane !== lane);
+    G.popups.push({ text, t: 0.6, side, lane, color });
+  }
   function tryStep(dir) {
     if (screen !== "play") return;
     G.facing = dir;
@@ -277,7 +282,7 @@
       const f = floorOf(G.step);
       if (f > floorOf(G.step - 1) && G.hearts < CONFIG.HEARTS) { // 새 층 도착: 하트 회복
         G.hearts = Math.min(CONFIG.HEARTS, G.hearts + CONFIG.FLOOR_HEAL);
-        G.popups.push({ text: "하트 +1", t: 0.6, side: 0 });
+        popup("하트 +1", 0, 1, PAL.sub);
         T.log.push("heal:floor" + f);
       }
       if (f >= CONFIG.TENSE_FROM_FLOOR) setBgm("bgm_loop_tense");
@@ -297,7 +302,7 @@
     G.maxMult = Math.max(G.maxMult, G.mult);
     G.days = Math.min(CONFIG.DAYS_MAX, G.days + CONFIG.PARRY_DAYS);
     G.score += CONFIG.PARRY_SCORE * G.mult;
-    G.popups.push({ text: G.mult > 1 ? `×${G.mult}` : "막았다!", t: 0.6, side });
+    popup(G.mult > 1 ? `×${G.mult}` : "막았다!", side, 0, PAL.warm);
     play("sfx_parry", 0.5);
   }
   function promote() {
@@ -451,7 +456,7 @@
       ctx.globalAlpha = 1;
       if (!a.done) sprite("warning", "blink", "default", G.t, ax, ay - 8);
     }
-    for (const q of G.popups) text(q.text, px + q.side * 22, py - 34 - (0.6 - q.t) * 20, 8, PAL.warm, "center");
+    for (const q of G.popups) text(q.text, px + q.side * 22, py - 34 - q.lane * 12 - (0.6 - q.t) * 20, 8, q.color, "center");
   }
   function drawHud() {
     const floor = floorOf(G.step);

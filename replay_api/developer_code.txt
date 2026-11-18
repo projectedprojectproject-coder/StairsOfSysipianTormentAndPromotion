@@ -424,12 +424,13 @@ function doStep(dir) {
   if (nf > r.floor) {
     r.floor = nf;
     r.score += CONFIG.floorPoints * r.mult;
-    addText(nf + 'F', 160, 70, PAL.text);
     log('floor ' + nf);
-    if (r.hearts < CONFIG.maxHearts) {  // 새 층 도착: 하트 회복
+    if (r.hearts < CONFIG.maxHearts) {  // 새 층 도착: 하트 회복 (층 표시와 한 줄로 보여 겹치지 않게)
       r.hearts = Math.min(CONFIG.maxHearts, r.hearts + CONFIG.floorHeal);
-      addText('하트 +1', 160, 82, PAL.green);
+      addText(nf + 'F · 하트 +1', 160, 70, PAL.green);
       log('heart +1 (floor) hearts=' + r.hearts);
+    } else {
+      addText(nf + 'F', 160, 70, PAL.text);
     }
     if (nf >= CONFIG.promoteFloor) promote();
   }
