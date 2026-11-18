@@ -67,6 +67,7 @@ python -m stairs_agents publisher
 
 규칙, 점수, 공략 팁까지 포함한 플레이어용 안내는 [HOWTOPLAY.txt](HOWTOPLAY.txt)에 있습니다.
 플레이테스트 결과(유형별 자동 플레이, 1~100층 명세 시뮬레이션, 전체화면 직접 플레이)와 그에 따른 수정 내역은 [docs/PLAYTEST_REPORT.md](docs/PLAYTEST_REPORT.md)에 정리했습니다.
+같은 테스트를 다시 돌리는 도구는 `tools/playtest.py`(실시간 자동 플레이, `--game demo` 또는 `--game demo_api`)와 `tools/sim_spec.py`(1~100층 명세 시뮬레이션)입니다.
 
 - 메뉴: 방향키로 선택, Enter 또는 Space로 결정, 마우스 클릭 가능
 - 플레이: ← → 다음 계단 방향으로 이동, Q 왼쪽 패링, E 오른쪽 패링, ESC 일시정지

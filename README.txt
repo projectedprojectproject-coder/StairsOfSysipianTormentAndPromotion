@@ -34,6 +34,10 @@ Proof of Concept(PoC)입니다. 에이전트는 Python으로 작성되었고, �
  README.md             개발자용 상세 설명
  HOWTOPLAY.txt         게임 방법 (조작, 규칙, 점수, 공략 팁)
  docs/PLAYTEST_REPORT.md   플레이테스트 결과와 수정 내역
+ tools/                개발 도구
+   playtest.py           유형별 실시간 자동 플레이테스트 (--game demo | demo_api)
+   sim_spec.py           Mechanics 명세 1~100층 시뮬레이션
+   export_agents_md.py   .claude/agents/*.md 다시 만들기 (--check 로 검사)
  requirements.txt      Python 패키지 목록
 
 
