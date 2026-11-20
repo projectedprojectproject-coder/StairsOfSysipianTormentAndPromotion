@@ -404,6 +404,11 @@
       "file": "bg_result.png",
       "w": 640,
       "h": 360
+    },
+    "bg_practice": {
+      "file": "bg_practice.png",
+      "w": 640,
+      "h": 360
     }
   },
   "sounds": {

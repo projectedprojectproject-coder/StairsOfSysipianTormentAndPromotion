@@ -22,6 +22,7 @@
 | logo | image | logo.png | logo.png | 일치, 복사 |
 | bg_lobby | image | bg_lobby.png | bg_lobby.png | 일치, 복사 |
 | bg_result | image | bg_result.png | bg_result.png | 일치, 복사 |
+| bg_practice | image | bg_practice.png | bg_practice.png | 일치, 복사 |
 | bgm_loop | audio | bgm_loop.wav | bgm_loop.mp3, bgm_loop.ogg | 불일치, wav -> mp3, ogg 변환 |
 | bgm_loop_tense | audio | bgm_loop_tense.wav | bgm_loop_tense.mp3, bgm_loop_tense.ogg | 불일치, wav -> mp3, ogg 변환 |
 | amb_office | audio | amb_office.wav | amb_office.mp3, amb_office.ogg | 불일치, wav -> mp3, ogg 변환 |
@@ -56,13 +57,13 @@
 | 타이틀 -> 로비 이동 | 통과 |  |
 | 로비 -> 플레이 이동 | 통과 |  |
 | 일시정지 (ESC)와 남은 일수 정지 | 통과 | 29.83 -> 29.83 |
-| 100층 도달과 승급 판정 | 통과 | 층 100, 직급 CEO (목표 100층 CEO), 점수 16480, 최고 배수 x3 |
-| 입력 없음 -> 구조조정 (게임 오버) | 통과 | 8.1초 뒤, 하트 0, 남은 일수 5.3 |
+| 100층 도달과 승급 판정 | 통과 | 층 100, 직급 CEO (목표 100층 CEO), 점수 17220, 최고 배수 x3 |
+| 입력 없음 -> 구조조정 (게임 오버) | 통과 | 8.1초 뒤, 하트 0, 남은 일수 5.4 |
 | 파일로 직접 열기 (file://) | 통과 |  |
 | 브라우저 오류 없음 | 통과 |  |
 
 ## 4. 내보내기
 
 - 파일: 승급의계단_PoC_web.zip
-- 포함 파일 수: 62
+- 포함 파일 수: 63
 - 동작 확인 전체 통과: 예

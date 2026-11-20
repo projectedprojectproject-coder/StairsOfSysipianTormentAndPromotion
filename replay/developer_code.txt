@@ -441,9 +441,8 @@
     play("sfx_promote", 0.6);
     T.log.push("promote:" + f + ":" + rankName());
     if (f >= CONFIG.FINAL_FLOOR) { endRun("promote"); return; }
-    // 20·40층: 승급 심사 통과 문구를 띄우고 계속 오른다. 날아오던 것은 치운다
+    // 20·40·60·80층: 승급 문구를 띄우고 계속 오른다. 날아오던 장애물은 그대로 둔다 (결정 2026-11-20)
     G.banner = { text: `승급! ${CONFIG.RANKS[G.rankIdx - 1]} → ${rankName()}`, t: 1.6 };
-    G.attacks = [];
   }
   function endRun(kind) {
     G.result = kind;
@@ -661,12 +660,19 @@
   }
   function drawWorld() {
     const floor = floorOf(G.step), zone = zoneOf(floor);
-    image("bg_zone" + zone, 0, 0);
+    const practice = G.mode === "practice";
+    // 연습 모드: 계단 없는 평범한 사무실(로비 배경), 플레이어는 사무실 바닥에 선다
+    if (practice) {   // 옆에서 본 사무실(bg_practice): 가구는 플레이어 크기, 발 높이(y 128)에 바닥이 있어 경쟁 사원도 그 위를 걷는다
+      if (IMG.bg_practice) image("bg_practice", 0, 0); else { image("bg_lobby", 0, 0); ctx.fillStyle = "#3A3D42"; ctx.fillRect(0, 128, LW, LH - 128); }
+      [[30, "cooler"], [96, "plant"], [228, "boxes"], [296, "cabinet"]].forEach(([x, name]) => sprite("props", name, "default", 0, x, 128));
+    }
+    else image("bg_zone" + zone, 0, 0);
     const ox = 160 - G.camX, oy = 128 - G.camY;
     const st = DEF.sprites && DEF.sprites.stairs;
     const tw = st ? st.frame_w / PX : 32, th = st ? st.frame_h / PX : 8;
     const RAIL = ["#4E5733", "#44484E", "#5C4F3B", "#5E2323", "#8A6A2E"][zone - 1];
     const PROPS = ["cooler", "boxes", "plant", "cabinet"];
+    if (!practice) {   // ---- 계단, 층 바닥, 소품, 난간 (연습 모드에는 없다)
     // 층 바닥(콘크리트 슬래브)과 소품: 층이 바뀌는 칸 높이에 화면 끝까지 깐다
     const spf = CONFIG.STEPS_PER_FLOOR;
     for (let i = Math.floor(Math.max(0, G.step - 12) / spf) * spf; i < G.step + 16; i += spf) {
@@ -719,6 +725,9 @@
       ctx.fillRect(snap(ax) - 0.5, ay - 12, 1, 12);
       const n = Math.max(1, Math.round(Math.max(Math.abs(bx - ax), Math.abs(by - ay)) * PX));
       for (let s = 0; s <= n; s++) ctx.fillRect(snap(ax + (bx - ax) * s / n) - 0.5, snap(ay - 12 + (by - ay) * s / n), 1, 2 / PX);
+    }
+    } else {           // 연습 모드: 발밑 그림자
+      ctx.fillStyle = "rgba(10,11,13,0.45)"; ctx.fillRect(160 - 9, 127, 18, 2);
     }
     // 플레이어
     const pp = stairPos(G.step);
@@ -1136,6 +1145,9 @@
       "file": null
     },
     "bg_result": {
+      "file": null
+    },
+    "bg_practice": {
       "file": null
     }
   },
