@@ -19,9 +19,18 @@ Developer 바로 뒤에 도는 품질 확인 에이전트입니다. 코드를 �
 2. Claude 검토: 규칙 결과, Developer 규칙, `game.js`를 보내 판정 규칙·진행·화면 흐름·버그 위험을 검토받습니다(`prompts/qa_developer.md`). 재생 모드에 `qa_developer_review.txt`가 없으면 건너뜁니다.
 3. 판정은 Designer QA와 같습니다.
 
+## 2단계: 화면 대조 (Publisher 뒤)
+
+`qa_screens.py`가 Publisher가 찍은 실제 게임 화면(`output/dist/screens`)을 컨셉 화면(`data/concept/05-1_title.png`, `05-2_lobby.png`, `05-3_play.png`, `05-5_result_gameover.png`)과 비교합니다. 비교할 화면과 컨셉의 번호 요소는 `data/concept/regions.json`의 `screens`에 있습니다.
+
+- 규칙 검사: 밝고 어두운 배치의 상관(구도, 0.3 이상), 강조색(빨강) 요소 자리의 겹침(0.25 이상), 색 거리, 밝기 차
+- Claude 검토: 대조표(`output/qa_out/screens_contact.png`, 왼쪽 컨셉, 오른쪽 게임)와 번호 요소 목록으로 요소마다 있는지, 자리와 모양이 맞는지 보고 고칠 쪽(Developer/Designer)을 적습니다 (`prompts/qa_screens.md`)
+- 보고서: `output/qa_out/screens_qa.md`
+
 ## 실행
 
 ```bash
+python -m stairs_agents qa-screens --replay replay   # 화면 대조만
 python -m stairs_agents qa-developer --replay replay
 python -m stairs_agents qa --replay replay      # Designer QA와 함께
 ```
@@ -60,6 +69,38 @@ python -m stairs_agents qa --replay replay      # Designer QA와 함께
   "issues": [
     { "asset": "함수나 위치 (예: game.js update() 패링 판정)", "severity": "high" | "mid" | "low",
       "problem": "무엇이 틀렸고 어떤 상황에서 드러나는가", "fix": "고칠 코드 방향" }
+  ]
+}
+```
+
+### `prompts/qa_screens.md`
+
+```markdown
+너는 게임 "승급의 계단"의 화면 대조 QA 에이전트다(Developer QA 2단계). Publisher가 실제 게임에서 찍은 화면을 기획서 컨셉 화면과 비교해, 빠지거나 다른 요소를 찾고 누가 무엇을 고칠지 지시한다.
+
+## 받는 것
+- 규칙 검사 결과 JSON: 화면마다 구도 상관(밝고 어두운 배치), 강조색(빨강) 위치 겹침, 색 거리, 밝기 차
+- 화면별 컨셉 번호 요소 목록 (컨셉 그림의 분홍 번호와 같다)
+- 대조표 이미지: 줄마다 왼쪽이 컨셉, 오른쪽이 실제 게임 화면 (타이틀, 로비, 플레이, 구조조정 결과)
+
+## 볼 것
+1. 번호 요소마다: 있는가, 자리(화면의 어느 쪽)와 크기가 비슷한가, 모양(판, 버튼, 카드, 표)이 같은 종류인가.
+2. 분위기: 배경 장면(사무실, 거리)과 조명, 색이 컨셉과 같은 게임으로 보이는가.
+3. 글자: 컨셉의 문구와 같은 정보가 같은 자리에 있는가 (값은 실제 플레이 기록이라 달라도 된다).
+4. 고칠 쪽: 배치·버튼·표·글자는 Developer(game.js), 배경 그림·캐릭터·소품은 Designer(명세).
+
+## 하지 말 것
+- 컨셉에 없는 요소를 요구하지 않는다. 플레이 기록 값(층, 점수)이 다른 것은 문제로 보지 않는다.
+- high는 컨셉의 번호 요소가 통째로 없거나 화면의 뜻이 달라지는 경우에만 쓴다.
+
+## 출력 형식
+<json> 와 </json> 사이에 아래 JSON만 넣는다.
+{
+  "verdict": "pass" 또는 "revise",
+  "summary": "두세 문장 총평",
+  "issues": [
+    { "asset": "화면/요소 번호 (예: 2_lobby/3)", "severity": "high" | "mid" | "low",
+      "problem": "컨셉과 무엇이 다른가", "fix": "Developer: ... 또는 Designer: ..." }
   ]
 }
 ```
@@ -232,6 +273,120 @@ class DeveloperQAAgent:
                 "\n\n# game.js\n" + js + "\n\n위 출력 형식으로 검토하라.")
         ask_review(self.llm, p, rep, self.name, user)
         return save(p, rep, "Developer QA 보고서", t0)
+```
+
+### `stairs_agents/qa_screens.py`
+
+```python
+"""화면 대조 QA (Developer QA 2단계, Publisher 뒤에 돈다).
+
+역할: Publisher가 실제 게임에서 찍은 화면(output/dist/screens)을 컨셉 화면(data/concept)과 나란히 놓고
+      구도, 강조색(빨강) 위치, 색, 밝기를 재고, 컨셉의 번호 요소 목록과 함께 Claude 시각 검토를 받는다.
+      화면 배치와 UI는 Developer, 그림은 Designer의 몫이므로 문제마다 어느 쪽이 고칠지 적는다.
+입력: output/dist/screens/*.png, data/concept/regions.json 의 "screens" (화면 -> 컨셉 이미지, 번호 요소)
+출력: output/qa_out/screens_qa.md, screens_qa.json, screens_contact.png
+"""
+from __future__ import annotations
+
+import json
+import time
+from pathlib import Path
+
+from PIL import Image, ImageDraw
+
+from . import concept
+from .qa import QAReport, ask_review, save
+from .util import Paths, log
+
+ACCENT = concept.rgb("#A13D3D")
+GRID = (64, 36)
+
+
+def _gray(im: Image.Image) -> list[float]:
+    g = im.convert("L").resize(GRID, Image.Resampling.BOX)
+    return list(g.get_flattened_data() if hasattr(g, "get_flattened_data") else g.getdata())
+
+
+def layout_corr(a: Image.Image, b: Image.Image) -> float:
+    """두 화면의 밝고 어두운 배치 상관계수 (-1~1, 1이면 구도가 같다)."""
+    x, y = _gray(a), _gray(b)
+    mx, my = sum(x) / len(x), sum(y) / len(y)
+    sxy = sum((p - mx) * (q - my) for p, q in zip(x, y))
+    sx = sum((p - mx) ** 2 for p in x) ** 0.5
+    sy = sum((q - my) ** 2 for q in y) ** 0.5
+    return round(sxy / (sx * sy), 3) if sx and sy else 0.0
+
+
+def accent_mask(im: Image.Image) -> list[bool]:
+    small = im.convert("RGB").resize(GRID, Image.Resampling.BOX)
+    px = small.get_flattened_data() if hasattr(small, "get_flattened_data") else small.getdata()
+    return [concept.dist(c, ACCENT) < 95 and c[0] > c[1] + 35 for c in px]
+
+
+def accent_iou(a: Image.Image, b: Image.Image) -> tuple[float, float]:
+    """강조색(빨강) 영역의 겹침과, 컨셉에서 강조색이 차지하는 비율."""
+    ma, mb = accent_mask(a), accent_mask(b)
+    inter = sum(p and q for p, q in zip(ma, mb)); union = sum(p or q for p, q in zip(ma, mb))
+    return (round(inter / union, 3) if union else 1.0), round(sum(mb) / len(mb), 3)
+
+
+def run_screen_qa(llm, paths: Paths) -> dict:
+    t0 = time.time()
+    rep = QAReport("screens")
+    spec = concept.load_regions()
+    screens = spec.get("screens") or {}
+    shots = paths.dist / "screens"
+    base = concept.REGIONS.parent
+    pairs = []
+    if not rep.check("화면 캡처", shots.exists(), "output/dist/screens " + ("있음" if shots.exists() else "없음 (Publisher를 먼저 실행)"), "high"):
+        return save(paths, rep, "화면 대조 QA 보고서 (Developer QA 2단계)", t0)
+    for name, s in screens.items():
+        shot = shots / f"{name}.png"
+        cfile = base / spec["images"][s["concept"]]
+        if not shot.exists() or not cfile.exists():
+            rep.check(f"{name} 파일", False, f"없음: {shot.name if not shot.exists() else cfile.name}", "mid", name)
+            continue
+        a, b = Image.open(shot).convert("RGB"), Image.open(cfile).convert("RGB")
+        corr = layout_corr(a, b)
+        iou, share = accent_iou(a, b)
+        pd = concept.palette_distance([c["hex"] for c in concept.dominant(b, 8)], [c["hex"] for c in concept.dominant(a, 8)])
+        dl = round(abs(concept.luminance(a) - concept.luminance(b)), 1)
+        rep.metrics[name] = f"컨셉 {s['concept']}: 구도 상관 {corr}, 강조색 겹침 {iou} (컨셉 강조색 {share:.0%}), 색 거리 {pd}, 밝기 차 {dl}"
+        who = s.get("owner", "Developer")
+        rep.check(f"{name} 구도", corr >= 0.3, f"밝고 어두운 배치 상관 {corr} (0.3 이상 목표)", "mid", name,
+                  f"{who}: 컨셉 {s['concept']}의 요소 배치를 따른다 — " + "; ".join(s["elements"][:3]))
+        if share >= 0.01:
+            rep.check(f"{name} 강조색 위치", iou >= 0.25, f"빨간 요소 겹침 {iou} (0.25 이상 목표)", "mid", name,
+                      f"{who}: 컨셉에서 빨간 요소(버튼·판정 판·D-일수)가 있는 자리에 같은 강조색 요소를 둔다")
+        rep.check(f"{name} 색·밝기", pd <= 80 and dl <= 35, f"색 거리 {pd}, 밝기 차 {dl}", "low", name,
+                  "Designer: 배경 이미지의 색과 밝기를 컨셉에 맞춘다")
+        pairs.append((name, s, a, b))
+    contact = _contact(pairs, paths)
+    rep.metrics["대조표"] = str(contact)
+    user = ("# 화면 대조 규칙 검사 결과\n" + json.dumps(rep.to_dict(), ensure_ascii=False, indent=1) +
+            "\n\n# 화면별 컨셉 번호 요소\n" + "\n".join(
+                f"## {n} (컨셉 {s['concept']})\n" + "\n".join("- " + e for e in s["elements"]) for n, s, _, _ in pairs) +
+            "\n\n대조표 이미지는 줄마다 왼쪽이 컨셉, 오른쪽이 실제 게임 화면이다. 요소마다 있는지, 자리와 모양이 맞는지 보고, "
+            "issues의 asset에는 '화면/요소 번호', fix 앞에는 고칠 쪽(Developer 또는 Designer)을 적어라.")
+    ask_review(llm, paths, rep, "qa_screens", user, images=[str(contact)])
+    return save(paths, rep, "화면 대조 QA 보고서 (Developer QA 2단계)", t0)
+
+
+def _contact(pairs, paths: Paths) -> Path:
+    W, H, pad = 640, 360, 10
+    sheet = Image.new("RGB", (W * 2 + pad * 3, (H + pad + 14) * max(1, len(pairs)) + pad), (40, 42, 47))
+    d = ImageDraw.Draw(sheet)
+    y = pad
+    for name, s, shot, con in pairs:
+        d.text((pad, y), f"concept {s['concept']}", fill=(232, 230, 223))
+        d.text((W + pad * 2, y), f"game {name}", fill=(232, 230, 223))
+        sheet.paste(con.resize((W, H)), (pad, y + 14)); sheet.paste(shot.resize((W, H)), (W + pad * 2, y + 14))
+        y += H + pad + 14
+    out = paths.out / "qa_out" / "screens_contact.png"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    sheet.save(out)
+    log.info("[화면 QA] 대조표: %s", out)
+    return out
 ```
 
 ### `stairs_agents/qa.py`

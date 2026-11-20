@@ -141,6 +141,20 @@
             5
           ],
           "fps": 6
+        },
+        "monitor": {
+          "frames": [
+            6,
+            7
+          ],
+          "fps": 5
+        },
+        "coffee": {
+          "frames": [
+            8,
+            9
+          ],
+          "fps": 4
         }
       }
     },
@@ -284,6 +298,46 @@
           "fps": 1
         }
       }
+    },
+    "commuter": {
+      "file": "commuter.png",
+      "frame_w": 20,
+      "frame_h": 40,
+      "variants": {
+        "default": 0
+      },
+      "animations": {
+        "walk": {
+          "frames": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "fps": 6
+        }
+      }
+    },
+    "sticky": {
+      "file": "sticky.png",
+      "frame_w": 24,
+      "frame_h": 24,
+      "variants": {
+        "pink": 0,
+        "blue": 1,
+        "green": 2,
+        "yellow": 3,
+        "white": 4
+      },
+      "animations": {
+        "fly": {
+          "frames": [
+            0,
+            1
+          ],
+          "fps": 6
+        }
+      }
     }
   },
   "images": {
@@ -321,6 +375,16 @@
       "file": "logo.png",
       "w": 299,
       "h": 79
+    },
+    "bg_lobby": {
+      "file": "bg_lobby.png",
+      "w": 640,
+      "h": 360
+    },
+    "bg_result": {
+      "file": "bg_result.png",
+      "w": 640,
+      "h": 360
     }
   },
   "sounds": {
@@ -392,6 +456,55 @@
       "files": {
         "mp3": "sfx_click.mp3",
         "ogg": "sfx_click.ogg"
+      }
+    },
+    "sfx_phone_ring": {
+      "loop": false,
+      "files": {
+        "mp3": "sfx_phone_ring.mp3",
+        "ogg": "sfx_phone_ring.ogg"
+      }
+    },
+    "sfx_cue_clipboard": {
+      "loop": false,
+      "files": {
+        "mp3": "sfx_cue_clipboard.mp3",
+        "ogg": "sfx_cue_clipboard.ogg"
+      }
+    },
+    "sfx_cue_rival": {
+      "loop": false,
+      "files": {
+        "mp3": "sfx_cue_rival.mp3",
+        "ogg": "sfx_cue_rival.ogg"
+      }
+    },
+    "sfx_cue_paper": {
+      "loop": false,
+      "files": {
+        "mp3": "sfx_cue_paper.mp3",
+        "ogg": "sfx_cue_paper.ogg"
+      }
+    },
+    "sfx_monitor_shatter": {
+      "loop": false,
+      "files": {
+        "mp3": "sfx_monitor_shatter.mp3",
+        "ogg": "sfx_monitor_shatter.ogg"
+      }
+    },
+    "sfx_light_flicker": {
+      "loop": false,
+      "files": {
+        "mp3": "sfx_light_flicker.mp3",
+        "ogg": "sfx_light_flicker.ogg"
+      }
+    },
+    "sfx_cue_coffee": {
+      "loop": false,
+      "files": {
+        "mp3": "sfx_cue_coffee.mp3",
+        "ogg": "sfx_cue_coffee.ogg"
       }
     }
   }

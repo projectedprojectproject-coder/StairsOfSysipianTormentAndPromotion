@@ -49,7 +49,13 @@ const CONFIG = {
   parryDays: 1.5,          // 패링 성공 +1.5일
   parryWindow: 0.20,       // 패링 판정 0.20초
   warnTime: 1.0,           // 공격 예고 1.0초 전 표시 (서류 비행 시간과 같음)
-  promoteFloor: 20,        // 승급 20층
+  promoteFloors: [20, 40, 60, 80], // 승급 심사 층. 20·40·60층은 승급 뒤 계속 오른다 (결정 2026-11-20: PoC 1~80층)
+  finalFloor: 80,          // 결정(2026-11-20): 80층 승급 심사(간부 → CEO)로 PoC 마무리
+  coffeeFromFloor: 11,     // 결정(2026-11-20): 11층부터 커피. 결재판처럼 날아오지만 막으면 안 된다(막으면 하트 -1, 그냥 두면 지나감)
+  weightCoffee: 0.5,       // 기획서 미정
+  stickyFromFloor: 61,     // 결정(2026-11-20): 61층부터 포스트잇. 막으면 튕겨 나갔다 돌아와 1~5번 막아야 없어진다
+  weightSticky: 0.6,       // 기획서 미정
+  stickyMax: 5,            // 결정: 포스트잇을 막아야 하는 최대 횟수 (색: 분홍 5, 파랑 4, 초록 3, 노랑 2, 흰색 1)
   promoteHeal: 1,          // 승급 시 하트 1 회복
   floorHeal: 1,            // 플레이테스트 반영: 새 층에 오를 때마다 하트 1 회복 (최대 maxHearts)
 
@@ -61,9 +67,9 @@ const CONFIG = {
   parryPoints: 50,         // 기획서 미정: 패링 성공 점수 (콤보 배수 적용)
   floorPoints: 100,        // 기획서 미정: 층 도달 점수 (콤보 배수 적용)
   drainStart: 1.0,         // 기획서 미정: 1층 일수 감소 배속
-  drainEnd: 1.35,          // 기획서 미정: 20층 일수 감소 배속 (구간 안에서 선형 증가)
-  attackIntervalStart: 2.4,// 기획서 미정: 1층 서류 투척 평균 간격(초)
-  attackIntervalEnd: 1.1,  // 기획서 미정: 20층 서류 투척 평균 간격(초)
+  drainEnd: 1.35,          // 기획서 미정: 구간(20층) 끝 일수 감소 배속 (구간마다 1층 값부터 다시 증가)
+  attackIntervalStart: 2.4,// 기획서 미정: 구간 첫 층 공격 평균 간격(초)
+  attackIntervalEnd: 1.1,  // 기획서 미정: 구간 끝 층 공격 평균 간격(초)
   attackJitter: 0.2,       // 기획서 미정: 간격 무작위 폭(±비율)
   minAttackGap: 0.8,       // 기획서 미정: 공격 도착 사이 최소 간격(초)
   firstAttackDelay: 3.0,   // 기획서 미정: 첫 공격까지 유예(초). 튜토리얼 대신 숨 돌릴 시간
@@ -81,7 +87,25 @@ const CONFIG = {
   showRivalCameo: true,    // 05-3 요소 5 경쟁 사원 장식: 경쟁 사원이 공격하기 전 층(rivalFromFloor 미만)에서만 배치
   rivalFromFloor: 11,      // 결정(2026-11-19): 기획서상 21층 위협인 경쟁 사원을 PoC 11층부터 미리 등장
   rivalShare: 0.4,         // 기획서 미정: 11층부터 공격 중 경쟁 사원 비율
-  rivalWalk: 0.6,          // 기획서 미정: 화면 끝에서 걸어 들어오는 시간(초). 이후 예고 1.0초 뒤 근접 공격
+  rivalWalk: 0.6,          // 기획서 미정: 화면 끝에서 층 바닥을 걸어 들어오는 시간(초). 이후 예고 1.0초 뒤 근접 공격
+  rivalLeap: 0.3,          // 기획서 미정: 공격 직전 층 바닥에서 플레이어 칸으로 뛰어오르는 시간(초)
+  phoneFromFloor: 31,      // 결정(2026-11-20): 31층부터 전화기. 화면 아래에서 솟아 포물선으로 날아온다
+  paperFromFloor: 41,      // 결정(2026-11-20): 41층부터 서류. 머리 위로 넘어가 반대쪽에서 맞는다
+  weightRival: 0.7,        // 기획서 미정: 공격 종류 비중 (결재판 1 기준)
+  weightPhone: 0.6,        // 기획서 미정
+  weightPaper: 0.6,        // 기획서 미정
+  monitorFromFloor: 21,    // 결정(2026-11-20): 21층부터 컴퓨터 모니터. 위층 창이 깨지며 플레이어 옆으로 떨어진다
+  weightMonitor: 0.6,      // 기획서 미정
+  monitorAngle: 70,        // 결정(2026-11-20): 모니터가 떨어지는 사선의 각도(수평에서, 도)
+  flickerTime: 0.6,        // 결정(2026-11-20): 모니터 예고. 형광등이 깜박이는 시간(초), 그 뒤 유리가 깨지며 1.0초 동안 떨어진다
+  // 패링 타이밍 소리: [소리 ID, 도착 몇 초 전에 틀지]. 각 소리의 박(두 번째 딱·"헤이!"·두 번째 벨·종이 접는 소리)이
+  // 판정 창(도착 전 0.2초)의 한가운데, 곧 도착 0.1초 전에 오도록 박 위치 + 0.1초 앞에서 튼다 (결정 2026-11-20)
+  cues: { clipboard: ['sfx_cue_clipboard', 0.40], rival: ['sfx_cue_rival', 0.145],
+          phone: ['sfx_phone_ring', 0.50], paper: ['sfx_cue_paper', 0.35],
+          coffee: ['sfx_cue_coffee', 0.135], sticky: ['sfx_cue_clipboard', 0.40] },   // 커피: 높은 "헤이!"(막지 말라는 신호)
+  rivalSpeed: 240,         // 기획서 미정: 경쟁 사원이 층 바닥을 걷는 속도(px/초)
+  rivalClimb: 10,          // 기획서 미정: 경쟁 사원이 계단을 따라 오르는 속도(칸/초). 플레이어보다 빠르다
+  commuters: 5,            // 기획서 미정: 타이틀 거리를 걷는 사원 수 (05-1 요소 4)
   bgmVolume: 0.45,
   ambVolume: 0.15,         // 환경음은 낮은 볼륨 (03)
   sfxVolume: 0.8,
@@ -90,6 +114,7 @@ const CONFIG = {
 };
 
 const PAL = { gray: '#5A5F66', green: '#8A9A5B', red: '#A13D3D', bg: '#1E1F22', text: '#E8E6DF' };
+const STICKY_COLORS = ['white', 'white', 'yellow', 'green', 'blue', 'pink'];   // 포스트잇 남은 횟수 -> 색 (sticky 시트 변형)
 const RANK_COLORS = [PAL.gray, PAL.green, PAL.red, PAL.text, PAL.text];
 const W = 320, H = 180;
 const STEP = 1 / 60;
@@ -121,6 +146,7 @@ const S = window.__stairs = {
   ready: false, screen: 'title', floor: 1, rank: CONFIG.rankNames[0], hearts: CONFIG.maxHearts,
   days: CONFIG.startDays, score: 0, maxMult: 1, steps: 0,
   assetErrors: assetErrors, audioFormat: 'none', log: logArr,
+  finalFloor: CONFIG.finalFloor, finalRank: CONFIG.rankNames[CONFIG.promoteFloors.length],
 };
 function log(msg) {
   logArr.push((run ? run.time.toFixed(2) : '0.00') + ' ' + msg);
@@ -154,9 +180,9 @@ const DEF = window.SPRITE_DEF || null;
 if (!DEF) assetErrors.push('SPRITE_DEF:missing');
 const D = DEF || { sprites: {}, images: {}, sounds: {} };
 const ASSET_DIR = (D.assets_dir || 'assets').replace(/\/$/, '');
-const SPRITE_IDS = ['player', 'rival', 'projectiles', 'warning', 'stairs', 'hud_icons'];
-const IMAGE_IDS = ['bg_zone1', 'bg_zone2', 'bg_zone3', 'bg_zone4', 'bg_zone5', 'title_bg', 'logo'];
-const SOUND_IDS = ['bgm_loop', 'bgm_loop_tense', 'amb_office', 'sfx_step', 'sfx_parry', 'sfx_hit', 'sfx_warning', 'sfx_promote', 'sfx_gameover', 'sfx_click'];
+const SPRITE_IDS = ['player', 'rival', 'projectiles', 'warning', 'stairs', 'hud_icons', 'props', 'commuter', 'sticky'];
+const IMAGE_IDS = ['bg_zone1', 'bg_zone2', 'bg_zone3', 'bg_zone4', 'bg_zone5', 'title_bg', 'logo', 'bg_lobby', 'bg_result'];
+const SOUND_IDS = ['bgm_loop', 'bgm_loop_tense', 'amb_office', 'sfx_step', 'sfx_parry', 'sfx_hit', 'sfx_warning', 'sfx_promote', 'sfx_gameover', 'sfx_click', 'sfx_phone_ring', 'sfx_cue_clipboard', 'sfx_cue_rival', 'sfx_cue_paper', 'sfx_monitor_shatter', 'sfx_light_flicker', 'sfx_cue_coffee'];
 const A = { sprites: {}, images: {} };
 let pending = 0;
 let assetsReady = false;
@@ -215,6 +241,15 @@ function drawSprite(id, variant, anim, t, x, y, o) {
     let n = Math.floor(Math.max(0, t) * (an.fps || 1));
     if (ONCE.has(anim)) n = Math.min(n, an.frames.length - 1); else n = n % an.frames.length;
     col = an.frames[n];
+  }
+  if (o.rot || o.sx !== undefined || o.sy !== undefined || o.filter) {
+    // 회전·눌림·필터: 그림 가운데를 기준으로 돌리고 줄인다
+    ctx.save(); ctx.translate(dx + dw / 2, dy + dh / 2); ctx.rotate(o.rot || 0);
+    ctx.scale((o.flip ? -1 : 1) * (o.sx === undefined ? 1 : o.sx), o.sy === undefined ? 1 : o.sy);
+    if (o.filter) ctx.filter = o.filter;
+    ctx.drawImage(rec.img, col * rec.fw, row * rec.fh, rec.fw, rec.fh, -dw / 2, -dh / 2, dw, dh);
+    ctx.restore();
+    return true;
   }
   if (o.flip) {
     ctx.save();
@@ -393,7 +428,7 @@ function startRun() {
 /* ---------------------------------------------------------------------
  * 게임 규칙
  * ------------------------------------------------------------------- */
-function diffT(r) { return clamp((r.floor - 1) / (CONFIG.promoteFloor - 1), 0, 1); }
+function diffT(r) { return clamp(((r.floor - 1) % 20) / 19, 0, 1); }   // 승급 구간(20층)마다 다시 쉬워진다
 function drainMult(r) { return lerp(CONFIG.drainStart, CONFIG.drainEnd, diffT(r)); }
 function attackInterval(r) {
   const base = lerp(CONFIG.attackIntervalStart, CONFIG.attackIntervalEnd, diffT(r));
@@ -439,7 +474,7 @@ function doStep(dir) {
     } else {
       addText(nf + 'F', 160, 70, PAL.text);
     }
-    if (nf >= CONFIG.promoteFloor) promote();
+    if (CONFIG.promoteFloors.indexOf(nf) >= 0) promote(nf);
   }
 }
 function doParry(side) {
@@ -459,13 +494,16 @@ function loseHeart(reason) {
   log('heart -1 (' + reason + ') hearts=' + r.hearts);
   if (r.hearts <= 0) { r.hearts = 0; sfx('sfx_gameover'); endRun('gameover', 'hearts'); }
 }
-function promote() {
+function promote(f) {
   const r = run;
   r.hearts = Math.min(CONFIG.maxHearts, r.hearts + CONFIG.promoteHeal);
-  r.rankIdx = 1;
+  r.rankIdx = Math.min(CONFIG.rankNames.length - 1, r.rankIdx + 1);
   sfx('sfx_promote');
-  log('promote -> ' + CONFIG.rankNames[1]);
-  endRun('promote', 'floor20');
+  log('promote -> ' + CONFIG.rankNames[r.rankIdx] + ' (' + f + 'F)');
+  if (f >= CONFIG.finalFloor) { endRun('promote', 'floor' + f); return; }
+  // 20·40층: 승급 문구를 띄우고 계속 오른다. 날아오던 것은 치운다
+  addText('승급! ' + CONFIG.rankNames[r.rankIdx - 1] + ' → ' + CONFIG.rankNames[r.rankIdx], 160, 56, PAL.green);
+  r.projs = []; r.lastImpact = r.time; r.nextAttack = r.time + 1.5;
 }
 function endRun(kind, cause) {
   const r = run;
@@ -474,17 +512,65 @@ function endRun(kind, cause) {
   r.projs.forEach(function (p) { p.done = true; });
   if (kind === 'gameover') log('gameover ' + cause);
 }
+// 공격 종류: 결재판(기본), 경쟁 사원(11층~), 전화기(31층~), 서류(41층~)
+function pickType(r) {
+  const w = [['clipboard', 1], ['rival', r.floor >= CONFIG.rivalFromFloor ? CONFIG.weightRival : 0],
+             ['phone', r.floor >= CONFIG.phoneFromFloor ? CONFIG.weightPhone : 0], ['paper', r.floor >= CONFIG.paperFromFloor ? CONFIG.weightPaper : 0],
+             ['monitor', r.floor >= CONFIG.monitorFromFloor ? CONFIG.weightMonitor : 0],
+             ['coffee', r.floor >= CONFIG.coffeeFromFloor ? CONFIG.weightCoffee : 0], ['sticky', r.floor >= CONFIG.stickyFromFloor ? CONFIG.weightSticky : 0]];
+  let x = r.rng() * w.reduce(function (s, e) { return s + e[1]; }, 0);
+  for (let i = 0; i < w.length; i++) { if (x < w[i][1]) return w[i][0]; x -= w[i][1]; }
+  return 'clipboard';
+}
 function spawnAttack() {
   const r = run;
   const side = r.rng() < 0.5 ? -1 : 1;
-  const rival = r.floor >= CONFIG.rivalFromFloor && r.rng() < CONFIG.rivalShare;
-  let impact = r.time + CONFIG.warnTime + (rival ? CONFIG.rivalWalk : 0);
+  const type = pickType(r), rival = type === 'rival';
+  let impact = r.time + CONFIG.warnTime + (rival ? CONFIG.rivalWalk : 0) + (type === 'monitor' ? CONFIG.flickerTime : 0);
   if (impact - r.lastImpact < CONFIG.minAttackGap) impact = r.lastImpact + CONFIG.minAttackGap;
   r.lastImpact = impact;
-  // 경쟁 사원: 걸어 들어와(enterT~spawnT) 멈춘 뒤 "!" 1.0초 후 근접 공격, 한 번 막으면 퇴장 (04, 05-3 요소 5)
-  r.projs.push({ side: side, type: rival ? 'rival' : 'document', enterT: impact - CONFIG.warnTime - (rival ? CONFIG.rivalWalk : 0), spawnT: impact - CONFIG.warnTime, impactT: impact, done: false });
-  if (rival) log('rival spawn');
-  sfx('sfx_warning');
+  // side는 맞는 쪽(패링 키). 경쟁 사원은 가장 가까운 층 바닥(floorStep)을 걸어 들어와 멈춘 뒤 "!" 1.0초 후 뛰어올라(내려와) 근접 공격.
+  // 서류는 반대쪽(from)에서 던져져 머리 위로 넘어온다
+  // 경쟁 사원은 플레이어가 그 바닥보다 높이 올라가 있으면(또는 올라가면) 계단 아래 끝에서 계단을 따라 쫓아 올라와 바로 뒤 칸에서 친다.
+  // 이때 막는 쪽은 경쟁 사원이 있는 쪽 = 플레이어가 마지막으로 오른 방향의 반대쪽이다 (치기 직전 0.3초에 정해짐)
+  const p = { side: side, from: type === 'paper' ? -side : side, type: type,
+              enterT: impact - CONFIG.warnTime - (rival ? CONFIG.rivalWalk : 0), spawnT: impact - CONFIG.warnTime, impactT: impact, done: false,
+              // 모니터는 형광등이 먼저 깜박인 뒤(warnT~spawnT) 유리가 깨지며 나타난다. spin·wob·ph는 불규칙한 회전 값
+              warnT: r.time, spin: (r.decor() < 0.5 ? -1 : 1) * (4 + r.decor() * 6), wob: 1.5 + r.decor() * 3, ph: r.decor() * 6.28,
+              hp: type === 'sticky' ? 1 + Math.floor(r.rng() * CONFIG.stickyMax) : 1 };
+  if (rival) Object.assign(p, { locked: false, phase: 'walk', wx: r.camX + side * (W / 2 + 16), ri: 0,
+                                floorStep: Math.round(r.steps / CONFIG.stairsPerFloor) * CONFIG.stairsPerFloor });   // 가장 가까운 층 바닥(위 또는 아래)
+  r.projs.push(p);
+  log(type + ' spawn');
+  if (type === 'monitor') sfx('sfx_light_flicker');     // 형광등 깜박이는 소리 (유리 깨짐은 spawnT에)
+  else if (type !== 'phone' && type !== 'coffee') sfx('sfx_warning');   // 커피는 경고음 없이 높은 "헤이!"만
+}
+// 경쟁 사원 위치(월드): 걷기·서 있기는 층 바닥 위(wx), 오르기는 계단 칸(ri, 소수)
+function rivalPos(p) {
+  if (p.phase !== 'climb') return { x: p.wx, y: -p.floorStep * CONFIG.stepH };
+  const i = Math.floor(p.ri), f = p.ri - i;
+  return { x: lerp(stairX(i), stairX(i + 1), f), y: -p.ri * CONFIG.stepH };
+}
+function updateRival(p, dt) {
+  const r = run;
+  if (p.done) return;
+  const above = r.steps > p.floorStep;
+  if (p.phase === 'walk' || p.phase === 'stand') {
+    // 플레이어가 바닥보다 위면 계단 아래 끝으로, 아니면 플레이어 옆으로 걷는다
+    const tx = above ? stairX(p.floorStep) : stairX(r.steps) + p.side * 14, d = tx - p.wx;
+    p.wx += Math.sign(d) * Math.min(Math.abs(d), CONFIG.rivalSpeed * dt);
+    p.phase = Math.abs(tx - p.wx) < 0.5 ? (above ? 'climb' : 'stand') : 'walk';
+    if (p.phase === 'climb') p.ri = p.floorStep;
+  } else if (p.ri < r.steps - 1) {
+    p.ri = Math.min(r.steps - 1, p.ri + CONFIG.rivalClimb * dt);   // 계단을 따라 쫓아 오른다
+  }
+  const ready = p.phase === 'stand' || (p.phase === 'climb' && p.ri >= r.steps - 1 - 1e-6);
+  if (p.locked) return;
+  if (p.phase === 'climb' && ready) p.side = -dirAt(r.steps - 1);   // 바로 뒤 칸: 플레이어가 온 쪽
+  if (r.time >= p.impactT - CONFIG.rivalLeap) {
+    if (ready) { p.locked = true; log('rival lock ' + (p.phase === 'climb' ? 'stairs' : 'floor')); }
+    else p.impactT = r.time + CONFIG.rivalLeap;                    // 아직 따라잡지 못했다: 붙을 때까지 치지 않는다
+  }
 }
 function botTick(dt) {
   const r = run;
@@ -495,7 +581,7 @@ function botTick(dt) {
     if (p.done) return;
     const tti = p.impactT - r.time;
     const s = p.side < 0 ? 0 : 1;
-    if (tti > 0 && tti <= CONFIG.botParryLead && r.time >= r.parryCd[s]) keyParry(p.side);
+    if (p.type !== 'coffee' && p.locked !== false && tti > 0 && tti <= CONFIG.botParryLead && r.time >= r.parryCd[s]) keyParry(p.side);
   });
 }
 function updatePlay(dt) {
@@ -531,11 +617,21 @@ function updatePlay(dt) {
 
   for (let i = 0; i < r.projs.length; i++) {
     const p = r.projs[i];
+    if (p.type === 'rival') updateRival(p, dt);
+    if (p.type === 'monitor' && !p.shattered && r.time >= p.spawnT) { p.shattered = true; sfx('sfx_monitor_shatter'); }   // 유리 깨짐 (도착 1.0초 전)
+    // 패링 타이밍 소리: 소리의 박이 패링하기 가장 좋은 순간(도착 0.1초 전)에 온다. 경쟁 사원은 막을 쪽이 정해진 뒤에만
+    const cue = CONFIG.cues[p.type];
+    if (cue && !p.cued && !p.done && p.locked !== false && r.time >= p.impactT - cue[1]) { p.cued = true; sfx(cue[0]); log('cue ' + p.type); }
     if (p.done || r.time < p.impactT) continue;
     p.done = true;
-    if (p.type === 'rival') r.leavers.push({ side: p.side, t0: r.time });
-    const s = p.side < 0 ? 0 : 1;
-    if (r.parryStart[s] <= p.impactT && p.impactT <= r.parryEnd[s]) {
+    if (p.type === 'rival') { const rp = rivalPos(p); r.leavers.push({ side: p.side, t0: r.time, wx: rp.x, wy: rp.y }); }
+    const s = p.side < 0 ? 0 : 1, parried = r.parryStart[s] <= p.impactT && p.impactT <= r.parryEnd[s];
+    if (p.type === 'coffee') {   // 커피: 막으면 하트 -1, 그냥 두면 지나간다
+      if (parried) { log('coffee parried'); addText('커피!', playerScreenX() + p.side * 10, PLAYER_Y - 30, PAL.red); loseHeart('coffee'); if (r.ended) break; }
+      else log('coffee dodged');
+      continue;
+    }
+    if (parried) {
       r.parries++; r.combo++;
       r.mult = r.combo >= CONFIG.comboStep3 ? 3 : r.combo >= CONFIG.comboStep2 ? 2 : 1;
       r.maxMult = Math.max(r.maxMult, r.mult);
@@ -550,6 +646,10 @@ function updatePlay(dt) {
       }
       addText('+' + CONFIG.parryDays, px, PLAYER_Y - 30, PAL.green);
       log('parry ok combo=' + r.combo + ' x' + r.mult);
+      if (p.type === 'sticky' && p.hp > 1) {   // 포스트잇: 튕겨 나갔다가 같은 쪽으로 돌아온다. 남은 횟수(색)가 하나 준다
+        p.hp--; p.done = false; p.bounce = true; p.cued = false; p.spawnT = r.time; p.impactT = r.time + CONFIG.warnTime;
+        log('sticky bounce hp=' + p.hp);
+      }
     } else {
       loseHeart('attack');
       if (r.ended) break;
@@ -627,8 +727,7 @@ function getButtons() {
       ];
     case 'lobby':
       return [
-        btn('work', '업무 시작', 190, 104, 114, 24, startRun, 11),
-        btn('back', '타이틀로', 190, 134, 114, 16, toTitle),
+        Object.assign(btn('work', '업무 시작', 64, 150, 192, 18, startRun, 10), { tone: 'red' }),   // 05-2 요소 4 (ESC: 타이틀로)
       ];
     case 'pause':
       return [
@@ -639,9 +738,8 @@ function getButtons() {
       ];
     case 'result':
       return [
-        btn('again', result && result.kind === 'promote' ? '1층부터 다시' : '다시 하기', 104, 134, 100, 18, startRun, 9),
-        btn('share', '기록 공유', 212, 134, 100, 18, shareResult, 9),
-        btn('lobby', '로비로', 104, 156, 100, 16, function () { screen = 'lobby'; focus = 0; }),
+        Object.assign(btn('again', result && result.kind === 'promote' ? '1층부터 다시' : '다시 하기', 96, 155, 62, 16, startRun, 8), { tone: 'red' }),   // 05-5 요소 5
+        btn('share', '기록 공유', 166, 155, 62, 16, shareResult, 8),                                                                                     // 요소 2
       ];
   }
   return [];
@@ -752,8 +850,18 @@ function drawBadgeIcon(x, y, size) {
 /* ---------------------------------------------------------------------
  * 05-1 타이틀
  * ------------------------------------------------------------------- */
+// 타이틀 거리의 사원들: 서로 다른 속도로 좌우로 걷고, 화면 밖으로 나가면 반대편에서 다시 들어온다
+function drawCommuters() {
+  for (let i = 0; i < CONFIG.commuters; i++) {
+    const dir = i % 3 === 1 ? -1 : 1, v = 9 + ((i * 7) % 5) * 1.6, span = W + 28;
+    const x = (((20 + i * 64 + (i % 2) * 17 + dir * v * time) % span) + span) % span - 14;
+    drawSprite('commuter', 'default', 'walk', time * (v / 11) + i * 0.37, x, 179, { fw: 10, fh: 20, nofb: true, flip: dir < 0 });
+  }
+}
 function drawTitle() {
-  if (!drawImg('title_bg', 0, 0, W, H, PAL.bg)) {
+  const titleOk = drawImg('title_bg', 0, 0, W, H, PAL.bg);
+  drawCommuters();
+  if (!titleOk) {
     // 어두운 빌딩 숲 + 가운데 본사 꼭대기만 불빛
     const hs = [60, 90, 50, 110, 70, 130, 55, 95, 65];
     for (let i = 0; i < hs.length; i++) rect(i * 36 - 4, H - hs[i], 30, hs[i], PAL.gray, 0.35);
@@ -778,36 +886,37 @@ function drawTitle() {
 /* ---------------------------------------------------------------------
  * 05-2 로비
  * ------------------------------------------------------------------- */
+// 05-2 요소 3: 목걸이(올리브 끈)에 걸린 사원증 카드
+function drawIdCard(x, y, rIdx) {
+  const rank = CONFIG.rankNames[rIdx];
+  rect(x + 27, 0, 4, y - 6, '#6E7A49'); rect(x + 43, 0, 4, y - 6, '#6E7A49');             // 목걸이 끈
+  rect(x + 28, 0, 1, y - 6, PAL.green); rect(x + 44, 0, 1, y - 6, PAL.green);
+  rect(x + 29, y - 9, 16, 12, '#9AA0A8'); frameRect(x + 29, y - 9, 16, 12, '#44484E');    // 집게
+  rect(x, y, 74, 108, PAL.text); frameRect(x, y, 74, 108, PAL.gray);
+  rect(x + 1, y + 1, 72, 13, PAL.green); rect(x + 30, y + 5, 14, 3, '#4E5733');           // 올리브 머리띠, 줄 구멍
+  rect(x + 15, y + 19, 44, 48, '#3A3D43'); rect(x + 18, y + 22, 38, 42, '#9AA0A8');        // 사진
+  drawSprite('player', rank, 'idle', time, x + 37, y + 64, { scale: 1.6, fw: 16, fh: 28, color: RANK_COLORS[rIdx] });
+  [['NAME', '○○○'], ['TITLE', rank], ['DEPARTMENT', '총무팀']].forEach(function (row, i) {
+    const yy = y + 73 + i * 11;
+    txt(row[0], x + 5, yy, { size: 5, bold: true, color: '#2A2C31', shadow: false });
+    txt(row[1], x + (row[0].length > 5 ? 44 : 28), yy, { size: 5, color: PAL.gray, shadow: false });
+    rect(x + 4, yy + 8, 66, 1, '#9AA0A8', 0.6);
+  });
+}
 function drawLobby() {
-  drawImg('bg_zone1', 0, 0, W, H, PAL.bg);
-  rect(0, 0, W, H, PAL.bg, 0.72);
-  // 1 현재 층수
-  txt('1F', 16, 12, { size: 28, bold: true });
-  txt('파티션 사무실 · 사원 구간', 16, 46, { size: 8, color: PAL.green });
-  // 2 남은 일수
-  rect(16, 64, 160, 28, PAL.bg, 0.7); frameRect(16, 64, 160, 28, PAL.gray);
-  const ok = drawSprite('hud_icons', 'default', 'calendar', 0, 24, 72, { anchor: 'tl', dw: 12, dh: 12, nofb: true });
-  if (!ok) rect(22, 70, 16, 16, PAL.gray);
-  txt('구조조정까지 D-' + CONFIG.startDays, 44, 72, { size: 10, bold: true, color: PAL.text });
-  // 3 사원증
-  const rIdx = save.floor >= CONFIG.promoteFloor ? 1 : 0;
-  rect(190, 12, 114, 84, PAL.text);
-  rect(190, 12, 114, 16, RANK_COLORS[rIdx]);
-  frameRect(190, 12, 114, 84, PAL.bg);
-  drawBadgeIcon(194, 14, 12);
-  txt('사원증', 210, 14, { size: 9, bold: true, color: rIdx === 0 ? PAL.text : PAL.bg, shadow: false });
-  drawSprite('player', CONFIG.rankNames[rIdx], 'idle', time, 220, 92, { scale: spScale('player', 56), fw: 16, fh: 28, color: RANK_COLORS[rIdx] });
-  txt('○○○', 196, 34, { size: 9, color: PAL.bg, shadow: false, bold: true });
-  txt(CONFIG.rankNames[rIdx], 196, 48, { size: 8, color: PAL.bg, shadow: false });
-  txt('총무팀', 196, 60, { size: 8, color: PAL.gray, shadow: false });
-  // 5 누적 기록
-  rect(16, 100, 160, 64, PAL.bg, 0.7); frameRect(16, 100, 160, 64, PAL.gray);
-  txt('누적 기록', 24, 104, { size: 8, color: PAL.green, bold: true });
-  txt('최고 ' + save.floor + 'F', 24, 118, { size: 9 });
-  txt('최고 점수 ' + save.score, 24, 131, { size: 9 });
-  txt('전체 랭킹 #-- (오프라인)', 24, 144, { size: 8, color: PAL.gray });
-  // 4 업무 시작 + 뒤로
-  drawButtons();
+  // 컨셉 05-2: 형광등 천장의 파티션 사무실(배경 bg_lobby) 위에 층 표시, D-30, 사원증, 화이트보드 기록, 업무 시작
+  if (!drawImg('bg_lobby', 0, 0, W, H, null)) { drawImg('bg_zone1', 0, 0, W, H, PAL.bg); rect(0, 0, W, H, PAL.bg, 0.5); }
+  const rIdx = CONFIG.promoteFloors.filter(function (f) { return save.floor >= f; }).length;
+  rect(124, 3, 72, 13, PAL.bg, 0.92); frameRect(124, 3, 72, 13, '#9AA0A8');                 // 1 층·직급
+  txt('1F', 148, 9.5, { align: 'center', base: 'middle', size: 8, bold: true });
+  txt(CONFIG.rankNames[0], 172, 9.5, { align: 'center', base: 'middle', size: 6, color: '#9AA0A8' });
+  rect(248, 5, 64, 18, PAL.red); frameRect(248, 5, 64, 18, PAL.text); frameRect(249, 6, 62, 16, '#6E2626');   // 2 D-30
+  txt('D-' + CONFIG.startDays, 280, 14.5, { align: 'center', base: 'middle', size: 11, bold: true });
+  drawIdCard(12, 38, rIdx);                                                                 // 3 사원증
+  rect(250, 80, 56, 22, PAL.bg, 0.9); frameRect(250, 80, 56, 22, PAL.gray);                // 5 화이트보드 위 기록
+  txt('최고 ' + save.floor + 'F', 278, 87, { align: 'center', base: 'middle', size: 7, bold: true });
+  txt('전체 랭킹 #-- (오프라인)', 278, 96, { align: 'center', base: 'middle', size: 5, color: '#9AA0A8' });
+  drawButtons();                                                                            // 4 업무 시작
 }
 
 /* ---------------------------------------------------------------------
@@ -900,31 +1009,60 @@ function drawPlayWorld() {
   drawSprite('player', CONFIG.rankNames[r.rankIdx], anim, r.time - r.animStart, px, PLAYER_Y + 2,
     { fw: 16, fh: 28, color: rc, flip: r.facing < 0 && anim !== 'parry_left' && anim !== 'parry_right' });
   // 투척물 + 예고
+  // 월드 좌표 -> 화면 좌표 (경쟁 사원 발 위치)
+  const sx = function (wx) { return 160 + (wx - r.camX); };
+  const sy = function (wy) { return PLAYER_Y + (wy - r.camY) + 1; };
   r.leavers.forEach(function (l) {
     const k = (r.time - l.t0) / 0.5;
     ctx.globalAlpha = clamp(1 - k, 0, 1);
-    drawSprite('rival', 'default', 'leave', r.time - l.t0, px + l.side * 14 + l.side * k * 90, PLAYER_Y + 1, { fw: 14, fh: 26, color: PAL.red, flip: l.side < 0 });
+    drawSprite('rival', 'default', 'leave', r.time - l.t0, sx(l.wx) + l.side * k * 90, sy(l.wy), { fw: 14, fh: 26, color: PAL.red, flip: l.side < 0 });
     ctx.globalAlpha = 1;
   });
   r.projs.forEach(function (p) {
     if (p.type === 'rival') {
-      const stand = px + p.side * 14, edge = p.side < 0 ? -16 : W + 16, left = p.impactT - r.time;
-      let x = lerp(edge, stand, clamp((r.time - p.enterT) / CONFIG.rivalWalk, 0, 1)), anim = 'walk';
-      if (left < 0.25) { x = stand - p.side * (0.25 - left) * 24; anim = 'attack'; }
-      drawSprite('rival', 'default', anim, r.time - p.enterT, x, PLAYER_Y + 1, { fw: 14, fh: 26, color: PAL.red, flip: p.side > 0 });
+      // 층 바닥 위를 걸어 들어오고, 플레이어가 더 높이 있으면 계단을 따라 쫓아 오른다. 붙으면 플레이어 칸으로 덤벼 친다
+      const rp = rivalPos(p), left = p.impactT - r.time;
+      let x = sx(rp.x), y = sy(rp.y), anim = 'walk', at = p.phase === 'stand' ? 0 : r.time - p.enterT;
+      if (p.locked && left < CONFIG.rivalLeap) {
+        const k = 1 - left / CONFIG.rivalLeap;
+        x = lerp(x, px + p.side * 12, k); y = lerp(y, PLAYER_Y + 1, k) - Math.sin(k * Math.PI) * 8; anim = 'attack';
+      }
+      drawSprite('rival', 'default', anim, at, x, y, { fw: 14, fh: 26, color: PAL.red, flip: x > px });
       if (r.time >= p.spawnT) {
-        const wk = drawSprite('warning', 'default', 'blink', r.time - p.spawnT, x, PLAYER_Y - 34, { anchor: 'c', fw: 8, fh: 12, nofb: true });
-        if (!wk && Math.floor(time * 8) % 2 === 0) { rect(x - 5, PLAYER_Y - 41, 10, 14, PAL.red); txt('!', x, PLAYER_Y - 34, { align: 'center', base: 'middle', size: 10, bold: true, shadow: false }); }
+        const wk = drawSprite('warning', 'default', 'blink', r.time - p.spawnT, x, y - 35, { anchor: 'c', fw: 8, fh: 12, nofb: true });
+        if (!wk && Math.floor(time * 8) % 2 === 0) { rect(x - 5, y - 42, 10, 14, PAL.red); txt('!', x, y - 35, { align: 'center', base: 'middle', size: 10, bold: true, shadow: false }); }
       }
       return;
     }
-    const prog = clamp((r.time - p.spawnT) / CONFIG.warnTime, 0, 1);
-    const startX = p.side < 0 ? -16 : W + 16;
-    const tx = px + p.side * 8;
-    const x = lerp(startX, tx, prog);
-    const y = PLAYER_Y - 16 - Math.sin(prog * Math.PI) * 6;
-    drawSprite('projectiles', 'default', p.type, r.time - p.spawnT, x, y, { anchor: 'c', fw: 12, fh: 9, color: PAL.text, flip: p.side > 0 });
+    if (r.time < p.spawnT) return;                           // 모니터: 아직 형광등이 깜박이는 중
+    const prog = clamp((r.time - p.spawnT) / CONFIG.warnTime, 0, 1), tt = r.time - p.spawnT;
+    const tx = px + p.side * 8, ty = PLAYER_Y - 16;          // 맞는 자리
+    let x, y;
+    if (p.bounce) {                                          // 포스트잇: 튕겨 나갔다가 같은 쪽으로 돌아온다
+      x = tx + p.side * 64 * Math.sin(prog * Math.PI); y = ty - 26 * Math.sin(prog * Math.PI);
+    } else if (p.type === 'phone') {                         // 화면 아래에서 솟아 꼭대기에서 잠깐 멈칫한 뒤 중력처럼 빨라지며 떨어진다
+      const x0 = px + p.side * 80, y0 = H + 14;
+      x = lerp(x0, tx, prog); y = lerp(y0, ty, prog) - Math.sin(Math.pow(prog, 0.7) * Math.PI) * 84;
+    } else if (p.type === 'monitor') {                       // 위층 창이 깨지며 70도 사선으로 떨어진다 (처음엔 느리고 중력처럼 빨라짐)
+      const y0 = -20, x0 = tx + p.side * (ty - y0) / Math.tan(CONFIG.monitorAngle * Math.PI / 180), e = prog * (0.25 + 0.75 * prog);
+      x = lerp(x0, tx, e); y = lerp(y0, ty, e);
+    } else if (p.type === 'paper') {                         // 던진 쪽에서 머리 위로 넘어가, 반대쪽에서 돌아와 맞는다
+      const x0 = p.from < 0 ? -16 : W + 16, mx = px + p.side * 36, my = PLAYER_Y - 36;
+      if (prog < 0.65) { const u = prog / 0.65; x = lerp(x0, mx, u); y = lerp(ty, my, u) - Math.sin(u * Math.PI) * 14; }
+      else { const v = (prog - 0.65) / 0.35; x = lerp(mx, tx, v); y = lerp(my, ty, v); }
+    } else {                                                 // 결재판: 옆에서 날아온다
+      const x0 = p.side < 0 ? -16 : W + 16;
+      x = lerp(x0, tx, prog); y = ty - Math.sin(prog * Math.PI) * 6;
+    }
+    // 회전: 모니터·전화기는 불규칙하게 빙글빙글, 결재판은 납작한 판이 수평으로 도는 것처럼 폭이 줄었다 늘었다 한다
+    const so = { anchor: 'c', fw: 12, fh: 9, color: PAL.text, flip: p.side > 0 };
+    let at = r.time - p.spawnT;
+    if (p.type === 'monitor' || p.type === 'phone') { so.rot = p.ph + p.spin * tt + 0.8 * Math.sin(p.wob * tt * 3); at = 0; }
+    else if (p.type === 'clipboard' || p.type === 'coffee' || p.type === 'sticky') { const c = Math.cos(tt * 13 + p.ph); so.sx = (c < 0 ? -1 : 1) * Math.max(0.14, Math.abs(c)); so.sy = 0.82; so.rot = 0.12 * p.side; at = 0; }
+    if (p.type === 'sticky') drawSprite('sticky', STICKY_COLORS[p.hp], 'fly', at, x, y, so);   // 색 = 남은 횟수
+    else drawSprite('projectiles', 'default', p.type === 'paper' ? 'document' : p.type, at, x, y, so);
     const wx = clamp(x, 8, W - 8), wy = y - 16;
+    if (p.type === 'coffee') { txt('×', wx, wy, { align: 'center', base: 'middle', size: 11, bold: true, color: PAL.red }); return; }   // 막지 말라는 표시
     const wk = drawSprite('warning', 'default', 'blink', r.time - p.spawnT, wx, wy, { anchor: 'c', fw: 8, fh: 12, nofb: true });
     if (!wk && Math.floor(time * 8) % 2 === 0) {
       rect(wx - 5, wy - 7, 10, 14, PAL.red);
@@ -937,6 +1075,13 @@ function drawPlayWorld() {
     ctx.globalAlpha = clamp(1 - t.t / 0.8, 0, 1);
     txt(t.s, t.x, t.y, { align: 'center', size: 9, bold: true, color: t.color });
     ctx.globalAlpha = 1;
+  });
+  // 모니터 예고: 형광등이 불규칙하게 깜박인다 (화면이 어두워졌다 밝아짐, 떨어질 쪽 위가 더 깜박임)
+  r.projs.forEach(function (p) {
+    if (p.type !== 'monitor' || p.done || r.time > p.spawnT + 0.12) return;
+    const f = [0.5, 0.05, 0.38, 0, 0.55, 0.12, 0.3, 0][Math.floor((r.time - p.warnT) * 24) % 8];
+    rect(0, 0, W, H, '#08090B', f);
+    rect(px + p.side * 52 - 30, 0, 60, 3, PAL.text, Math.max(0, 0.22 - f * 0.35));
   });
   if (r.flash > 0) rect(0, 0, W, H, PAL.red, clamp(r.flash / 0.35, 0, 1) * 0.35);
 }
@@ -1022,14 +1167,16 @@ function drawHelp() {
     ['Enter', '메뉴 결정 (방향키 선택·클릭)'],
   ];
   rows.forEach(function (row, i) {
-    const y = 38 + i * 16;
+    const y = 36 + i * 15;
     rect(60, y, 36, 13, PAL.gray); frameRect(60, y, 36, 13, PAL.text);
     txt(row[0], 78, y + 7, { align: 'center', base: 'middle', size: 7, bold: true });
     txt(row[1], 104, y + 7, { base: 'middle', size: 7 });
   });
-  txt('서류 위 "!"는 1초 뒤 도착 신호. 도착 직전 0.2초 안에', 160, 120, { align: 'center', size: 6, color: PAL.green });
-  txt('날아오는 쪽 패링 키를 누르면 막습니다.', 160, 129, { align: 'center', size: 6, color: PAL.green });
-  txt('틀린 방향·놓친 공격은 하트 -1, 새 층마다 하트 +1', 160, 138, { align: 'center', size: 6, color: PAL.text });
+  txt('"!" 1초 뒤 도착, 도착 직전 0.2초 안에 맞는 쪽 키 (소리의 박에 맞춰)', 160, 109, { align: 'center', size: 6, color: PAL.green });
+  txt('11층~ 경쟁 사원 · 커피(× 표시, 높은 "헤이!": 막으면 하트 -1)', 160, 116, { align: 'center', size: 6, color: PAL.red });
+  txt('21층~ 모니터 · 31층~ 전화기 · 41층~ 서류(반대쪽에서 맞음)', 160, 123, { align: 'center', size: 6, color: PAL.green });
+  txt('61층~ 포스트잇: 분홍5 파랑4 초록3 노랑2 흰색1번 더 막기', 160, 130, { align: 'center', size: 6, color: PAL.green });
+  txt('틀린 방향·놓친 공격은 하트 -1, 새 층마다 하트 +1', 160, 137, { align: 'center', size: 6, color: PAL.text });
   drawButtons();
 }
 
@@ -1049,35 +1196,42 @@ function resultRows() {
   const r = result;
   return [
     ['도달 층수', r.floor + 'F'],
-    ['직급', r.kind === 'promote' ? '사원 → ' + CONFIG.rankNames[r.rankIdx] : CONFIG.rankNames[r.rankIdx]],
+    ['직급', r.kind === 'promote' ? CONFIG.rankNames[r.rankIdx - 1] + ' → ' + CONFIG.rankNames[r.rankIdx] : CONFIG.rankNames[r.rankIdx]],
     ['점수', String(r.score)],
     ['최고 콤보', '×' + r.maxMult + ' (' + r.maxCombo + '연속)'],
     ['전체 랭킹', '#-- (오프라인)'],
   ];
 }
 function drawResult() {
+  // 컨셉 05-5: 어둡게 가라앉은 사무실(bg_result), 위 가운데 판정 판, 왼쪽 큰 캐릭터, 가운데 어두운 인사 평가 표
   const r = result, promo = r.kind === 'promote';
-  rect(0, 0, W, H, PAL.bg);
-  drawImg('bg_zone1', 0, 0, W, H, null);
-  rect(0, 0, W, H, PAL.bg, 0.75);
-  // 1 캐릭터 반응
-  const rk = promo ? CONFIG.rankNames[1] : CONFIG.rankNames[0];
-  drawSprite('player', rk, promo ? 'proud' : 'box_exit', time, 54, 150, { scale: spScale('player', 100), fw: 16, fh: 28, color: RANK_COLORS[promo ? 1 : 0] });
-  // 3 판정 문구
-  drawVerdict(104, 8, 208, 42, promo, promo ? '사원 → 대리 · 20층 승급 심사 통과 (PoC 종료)' : (r.cause === 'days' ? '남은 일수 소진' : '하트 소진'));
-  // 4 기록 요약
-  rect(104, 56, 208, 72, PAL.bg, 0.85); frameRect(104, 56, 208, 72, PAL.gray);
-  txt('인사 평가표', 112, 58, { size: 8, bold: true, color: PAL.green });
-  const rows = resultRows();
+  if (!drawImg('bg_result', 0, 0, W, H, null)) { drawImg('bg_zone1', 0, 0, W, H, PAL.bg); rect(0, 0, W, H, PAL.bg, 0.75); }
+  // 1 상자를 들고 걸어 나가는 큰 모습 (구조조정은 회색 실루엣, 승급은 제 색으로 뿌듯한 자세)
+  const rk = CONFIG.rankNames[r.rankIdx];
+  drawSprite('player', rk, promo ? 'proud' : 'box_exit', time, 62, 176,
+             { scale: 4.6, fw: 16, fh: 28, color: RANK_COLORS[r.rankIdx], flip: !promo, filter: promo ? undefined : 'grayscale(1) brightness(0.85) contrast(0.85)' });
+  // 3 위 가운데 판정 판
+  rect(64, 0, 192, 22, promo ? PAL.green : PAL.red); frameRect(64, 0, 192, 22, PAL.text); frameRect(66, 2, 188, 18, promo ? '#4E5733' : '#6E2626');
+  txt(promo ? '승급' : '구조조정 대상', 160, 11, { align: 'center', base: 'middle', size: 13, bold: true });
+  txt(promo ? CONFIG.rankNames[r.rankIdx - 1] + ' → ' + rk + ' · ' + r.floor + '층 승급 심사 통과 (PoC 종료)' : (r.cause === 'days' ? '남은 일수 소진' : '하트 소진'),
+      160, 28, { align: 'center', base: 'middle', size: 6, color: '#9AA0A8' });
+  // 4 인사 평가 결과 표 (칸마다 테두리, 값은 올리브 글자, 최고 콤보는 흰 테두리)
+  rect(112, 34, 140, 114, '#18191C', 0.95); frameRect(112, 34, 140, 114, '#9AA0A8'); frameRect(114, 36, 136, 110, PAL.gray);
+  rect(120, 41, 124, 12, '#141518'); frameRect(120, 41, 124, 12, '#9AA0A8');
+  txt('인사 평가 결과', 182, 47.5, { align: 'center', base: 'middle', size: 7, bold: true });
+  const rows = [['도달 층수', r.floor + 'F'], ['직급', promo ? CONFIG.rankNames[r.rankIdx - 1] + '→' + rk : rk], ['점수', String(r.score)],
+                ['최고 콤보', '×' + r.maxMult, true], ['전체 랭킹', '#--']];
   rows.forEach(function (row, i) {
-    const y = 71 + i * 11;
-    txt(row[0], 112, y, { size: 8, color: PAL.text });
-    txt(row[1], 304, y, { size: 8, align: 'right' });
+    const y = 59 + i * 17;
+    rect(120, y, 76, 12, '#141518'); frameRect(120, y, 76, 12, '#6E737A');
+    txt(row[0], 124, y + 6.5, { base: 'middle', size: 6, color: '#C9CCD1', shadow: false });
+    rect(200, y, 44, 12, '#141518'); frameRect(200, y, 44, 12, row[2] ? PAL.text : PAL.green);
+    txt(row[1], 222, y + 6.5, { align: 'center', base: 'middle', size: 6, bold: true, color: row[2] ? PAL.text : '#A9B57C', shadow: false });
   });
-  if (r.newBest) txt('NEW', 240, 94, { size: 7, bold: true, color: PAL.red });
+  if (r.newBest) txt('NEW', 246, 66, { size: 6, bold: true, color: PAL.red, align: 'right' });
   // 2, 5 버튼
   drawButtons();
-  if (time < toastUntil) txt(toastText, 262, 158, { size: 7, align: 'center', color: PAL.green });
+  if (time < toastUntil) txt(toastText, 197, 174, { size: 6, align: 'center', color: PAL.green });
 }
 function shareResult() {
   if (!result) return;
@@ -1091,7 +1245,7 @@ function shareResult() {
     const promo = result.kind === 'promote';
     rect(0, 0, W, H, PAL.bg);
     txt('승급의 계단', 160, 12, { align: 'center', size: 16, bold: true });
-    drawVerdict(60, 38, 200, 42, promo, promo ? '사원 → 대리 · 20층 승급' : (result.cause === 'days' ? '남은 일수 소진' : '하트 소진'));
+    drawVerdict(60, 38, 200, 42, promo, promo ? CONFIG.rankNames[result.rankIdx - 1] + ' → ' + CONFIG.rankNames[result.rankIdx] + ' · ' + result.floor + '층 승급' : (result.cause === 'days' ? '남은 일수 소진' : '하트 소진'));
     rect(60, 92, 200, 72, PAL.bg); frameRect(60, 92, 200, 72, PAL.gray);
     txt('인사 평가표', 68, 95, { size: 8, bold: true, color: PAL.green });
     resultRows().forEach(function (row, i) {
@@ -1227,7 +1381,9 @@ requestAnimationFrame(frame);
       "animations": [
         "document",
         "clipboard",
-        "phone"
+        "phone",
+        "monitor",
+        "coffee"
       ],
       "file": null,
       "frame_w": null,
@@ -1292,6 +1448,32 @@ requestAnimationFrame(frame);
       "file": null,
       "frame_w": null,
       "frame_h": null
+    },
+    "commuter": {
+      "variants": [
+        "default"
+      ],
+      "animations": [
+        "walk"
+      ],
+      "file": null,
+      "frame_w": null,
+      "frame_h": null
+    },
+    "sticky": {
+      "variants": [
+        "pink",
+        "blue",
+        "green",
+        "yellow",
+        "white"
+      ],
+      "animations": [
+        "fly"
+      ],
+      "file": null,
+      "frame_w": null,
+      "frame_h": null
     }
   },
   "images": {
@@ -1314,6 +1496,12 @@ requestAnimationFrame(frame);
       "file": null
     },
     "logo": {
+      "file": null
+    },
+    "bg_lobby": {
+      "file": null
+    },
+    "bg_result": {
       "file": null
     }
   },
@@ -1355,6 +1543,34 @@ requestAnimationFrame(frame);
       "files": null
     },
     "sfx_click": {
+      "loop": false,
+      "files": null
+    },
+    "sfx_phone_ring": {
+      "loop": false,
+      "files": null
+    },
+    "sfx_cue_clipboard": {
+      "loop": false,
+      "files": null
+    },
+    "sfx_cue_rival": {
+      "loop": false,
+      "files": null
+    },
+    "sfx_cue_paper": {
+      "loop": false,
+      "files": null
+    },
+    "sfx_monitor_shatter": {
+      "loop": false,
+      "files": null
+    },
+    "sfx_light_flicker": {
+      "loop": false,
+      "files": null
+    },
+    "sfx_cue_coffee": {
       "loop": false,
       "files": null
     }

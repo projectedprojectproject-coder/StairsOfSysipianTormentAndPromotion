@@ -6,6 +6,7 @@
   python -m stairs_agents mechanics|designer|developer|publisher [...]   # 에이전트 하나만 실행
   python -m stairs_agents qa --replay replay        # 이미 만든 결과물에 Designer QA, Developer QA만 실행
   python -m stairs_agents qa-designer|qa-developer  # QA 하나만
+  python -m stairs_agents qa-screens --replay replay # Publisher가 찍은 화면을 컨셉 화면과 대조
 """
 from __future__ import annotations
 
@@ -22,6 +23,7 @@ from .pipeline import run_pipeline
 from .publisher import PublisherAgent
 from .qa_designer import DesignerQAAgent
 from .qa_developer import DeveloperQAAgent
+from .qa_screens import run_screen_qa
 from .util import ROOT, Paths
 
 
@@ -34,7 +36,7 @@ def make_llm(args):
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="stairs_agents", description="승급의 계단 에이전트 PoC")
-    ap.add_argument("command", choices=["run", "mechanics", "designer", "developer", "publisher", "qa", "qa-designer", "qa-developer"])
+    ap.add_argument("command", choices=["run", "mechanics", "designer", "developer", "publisher", "qa", "qa-designer", "qa-developer", "qa-screens"])
     ap.add_argument("--model", default=DEFAULT_MODEL, help=f"Claude 모델 (기본 {DEFAULT_MODEL})")
     ap.add_argument("--max-tokens", type=int, default=64000)
     ap.add_argument("--replay", help="저장된 응답 폴더로 실행 (API 호출 없음)")
@@ -60,6 +62,8 @@ def main(argv=None) -> int:
     if args.command == "mechanics":
         result = MechanicsAgent(llm, paths).run()
         return 1 if result["problems"] and not result["skipped"] else 0
+    if args.command == "qa-screens":
+        return 1 if run_screen_qa(llm, paths)["verdict"] == "fail" else 0
     if args.command in ("qa", "qa-designer", "qa-developer"):
         verdicts = []
         if args.command != "qa-developer":

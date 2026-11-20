@@ -1,6 +1,7 @@
 """에이전트 맵대로 실행한다: Mechanics로 규칙을 확정하고, Designer와 Developer를 동시에 돌린 뒤 Publisher를 돌린다.
 
 Designer와 Developer 뒤에는 각자의 QA 에이전트(Designer QA, Developer QA)가 바로 이어서 돈다.
+Publisher 뒤에는 Developer QA 2단계(화면 대조, qa_screens.py)가 실제 게임 화면을 컨셉 화면과 비교한다.
 QA 판정이 fail이면 경고만 남기고 계속하며, strict_qa=True면 Publisher 전에 멈춘다.
 """
 from __future__ import annotations
@@ -15,6 +16,7 @@ from .mechanics import MechanicsAgent
 from .publisher import PublisherAgent
 from .qa_designer import DesignerQAAgent
 from .qa_developer import DeveloperQAAgent
+from .qa_screens import run_screen_qa
 from .util import Paths, log
 
 
@@ -55,6 +57,8 @@ def run_pipeline(llm, paths: Paths, use_resource_db: bool = True, skip_test: boo
     if skip_test:
         publisher.test = lambda: False
     pub = publisher.run()
+    if qa and not skip_test:  # Developer QA 2단계: Publisher가 찍은 화면을 컨셉 화면과 대조
+        qa_results["screens"] = run_screen_qa(llm, paths)
     qa_dir = paths.out / "qa_out"
     if qa_dir.exists():  # QA 보고서를 배포 폴더에 함께 둔다
         shutil.copytree(qa_dir, paths.dist / "qa", dirs_exist_ok=True)

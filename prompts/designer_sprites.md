@@ -10,7 +10,13 @@
 - 컨셉 이미지(data/concept/05-1_title.png, 05-3_play.png)의 구도와 색을 따른다.
 - stairs는 실제 계단처럼 보여야 한다(컨셉 05-3의 올리브색 계단). 프레임 폭은 계단 두 칸 간격이므로 가운데 절반만 칠한다. tile = 디딤판(위 1줄 밝게, 그 아래 몇 줄) + 앞 모서리 그림자 1줄 + 챌판(프레임 아래 끝까지). 칸마다 디딤판과 챌판이 이어져 계단 단면이 된다. 디딤판 아래 비스듬한 받침과 난간은 게임 코드가 그린다. riser는 같은 폭의 어두운 몸체 색 견본이다.
 - props(소품): cooler(정수기), boxes(상자), plant(화분), cabinet(서류장). 층 바닥 위에 놓인다(발 위치가 프레임 아래).
-- title_bg(05-1 요소 4): 흐린 구름(clouds), 어두운 빌딩 숲(city 여러 겹), 가운데 가장 높은 본사(tower, 위로 갈수록 좁아지는 여러 단), 맨 위 층 통창만 따뜻한 불빛(glow로 번짐), 그 창가에서 아래를 내려다보는 한 사람(silhouette), 아래 거리에 서류가방을 든 채 걷는 사원들(walkers). crowd·lamps도 쓸 수 있다. 로고와 버튼이 가운데 위·아래를 덮으므로 꼭대기 층은 화면 위쪽 30px 안에 둔다.
+- title_bg(05-1 요소 4): 흐린 구름(clouds), 어두운 빌딩 숲(city 여러 겹), 가운데 가장 높은 본사(tower, 위로 갈수록 좁아지는 여러 단), 맨 위 층 통창만 따뜻한 불빛(glow로 번짐), 그 창가에서 아래를 내려다보는 한 사람(silhouette), 거리 바닥과 가로등까지만 그린다. 걷는 사원들은 게임이 commuter 시트로 움직이며 그리므로 title_bg에 넣지 않는다.
+- commuter(05-1 요소 4): 20x40, 고개 숙이고 서류가방을 든 채 오른쪽으로 걷는 직장인, walk 4프레임(다리 벌림·모음 번갈아). 컨셉 05-1의 가라앉은 밤거리 색.
+- bg_lobby(05-2): 형광등 천장(원근 격자, poly), 양옆 벽, 오른쪽 벽 화이트보드(STATISTICS 칸, 화면 x 250~312 사이에 게임이 기록을 씀), 가운데 책상의 스탠드 불빛·서류 더미·모니터·앉아 일하는 사원 뒷모습, 파티션과 멀리 선 사원들. 왼쪽 x 0~90(사원증)과 아래 y 145 아래(업무 시작 버튼)는 가려진다.
+- bg_result(05-5): 어둡게 가라앉은 사무실, 천장 형광등 두 줄, 왼쪽 서류장과 선반의 상자, 의자, 오른쪽 불 켜진 창 하나와 책상. 가운데 x 112~252(인사 평가 표)와 왼쪽 큰 캐릭터 자리는 가려진다.
+- projectiles의 coffee: 뚜껑 덮인 테이크아웃 컵(흰 컵, 갈색 슬리브, 김). 막으면 안 되는 물건이라 위협들과 한눈에 다르게 보여야 한다.
+- sticky(61층~ 포스트잇): 24x24 네모 메모지(접착 윗단, 접힌 모서리, 글씨 두 줄), fly 2프레임. 변형 pink, blue, green, yellow, white는 메모지 색만 바꾼다(남은 패링 횟수 5~1).
+- projectiles의 monitor: 위에서 떨어지는 컴퓨터 모니터(회색 틀, 금 간 푸른 화면, 받침대), 2프레임으로 기울기를 바꿔 구르는 느낌 로고와 버튼이 가운데 위·아래를 덮으므로 꼭대기 층은 화면 위쪽 30px 안에 둔다.
 
 ## 출력 형식
 JSON은 들여쓰기와 줄바꿈 없이 한 줄로 쓰고, 좌우 반전으로 만들 수 있는 동작은 mirror로 재사용해 출력 길이를 줄인다.
@@ -59,4 +65,5 @@ JSON은 들여쓰기와 줄바꿈 없이 한 줄로 쓰고, 좌우 반전으로 
 - {"kind":"clouds","y0","y1","count","min_r","max_r","flat","color","rim","shade","seed"}  납작한 밤구름 띠 (rim은 위쪽 가장자리 밝은 색)
 - {"kind":"city","y","count","min_h","max_h","min_w","max_w","min_gap","max_gap","color","edge","shade","window","lit","warm","lit_ratio","warm_ratio","win","stripe_ratio","stripe_gap","stripe_floor","setback_ratio","antenna_ratio","skip_x0","skip_x1","seed"}  창 격자·기둥·단·안테나가 있는 빌딩 숲 (skip 구간은 비운다)
 - {"kind":"walkers","xs":[...],"y","size","hair","suit","pants","shirt","tie","skin","bag","bag_ratio","seed"}  거리를 걷는 사원 (size "large" 20x40, 그 밖은 16x30), y는 발 위치
+- {"kind":"poly","points":[[x,y],...],"color"}  다각형 (원근이 있는 천장, 벽, 화이트보드)
 - tower에는 crown_style("band" 또는 "windows"), win([창폭,창높이,가로간격,세로간격]), stripes(세로 기둥 수)를 더할 수 있다.

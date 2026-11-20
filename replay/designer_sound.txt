@@ -2,250 +2,717 @@
 
 <json>
 {
- "sample_rate": 22050,
- "music": {
-  "bgm_loop": {
-   "bpm": 132,
-   "loop": true,
-   "channels": [
-    {
-     "wave": "square",
-     "duty": 0.25,
-     "volume": 0.22,
-     "notes": "A4:2 -:2 C5:2 -:2 A4:2 -:2 E4:4 A4:2 -:2 C5:2 -:2 D5:2 -:2 C5:4 A4:2 -:2 C5:2 -:2 A4:2 -:2 E4:4 G4:2 -:2 A4:2 -:2 E4:2 -:2 A4:4"
-    },
-    {
-     "wave": "triangle",
-     "volume": 0.35,
-     "notes": "A2:2 A2:2 A2:2 A2:2 E2:2 E2:2 E2:2 E2:2 A2:2 A2:2 A2:2 A2:2 E2:2 E2:2 E2:2 E2:2 F2:2 F2:2 F2:2 F2:2 E2:2 E2:2 E2:2 E2:2 F2:2 F2:2 F2:2 F2:2 E2:2 E2:2 E2:2 E2:2"
-    },
-    {
-     "wave": "noise",
-     "volume": 0.06,
-     "notes": "C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3"
+  "sample_rate": 22050, 
+  "music": {
+    "bgm_loop": {
+      "bpm": 132, 
+      "loop": true, 
+      "channels": [
+        {
+          "wave": "square", 
+          "duty": 0.25, 
+          "volume": 0.22, 
+          "notes": "A4:2 -:2 C5:2 -:2 A4:2 -:2 E4:4 A4:2 -:2 C5:2 -:2 D5:2 -:2 C5:4 A4:2 -:2 C5:2 -:2 A4:2 -:2 E4:4 G4:2 -:2 A4:2 -:2 E4:2 -:2 A4:4"
+        }, 
+        {
+          "wave": "triangle", 
+          "volume": 0.35, 
+          "notes": "A2:2 A2:2 A2:2 A2:2 E2:2 E2:2 E2:2 E2:2 A2:2 A2:2 A2:2 A2:2 E2:2 E2:2 E2:2 E2:2 F2:2 F2:2 F2:2 F2:2 E2:2 E2:2 E2:2 E2:2 F2:2 F2:2 F2:2 F2:2 E2:2 E2:2 E2:2 E2:2"
+        }, 
+        {
+          "wave": "noise", 
+          "volume": 0.06, 
+          "notes": "C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3"
+        }
+      ]
+    }, 
+    "bgm_loop_tense": {
+      "bpm": 132, 
+      "loop": true, 
+      "channels": [
+        {
+          "wave": "square", 
+          "duty": 0.25, 
+          "volume": 0.2, 
+          "notes": "A4:2 -:2 C5:2 -:2 A4:2 -:2 E4:4 A4:2 -:2 C5:2 -:2 D5:2 -:2 C5:4 A4:2 -:2 C5:2 -:2 A4:2 -:2 E4:4 G4:2 -:2 A4:2 -:2 E4:2 -:2 A4:4"
+        }, 
+        {
+          "wave": "square", 
+          "duty": 0.125, 
+          "volume": 0.12, 
+          "notes": "A#4:2 -:2 C#5:2 -:2 A#4:2 -:2 F4:4 A#4:2 -:2 C#5:2 -:2 D#5:2 -:2 C#5:4 A#4:2 -:2 C#5:2 -:2 A#4:2 -:2 F4:4 G#4:2 -:2 A#4:2 -:2 F4:2 -:2 A#4:4"
+        }, 
+        {
+          "wave": "triangle", 
+          "volume": 0.35, 
+          "notes": "A2:2 A2:2 A2:2 A2:2 E2:2 E2:2 E2:2 E2:2 A2:2 A2:2 A2:2 A2:2 E2:2 E2:2 E2:2 E2:2 F2:2 F2:2 F2:2 F2:2 E2:2 E2:2 E2:2 E2:2 F2:2 F2:2 F2:2 F2:2 E2:2 E2:2 E2:2 E2:2"
+        }, 
+        {
+          "wave": "noise", 
+          "volume": 0.08, 
+          "notes": "C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3"
+        }
+      ]
     }
-   ]
-  },
-  "bgm_loop_tense": {
-   "bpm": 132,
-   "loop": true,
-   "channels": [
-    {
-     "wave": "square",
-     "duty": 0.25,
-     "volume": 0.2,
-     "notes": "A4:2 -:2 C5:2 -:2 A4:2 -:2 E4:4 A4:2 -:2 C5:2 -:2 D5:2 -:2 C5:4 A4:2 -:2 C5:2 -:2 A4:2 -:2 E4:4 G4:2 -:2 A4:2 -:2 E4:2 -:2 A4:4"
-    },
-    {
-     "wave": "square",
-     "duty": 0.125,
-     "volume": 0.12,
-     "notes": "A#4:2 -:2 C#5:2 -:2 A#4:2 -:2 F4:4 A#4:2 -:2 C#5:2 -:2 D#5:2 -:2 C#5:4 A#4:2 -:2 C#5:2 -:2 A#4:2 -:2 F4:4 G#4:2 -:2 A#4:2 -:2 F4:2 -:2 A#4:4"
-    },
-    {
-     "wave": "triangle",
-     "volume": 0.35,
-     "notes": "A2:2 A2:2 A2:2 A2:2 E2:2 E2:2 E2:2 E2:2 A2:2 A2:2 A2:2 A2:2 E2:2 E2:2 E2:2 E2:2 F2:2 F2:2 F2:2 F2:2 E2:2 E2:2 E2:2 E2:2 F2:2 F2:2 F2:2 F2:2 E2:2 E2:2 E2:2 E2:2"
-    },
-    {
-     "wave": "noise",
-     "volume": 0.08,
-     "notes": "C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3 C6:1 -:3"
+  }, 
+  "ambience": {
+    "amb_office": {
+      "duration": 8, 
+      "loop": true, 
+      "layers": [
+        {
+          "type": "hum", 
+          "freq": 120, 
+          "volume": 0.05
+        }, 
+        {
+          "type": "typewriter", 
+          "rate": 5, 
+          "volume": 0.25, 
+          "seed": 4
+        }, 
+        {
+          "type": "stamp", 
+          "times": [
+            1.6, 
+            4.9, 
+            6.3
+          ], 
+          "volume": 0.5
+        }
+      ]
     }
-   ]
+  }, 
+  "sfx": {
+    "sfx_step": {
+      "segments": [
+        {
+          "wave": "square", 
+          "f0": 330, 
+          "f1": 520, 
+          "dur": 0.05, 
+          "volume": 0.35, 
+          "duty": 0.5
+        }
+      ]
+    }, 
+    "sfx_parry": {
+      "segments": [
+        {
+          "wave": "square", 
+          "f0": 880, 
+          "f1": 880, 
+          "dur": 0.04, 
+          "volume": 0.4, 
+          "duty": 0.25
+        }, 
+        {
+          "wave": "square", 
+          "f0": 1320, 
+          "f1": 1760, 
+          "dur": 0.08, 
+          "volume": 0.35, 
+          "duty": 0.25
+        }
+      ]
+    }, 
+    "sfx_hit": {
+      "segments": [
+        {
+          "wave": "noise", 
+          "f0": 2000, 
+          "f1": 300, 
+          "dur": 0.18, 
+          "volume": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 200, 
+          "f1": 90, 
+          "dur": 0.15, 
+          "volume": 0.35, 
+          "duty": 0.5
+        }
+      ]
+    }, 
+    "sfx_warning": {
+      "segments": [
+        {
+          "wave": "square", 
+          "f0": 988, 
+          "f1": 988, 
+          "dur": 0.05, 
+          "volume": 0.25, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 740, 
+          "f1": 740, 
+          "dur": 0.05, 
+          "volume": 0.0, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 988, 
+          "f1": 988, 
+          "dur": 0.05, 
+          "volume": 0.25, 
+          "duty": 0.5
+        }
+      ]
+    }, 
+    "sfx_promote": {
+      "segments": [
+        {
+          "wave": "square", 
+          "f0": 523, 
+          "f1": 523, 
+          "dur": 0.1, 
+          "volume": 0.35, 
+          "duty": 0.25
+        }, 
+        {
+          "wave": "square", 
+          "f0": 659, 
+          "f1": 659, 
+          "dur": 0.1, 
+          "volume": 0.35, 
+          "duty": 0.25
+        }, 
+        {
+          "wave": "square", 
+          "f0": 784, 
+          "f1": 784, 
+          "dur": 0.1, 
+          "volume": 0.35, 
+          "duty": 0.25
+        }, 
+        {
+          "wave": "square", 
+          "f0": 1047, 
+          "f1": 1047, 
+          "dur": 0.3, 
+          "volume": 0.35, 
+          "duty": 0.25
+        }
+      ]
+    }, 
+    "sfx_gameover": {
+      "segments": [
+        {
+          "wave": "square", 
+          "f0": 392, 
+          "f1": 392, 
+          "dur": 0.2, 
+          "volume": 0.35, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 330, 
+          "f1": 330, 
+          "dur": 0.2, 
+          "volume": 0.35, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 262, 
+          "f1": 196, 
+          "dur": 0.6, 
+          "volume": 0.35, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "noise", 
+          "f0": 120, 
+          "f1": 60, 
+          "dur": 0.15, 
+          "volume": 0.4
+        }
+      ]
+    }, 
+    "sfx_click": {
+      "segments": [
+        {
+          "wave": "square", 
+          "f0": 660, 
+          "f1": 660, 
+          "dur": 0.03, 
+          "volume": 0.3, 
+          "duty": 0.5
+        }
+      ]
+    }, 
+    "sfx_phone_ring": {
+      "segments": [
+        {
+          "wave": "square", 
+          "f0": 1320, 
+          "f1": 1320, 
+          "dur": 0.026, 
+          "volume": 0.32, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 1050, 
+          "f1": 1050, 
+          "dur": 0.026, 
+          "volume": 0.32, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 1320, 
+          "f1": 1320, 
+          "dur": 0.026, 
+          "volume": 0.32, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 1050, 
+          "f1": 1050, 
+          "dur": 0.026, 
+          "volume": 0.32, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 1320, 
+          "f1": 1320, 
+          "dur": 0.026, 
+          "volume": 0.32, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 1050, 
+          "f1": 1050, 
+          "dur": 0.026, 
+          "volume": 0.32, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 1320, 
+          "f1": 1320, 
+          "dur": 0.026, 
+          "volume": 0.32, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 440, 
+          "f1": 440, 
+          "dur": 0.218, 
+          "volume": 0.0
+        }, 
+        {
+          "wave": "square", 
+          "f0": 1320, 
+          "f1": 1320, 
+          "dur": 0.026, 
+          "volume": 0.32, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 1050, 
+          "f1": 1050, 
+          "dur": 0.026, 
+          "volume": 0.32, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 1320, 
+          "f1": 1320, 
+          "dur": 0.026, 
+          "volume": 0.32, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 1050, 
+          "f1": 1050, 
+          "dur": 0.026, 
+          "volume": 0.32, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 1320, 
+          "f1": 1320, 
+          "dur": 0.026, 
+          "volume": 0.32, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 1050, 
+          "f1": 1050, 
+          "dur": 0.026, 
+          "volume": 0.32, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 1320, 
+          "f1": 1320, 
+          "dur": 0.026, 
+          "volume": 0.32, 
+          "duty": 0.5
+        }
+      ]
+    }, 
+    "sfx_cue_clipboard": {
+      "segments": [
+        {
+          "wave": "noise", 
+          "f0": 6000, 
+          "f1": 6000, 
+          "dur": 0.012, 
+          "volume": 0.22, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "triangle", 
+          "f0": 480, 
+          "f1": 300, 
+          "dur": 0.05, 
+          "volume": 0.35, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 440, 
+          "f1": 440, 
+          "dur": 0.238, 
+          "volume": 0.0, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "noise", 
+          "f0": 6000, 
+          "f1": 6000, 
+          "dur": 0.012, 
+          "volume": 0.4, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "triangle", 
+          "f0": 620, 
+          "f1": 330, 
+          "dur": 0.07, 
+          "volume": 0.6, 
+          "duty": 0.5
+        }
+      ]
+    }, 
+    "sfx_cue_rival": {
+      "segments": [
+        {
+          "wave": "noise", 
+          "f0": 3500, 
+          "f1": 3500, 
+          "dur": 0.045, 
+          "volume": 0.22, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 380, 
+          "f1": 470, 
+          "dur": 0.07, 
+          "volume": 0.42, 
+          "duty": 0.25
+        }, 
+        {
+          "wave": "square", 
+          "f0": 470, 
+          "f1": 360, 
+          "dur": 0.12, 
+          "volume": 0.42, 
+          "duty": 0.25
+        }
+      ]
+    }, 
+    "sfx_cue_paper": {
+      "segments": [
+        {
+          "wave": "noise", 
+          "f0": 9000, 
+          "f1": 9000, 
+          "dur": 0.06, 
+          "volume": 0.14, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "noise", 
+          "f0": 7000, 
+          "f1": 7000, 
+          "dur": 0.05, 
+          "volume": 0.1, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 440, 
+          "f1": 440, 
+          "dur": 0.14, 
+          "volume": 0.0, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "noise", 
+          "f0": 12000, 
+          "f1": 12000, 
+          "dur": 0.02, 
+          "volume": 0.5, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "noise", 
+          "f0": 4000, 
+          "f1": 4000, 
+          "dur": 0.06, 
+          "volume": 0.22, 
+          "duty": 0.5
+        }
+      ]
+    }, 
+    "sfx_monitor_shatter": {
+      "segments": [
+        {
+          "wave": "noise", 
+          "f0": 12000, 
+          "f1": 12000, 
+          "dur": 0.03, 
+          "volume": 0.6, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "noise", 
+          "f0": 9000, 
+          "f1": 9000, 
+          "dur": 0.05, 
+          "volume": 0.45, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 3200, 
+          "f1": 3000, 
+          "dur": 0.02, 
+          "volume": 0.2, 
+          "duty": 0.25
+        }, 
+        {
+          "wave": "noise", 
+          "f0": 7000, 
+          "f1": 7000, 
+          "dur": 0.06, 
+          "volume": 0.3, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 4100, 
+          "f1": 3900, 
+          "dur": 0.015, 
+          "volume": 0.18, 
+          "duty": 0.25
+        }, 
+        {
+          "wave": "square", 
+          "f0": 440, 
+          "f1": 440, 
+          "dur": 0.02, 
+          "volume": 0.0, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 2800, 
+          "f1": 2700, 
+          "dur": 0.02, 
+          "volume": 0.15, 
+          "duty": 0.25
+        }, 
+        {
+          "wave": "noise", 
+          "f0": 5000, 
+          "f1": 5000, 
+          "dur": 0.08, 
+          "volume": 0.15, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 3600, 
+          "f1": 3500, 
+          "dur": 0.015, 
+          "volume": 0.1, 
+          "duty": 0.25
+        }, 
+        {
+          "wave": "noise", 
+          "f0": 3000, 
+          "f1": 3000, 
+          "dur": 0.1, 
+          "volume": 0.06, 
+          "duty": 0.5
+        }
+      ]
+    }, 
+    "sfx_light_flicker": {
+      "segments": [
+        {
+          "wave": "noise", 
+          "f0": 8000, 
+          "f1": 8000, 
+          "dur": 0.01, 
+          "volume": 0.5, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 120, 
+          "f1": 120, 
+          "dur": 0.06, 
+          "volume": 0.18, 
+          "duty": 0.3
+        }, 
+        {
+          "wave": "square", 
+          "f0": 440, 
+          "f1": 440, 
+          "dur": 0.04, 
+          "volume": 0.0, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "noise", 
+          "f0": 8000, 
+          "f1": 8000, 
+          "dur": 0.008, 
+          "volume": 0.4, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 120, 
+          "f1": 120, 
+          "dur": 0.03, 
+          "volume": 0.15, 
+          "duty": 0.3
+        }, 
+        {
+          "wave": "square", 
+          "f0": 440, 
+          "f1": 440, 
+          "dur": 0.07, 
+          "volume": 0.0, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "noise", 
+          "f0": 9000, 
+          "f1": 9000, 
+          "dur": 0.01, 
+          "volume": 0.45, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 118, 
+          "f1": 118, 
+          "dur": 0.09, 
+          "volume": 0.2, 
+          "duty": 0.3
+        }, 
+        {
+          "wave": "square", 
+          "f0": 440, 
+          "f1": 440, 
+          "dur": 0.03, 
+          "volume": 0.0, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "noise", 
+          "f0": 8000, 
+          "f1": 8000, 
+          "dur": 0.008, 
+          "volume": 0.35, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 121, 
+          "f1": 121, 
+          "dur": 0.12, 
+          "volume": 0.16, 
+          "duty": 0.3
+        }, 
+        {
+          "wave": "square", 
+          "f0": 440, 
+          "f1": 440, 
+          "dur": 0.05, 
+          "volume": 0.0, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "noise", 
+          "f0": 8500, 
+          "f1": 8500, 
+          "dur": 0.01, 
+          "volume": 0.4, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 120, 
+          "f1": 120, 
+          "dur": 0.06, 
+          "volume": 0.12, 
+          "duty": 0.3
+        }
+      ]
+    }, 
+    "sfx_cue_coffee": {
+      "segments": [
+        {
+          "wave": "noise", 
+          "f0": 4500, 
+          "f1": 4500, 
+          "dur": 0.035, 
+          "volume": 0.22, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 600, 
+          "f1": 740, 
+          "dur": 0.055, 
+          "volume": 0.42, 
+          "duty": 0.25
+        }, 
+        {
+          "wave": "square", 
+          "f0": 740, 
+          "f1": 560, 
+          "dur": 0.09, 
+          "volume": 0.42, 
+          "duty": 0.25
+        }
+      ]
+    }
   }
- },
- "ambience": {
-  "amb_office": {
-   "duration": 8,
-   "loop": true,
-   "layers": [
-    {
-     "type": "hum",
-     "freq": 120,
-     "volume": 0.05
-    },
-    {
-     "type": "typewriter",
-     "rate": 5,
-     "volume": 0.25,
-     "seed": 4
-    },
-    {
-     "type": "stamp",
-     "times": [
-      1.6,
-      4.9,
-      6.3
-     ],
-     "volume": 0.5
-    }
-   ]
-  }
- },
- "sfx": {
-  "sfx_step": {
-   "segments": [
-    {
-     "wave": "square",
-     "f0": 330,
-     "f1": 520,
-     "dur": 0.05,
-     "volume": 0.35,
-     "duty": 0.5
-    }
-   ]
-  },
-  "sfx_parry": {
-   "segments": [
-    {
-     "wave": "square",
-     "f0": 880,
-     "f1": 880,
-     "dur": 0.04,
-     "volume": 0.4,
-     "duty": 0.25
-    },
-    {
-     "wave": "square",
-     "f0": 1320,
-     "f1": 1760,
-     "dur": 0.08,
-     "volume": 0.35,
-     "duty": 0.25
-    }
-   ]
-  },
-  "sfx_hit": {
-   "segments": [
-    {
-     "wave": "noise",
-     "f0": 2000,
-     "f1": 300,
-     "dur": 0.18,
-     "volume": 0.5
-    },
-    {
-     "wave": "square",
-     "f0": 200,
-     "f1": 90,
-     "dur": 0.15,
-     "volume": 0.35,
-     "duty": 0.5
-    }
-   ]
-  },
-  "sfx_warning": {
-   "segments": [
-    {
-     "wave": "square",
-     "f0": 988,
-     "f1": 988,
-     "dur": 0.05,
-     "volume": 0.25,
-     "duty": 0.5
-    },
-    {
-     "wave": "square",
-     "f0": 740,
-     "f1": 740,
-     "dur": 0.05,
-     "volume": 0.0,
-     "duty": 0.5
-    },
-    {
-     "wave": "square",
-     "f0": 988,
-     "f1": 988,
-     "dur": 0.05,
-     "volume": 0.25,
-     "duty": 0.5
-    }
-   ]
-  },
-  "sfx_promote": {
-   "segments": [
-    {
-     "wave": "square",
-     "f0": 523,
-     "f1": 523,
-     "dur": 0.1,
-     "volume": 0.35,
-     "duty": 0.25
-    },
-    {
-     "wave": "square",
-     "f0": 659,
-     "f1": 659,
-     "dur": 0.1,
-     "volume": 0.35,
-     "duty": 0.25
-    },
-    {
-     "wave": "square",
-     "f0": 784,
-     "f1": 784,
-     "dur": 0.1,
-     "volume": 0.35,
-     "duty": 0.25
-    },
-    {
-     "wave": "square",
-     "f0": 1047,
-     "f1": 1047,
-     "dur": 0.3,
-     "volume": 0.35,
-     "duty": 0.25
-    }
-   ]
-  },
-  "sfx_gameover": {
-   "segments": [
-    {
-     "wave": "square",
-     "f0": 392,
-     "f1": 392,
-     "dur": 0.2,
-     "volume": 0.35,
-     "duty": 0.5
-    },
-    {
-     "wave": "square",
-     "f0": 330,
-     "f1": 330,
-     "dur": 0.2,
-     "volume": 0.35,
-     "duty": 0.5
-    },
-    {
-     "wave": "square",
-     "f0": 262,
-     "f1": 196,
-     "dur": 0.6,
-     "volume": 0.35,
-     "duty": 0.5
-    },
-    {
-     "wave": "noise",
-     "f0": 120,
-     "f1": 60,
-     "dur": 0.15,
-     "volume": 0.4
-    }
-   ]
-  },
-  "sfx_click": {
-   "segments": [
-    {
-     "wave": "square",
-     "f0": 660,
-     "f1": 660,
-     "dur": 0.03,
-     "volume": 0.3,
-     "duty": 0.5
-    }
-   ]
-  }
- }
 }
 </json>

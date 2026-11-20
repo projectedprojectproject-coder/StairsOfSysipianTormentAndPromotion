@@ -33,6 +33,7 @@ PROFILES = {
 }
 
 # 엔진별: game.js에 더할 줄, 상태 읽기, 결과 읽기
+# 경쟁 사원은 막을 쪽이 정해진 뒤(locked)에만 패링을 계획한다 (계단을 따라오는 동안 쪽과 도착 시각이 바뀐다)
 ENGINES = {
     "demo": {
         "anchor": "    if (G) Object.assign(T, {",
@@ -40,7 +41,7 @@ ENGINES = {
         "inject_before": True,
         "state": """() => { const G = window.__G, T = window.__stairs; if (!G) return null;
           return {t: G.t, dir: G.dirs[G.step], days: G.days, ended: T.screen !== 'play' && T.screen !== 'pause',
-                  atk: G.attacks.filter(a => !a.done).map(a => ({side: a.side, hitAt: a.hitAt}))}; }""",
+                  atk: G.attacks.filter(a => !a.done && a.locked !== false).map(a => ({side: a.side, hitAt: a.hitAt}))}; }""",
         "result": """() => { const G = window.__G, T = window.__stairs;
           return {kind: G.result, floor: T.floor, steps: T.steps, score: T.score, hearts: T.hearts,
                   wrong: T.log.filter(x => x === 'hurt:wrong-step').length,
@@ -54,7 +55,7 @@ ENGINES = {
         "inject_before": False,
         "state": """() => { const r = window.__run(); if (!r) return null;
           return {t: r.time, dir: window.__dirAt(r.steps), days: r.days, ended: !!r.ended,
-                  atk: r.projs.filter(p => !p.done).map(p => ({side: p.side, hitAt: p.impactT}))}; }""",
+                  atk: r.projs.filter(p => !p.done && p.locked !== false).map(p => ({side: p.side, hitAt: p.impactT}))}; }""",
         "result": """() => { const r = window.__run(), log = window.__stairs.log;
           return {kind: r.ended.kind, floor: r.floor, steps: r.steps, score: r.score, hearts: r.hearts,
                   wrong: log.filter(l => l.includes('(wrong)')).length,

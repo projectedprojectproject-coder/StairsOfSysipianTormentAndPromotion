@@ -6,6 +6,7 @@ from PIL import Image
 from stairs_agents import concept
 from stairs_agents.qa import QAReport
 from stairs_agents.qa_developer import config_block, numbers
+from stairs_agents.qa_screens import accent_iou, layout_corr
 
 
 def figure_on_bg() -> Image.Image:
@@ -65,6 +66,28 @@ class QATest(unittest.TestCase):
         block = config_block(js)
         self.assertTrue(block.startswith("{") and block.endswith("}"))
         self.assertEqual(numbers(block), {3.0, 30.0, 0.2, 1.5})
+
+
+class ScreenQATest(unittest.TestCase):
+    def test_same_screen(self):
+        im = Image.new("RGB", (320, 180), (30, 31, 34))
+        for x in range(100, 220):
+            for y in range(140, 170):
+                im.putpixel((x, y), (161, 61, 61))       # 빨간 버튼
+        self.assertEqual(layout_corr(im, im), 1.0)
+        iou, share = accent_iou(im, im)
+        self.assertEqual(iou, 1.0)
+        self.assertGreater(share, 0.01)
+
+    def test_moved_button(self):
+        a = Image.new("RGB", (320, 180), (30, 31, 34)); b = a.copy()
+        for x in range(10, 60):
+            for y in range(10, 30):
+                a.putpixel((x, y), (161, 61, 61))
+        for x in range(250, 310):
+            for y in range(140, 170):
+                b.putpixel((x, y), (161, 61, 61))
+        self.assertEqual(accent_iou(a, b)[0], 0.0)
 
 
 if __name__ == "__main__":

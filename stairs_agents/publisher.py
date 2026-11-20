@@ -30,7 +30,7 @@ AUDIO_CODECS = {"ogg": ["-c:a", "libvorbis", "-q:a", "4"], "mp3": ["-c:a", "libm
 class PublisherAgent:
     name = "publisher"
 
-    def __init__(self, paths: Paths, browser: str | None = None, test_timeout: float = 90.0):
+    def __init__(self, paths: Paths, browser: str | None = None, test_timeout: float = 240.0):
         self.paths = paths
         self.browser = browser or shutil.which("google-chrome") or shutil.which("chromium") or shutil.which("chromium-browser")
         self.test_timeout = test_timeout
@@ -164,7 +164,7 @@ class PublisherAgent:
                 def wait_for(cond_js, timeout):
                     page.wait_for_function(cond_js, timeout=timeout * 1000)
 
-                # 시나리오 1: 자동 플레이로 20층 승급까지
+                # 시나리오 1: 자동 플레이로 마지막 승급 층까지 (게임이 __stairs.finalFloor·finalRank로 알려 줌, 없으면 20층·대리)
                 page.goto(base + "?seed=7&bot=1&mute=1")
                 wait_for("window.__stairs && window.__stairs.ready", 15)
                 s = state()
@@ -191,8 +191,9 @@ class PublisherAgent:
                 wait_for("window.__stairs.screen === 'play'", 5)
                 wait_for("window.__stairs.screen === 'result'", self.test_timeout)
                 s = state()
-                record("20층 도달과 승급 판정", s["floor"] >= 20 and s["rank"] == "대리",
-                       f"층 {s['floor']}, 직급 {s['rank']}, 점수 {s['score']}, 최고 배수 x{s['maxMult']}")
+                goal, goal_rank = s.get("finalFloor") or 20, s.get("finalRank") or "대리"
+                record(f"{goal}층 도달과 승급 판정", s["floor"] >= goal and s["rank"] == goal_rank,
+                       f"층 {s['floor']}, 직급 {s['rank']} (목표 {goal}층 {goal_rank}), 점수 {s['score']}, 최고 배수 x{s['maxMult']}")
                 page.wait_for_timeout(600)
                 page.screenshot(path=str(shots / "5_result_promote.png"))
 

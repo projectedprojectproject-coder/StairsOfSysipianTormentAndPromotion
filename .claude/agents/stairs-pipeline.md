@@ -42,6 +42,7 @@ API 키는 환경 변수 `ANTHROPIC_API_KEY`로만 넘기고, 파일에 적거�
 """에이전트 맵대로 실행한다: Mechanics로 규칙을 확정하고, Designer와 Developer를 동시에 돌린 뒤 Publisher를 돌린다.
 
 Designer와 Developer 뒤에는 각자의 QA 에이전트(Designer QA, Developer QA)가 바로 이어서 돈다.
+Publisher 뒤에는 Developer QA 2단계(화면 대조, qa_screens.py)가 실제 게임 화면을 컨셉 화면과 비교한다.
 QA 판정이 fail이면 경고만 남기고 계속하며, strict_qa=True면 Publisher 전에 멈춘다.
 """
 from __future__ import annotations
@@ -56,6 +57,7 @@ from .mechanics import MechanicsAgent
 from .publisher import PublisherAgent
 from .qa_designer import DesignerQAAgent
 from .qa_developer import DeveloperQAAgent
+from .qa_screens import run_screen_qa
 from .util import Paths, log
 
 
@@ -96,6 +98,8 @@ def run_pipeline(llm, paths: Paths, use_resource_db: bool = True, skip_test: boo
     if skip_test:
         publisher.test = lambda: False
     pub = publisher.run()
+    if qa and not skip_test:  # Developer QA 2단계: Publisher가 찍은 화면을 컨셉 화면과 대조
+        qa_results["screens"] = run_screen_qa(llm, paths)
     qa_dir = paths.out / "qa_out"
     if qa_dir.exists():  # QA 보고서를 배포 폴더에 함께 둔다
         shutil.copytree(qa_dir, paths.dist / "qa", dirs_exist_ok=True)
@@ -357,6 +361,7 @@ def check_manifest(contract: dict, manifest: dict) -> list[str]:
   python -m stairs_agents mechanics|designer|developer|publisher [...]   # 에이전트 하나만 실행
   python -m stairs_agents qa --replay replay        # 이미 만든 결과물에 Designer QA, Developer QA만 실행
   python -m stairs_agents qa-designer|qa-developer  # QA 하나만
+  python -m stairs_agents qa-screens --replay replay # Publisher가 찍은 화면을 컨셉 화면과 대조
 """
 from __future__ import annotations
 
@@ -373,6 +378,7 @@ from .pipeline import run_pipeline
 from .publisher import PublisherAgent
 from .qa_designer import DesignerQAAgent
 from .qa_developer import DeveloperQAAgent
+from .qa_screens import run_screen_qa
 from .util import ROOT, Paths
 
 
@@ -385,7 +391,7 @@ def make_llm(args):
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="stairs_agents", description="승급의 계단 에이전트 PoC")
-    ap.add_argument("command", choices=["run", "mechanics", "designer", "developer", "publisher", "qa", "qa-designer", "qa-developer"])
+    ap.add_argument("command", choices=["run", "mechanics", "designer", "developer", "publisher", "qa", "qa-designer", "qa-developer", "qa-screens"])
     ap.add_argument("--model", default=DEFAULT_MODEL, help=f"Claude 모델 (기본 {DEFAULT_MODEL})")
     ap.add_argument("--max-tokens", type=int, default=64000)
     ap.add_argument("--replay", help="저장된 응답 폴더로 실행 (API 호출 없음)")
@@ -411,6 +417,8 @@ def main(argv=None) -> int:
     if args.command == "mechanics":
         result = MechanicsAgent(llm, paths).run()
         return 1 if result["problems"] and not result["skipped"] else 0
+    if args.command == "qa-screens":
+        return 1 if run_screen_qa(llm, paths)["verdict"] == "fail" else 0
     if args.command in ("qa", "qa-designer", "qa-developer"):
         verdicts = []
         if args.command != "qa-developer":

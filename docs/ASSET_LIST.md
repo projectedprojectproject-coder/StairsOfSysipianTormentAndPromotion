@@ -13,7 +13,9 @@ Designer와 Developer가 같은 에셋 ID, 변형(variant) 이름, 애니메이�
 |---|---|---|---|
 | player | 사원, 대리, 과장, 간부, CEO | idle, step, parry_left, parry_right, hit, box_exit, proud | 주인공. 직급은 정장 색과 사원증 색으로만 구분 (03 캐릭터 디자인, 04 보상 성장). box_exit는 짐 상자를 들고 고개 숙여 퇴장, proud는 승급 자세 (05-5 요소 1) |
 | rival | default | walk, attack, leave | 경쟁 사원 (04 레벨 구성, 05-3 요소 5) |
-| projectiles | default | document, clipboard, phone | 서류, 결재판, 전화기 (04 레벨 구성) |
+| commuter | default | walk | 타이틀 거리를 걷는 직장인, 고개 숙이고 서류가방 (05-1 요소 4). 게임이 좌우로 걸어 다니게 그린다 |
+| projectiles | default | document, clipboard, phone, monitor, coffee | 서류, 결재판, 전화기 (04 레벨 구성), 위에서 떨어지는 컴퓨터 모니터 (21층~), 막으면 안 되는 커피 컵 (11층~) |
+| sticky | pink, blue, green, yellow, white | fly | 61층~ 포스트잇. 색이 남은 패링 횟수 (분홍 5, 파랑 4, 초록 3, 노랑 2, 흰색 1) |
 | warning | default | blink | 공격 예고 "!" (05-3 요소 4) |
 | stairs | zone1, zone2, zone3, zone4, zone5 | tile, riser | 계단 칸(디딤판)과 그 아래 계단 몸체, 구간별 5종 (03 배경 레벨 무드) |
 | hud_icons | default | heart, heart_empty, calendar, arrow_left, arrow_right, shield_q, shield_e, badge, gear | HUD 아이콘 (03 UI 톤, 05-2 요소 3, 05-3 요소 2와 4). gear는 타이틀 오른쪽 위 설정 버튼 (05-1 요소 2) |
@@ -28,7 +30,9 @@ Designer와 Developer가 같은 에셋 ID, 변형(variant) 이름, 애니메이�
 | bg_zone3 | 41~60층 텅 빈 회의실 (03) |
 | bg_zone4 | 61~99층 임원층 (03) |
 | bg_zone5 | 100층 CEO실, 유일한 따뜻한 조명 (03) |
-| title_bg | 어두운 빌딩 숲, 가운데 가장 높은 본사 꼭대기 층만 따뜻한 불빛, 바닥에 고개 숙인 사원들 (05-1 요소 4) |
+| title_bg | 어두운 빌딩 숲, 가운데 가장 높은 본사 꼭대기 층만 따뜻한 불빛, 아래 거리 (05-1 요소 4). 걷는 사원들은 게임이 commuter 시트로 그린다 |
+| bg_lobby | 05-2 로비 배경: 형광등 천장(원근 격자)의 파티션 사무실, 오른쪽 벽 화이트보드(STATISTICS 칸, 게임이 기록을 그 위에 씀), 가운데 책상의 스탠드 불빛·모니터·앉아 일하는 사원 뒷모습. 왼쪽은 사원증, 아래는 업무 시작 버튼이 덮는다 |
+| bg_result | 05-5 결과 배경: 어둡게 가라앉은 사무실, 천장 형광등 두 줄, 왼쪽 서류장과 선반의 상자, 의자, 오른쪽 불 켜진 창 하나와 책상. 가운데는 인사 평가 표, 왼쪽은 큰 캐릭터가 덮는다 |
 | logo | 회사 로고를 패러디한 픽셀 제목 "승급의 계단" (05-1 요소 1). 크기는 Designer가 정함 |
 
 ## 사운드 (sound)
@@ -45,6 +49,13 @@ Designer와 Developer가 같은 에셋 ID, 변형(variant) 이름, 애니메이�
 | sfx_promote | 아니오 | 승급 (04 성장) |
 | sfx_gameover | 아니오 | 구조조정 (04 규칙) |
 | sfx_click | 아니오 | 버튼 선택 (05 화면) |
+| sfx_cue_clipboard | 아니오 | 결재판 패링 타이밍: 나무판 "딱… 딱!" 두 번, 두 번째 딱이 0.30초에 시작 |
+| sfx_cue_rival | 아니오 | 경쟁 사원 패링 타이밍: 짧은 "헤이!", 모음이 0.045초에 시작 |
+| sfx_cue_paper | 아니오 | 서류 패링 타이밍: 바스락 잡았다가 "착" 접는 소리, 접는 소리가 0.25초에 시작 |
+| sfx_light_flicker | 아니오 | 모니터 예고: 형광등이 '틱' 꺼졌다 '지잉' 켜지기를 불규칙하게 되풀이 (0.6초 안팎, 유리 깨지기 전) |
+| sfx_monitor_shatter | 아니오 | 모니터가 나타날 때(도착 1.0초 전) 위층 창 유리가 깨지는 소리 |
+| sfx_cue_coffee | 아니오 | 커피 타이밍: 경쟁 사원의 "헤이!"를 높게 올린 소리 (막지 말라는 신호), 모음이 0.035초에 시작 |
+| sfx_phone_ring | 아니오 | 전화기 벨 두 번 (31층~ 전화기 공격). 두 번째 벨이 0.4초 뒤에 시작하며, 게임은 이 벨이 패링하기 가장 좋은 순간에 오도록 튼다 |
 
 ## 컬러 팔레트 (03)
 주색 #5A5F66, 보조색 #8A9A5B, 강조색 #A13D3D, 배경 #1E1F22, 글자 #E8E6DF

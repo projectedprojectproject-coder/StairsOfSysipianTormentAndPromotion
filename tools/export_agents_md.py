@@ -154,15 +154,24 @@ Developer 바로 뒤에 도는 품질 확인 에이전트입니다. 코드를 �
 2. Claude 검토: 규칙 결과, Developer 규칙, `game.js`를 보내 판정 규칙·진행·화면 흐름·버그 위험을 검토받습니다(`prompts/qa_developer.md`). 재생 모드에 `qa_developer_review.txt`가 없으면 건너뜁니다.
 3. 판정은 Designer QA와 같습니다.
 
+## 2단계: 화면 대조 (Publisher 뒤)
+
+`qa_screens.py`가 Publisher가 찍은 실제 게임 화면(`output/dist/screens`)을 컨셉 화면(`data/concept/05-1_title.png`, `05-2_lobby.png`, `05-3_play.png`, `05-5_result_gameover.png`)과 비교합니다. 비교할 화면과 컨셉의 번호 요소는 `data/concept/regions.json`의 `screens`에 있습니다.
+
+- 규칙 검사: 밝고 어두운 배치의 상관(구도, 0.3 이상), 강조색(빨강) 요소 자리의 겹침(0.25 이상), 색 거리, 밝기 차
+- Claude 검토: 대조표(`output/qa_out/screens_contact.png`, 왼쪽 컨셉, 오른쪽 게임)와 번호 요소 목록으로 요소마다 있는지, 자리와 모양이 맞는지 보고 고칠 쪽(Developer/Designer)을 적습니다 (`prompts/qa_screens.md`)
+- 보고서: `output/qa_out/screens_qa.md`
+
 ## 실행
 
 ```bash
+python -m stairs_agents qa-screens --replay replay   # 화면 대조만
 python -m stairs_agents qa-developer --replay replay
 python -m stairs_agents qa --replay replay      # Designer QA와 함께
 ```
 """,
-        "prompts": ["prompts/qa_developer.md"],
-        "sources": ["stairs_agents/qa_developer.py", "stairs_agents/qa.py"],
+        "prompts": ["prompts/qa_developer.md", "prompts/qa_screens.md"],
+        "sources": ["stairs_agents/qa_developer.py", "stairs_agents/qa_screens.py", "stairs_agents/qa.py"],
     },
     {
         "file": "stairs-publisher.md",
@@ -185,7 +194,7 @@ python -m stairs_agents qa --replay replay      # Designer QA와 함께
 
 ## 동작 확인 9개 항목
 
-에셋 불러오기 · 타이틀 화면 · 타이틀 → 로비 · 로비 → 플레이 · 일시정지(ESC)와 남은 일수 정지 · 20층 도달과 승급 판정 · 입력 없음 → 구조조정 · 파일로 직접 열기(file://) · 브라우저 오류 없음
+에셋 불러오기 · 타이틀 화면 · 타이틀 → 로비 · 로비 → 플레이 · 일시정지(ESC)와 남은 일수 정지 · 마지막 승급 층(60층) 도달과 승급 판정 · 입력 없음 → 구조조정 · 파일로 직접 열기(file://) · 브라우저 오류 없음
 
 ## 필요한 것
 

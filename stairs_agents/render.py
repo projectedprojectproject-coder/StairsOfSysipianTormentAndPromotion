@@ -523,13 +523,18 @@ def _lamps(img, d, e):
                              "color": e["light"], "alpha": e.get("alpha", 0.12)})
 
 
+def _poly(img, d, e):
+    """다각형 (원근이 있는 천장, 벽, 화이트보드 등). points는 [[x, y], ...]."""
+    d.polygon([tuple(pt) for pt in e["points"]], fill=rgba(e["color"]))
+
+
 SCENE_KINDS = {
     "rect": _rect, "gradient": _gradient, "line": _line, "window_grid": _window_grid,
     "skyline": _skyline, "building": _building, "partition": _partition, "desk": _desk,
     "monitor": _monitor, "chair": _chair, "plant": _plant, "table": _table, "door": _door,
     "frame": _frame, "light_cone": _light_cone, "workers": _workers,
     "glow": _glow, "tower": _tower, "crowd": _crowd, "silhouette": _silhouette, "lamps": _lamps,
-    "clouds": _clouds, "city": _city, "walkers": _walkers,
+    "clouds": _clouds, "city": _city, "walkers": _walkers, "poly": _poly,
 }
 
 
