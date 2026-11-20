@@ -17,6 +17,9 @@ const CONFIG = {
   parryWindow: 0.20,       // 패링 판정 0.20초
   warnTime: 1.0,           // 공격 예고 1.0초 전 표시 (서류 비행 시간과 같음)
   promoteFloors: [20, 40, 60, 80], // 승급 심사 층. 20·40·60층은 승급 뒤 계속 오른다 (결정 2026-11-20: PoC 1~80층)
+  practiceFloor: 11,       // 결정(2026-11-20): 연습 모드에서 서 있는 층 (층 바닥 위, 계단을 오르지 않는다)
+  practiceDiff: 0.5,       // 기획서 미정: 연습 모드 공격 간격의 난이도 (구간 가운데 값)
+  endlessRampFloors: 60,   // 기획서 미정: 무한 모드에서 난이도가 끝까지 오르는 층 수
   finalFloor: 100,         // 결정(2026-11-20): 80층에서 CEO로 승급한 뒤 100층(CEO실)에 오르면 PoC 마무리
   crackFromFloor: 21,      // 결정(2026-11-20): 21층부터 금 간 계단
   crackShare: 0.16,        // 기획서 미정: 금 간 계단 비율 (층이 바뀌는 칸은 빼고)
@@ -333,8 +336,9 @@ function unlockAudio() {
 /* ---------------------------------------------------------------------
  * 저장
  * ------------------------------------------------------------------- */
-const save = { floor: 1, score: 0 };
+const save = { floor: 1, score: 0, endless: 0 };
 try {
+  save.endless = parseInt(localStorage.getItem('stairs_best_endless'), 10) || 0;   // 무한 모드 최고 층은 따로
   save.floor = parseInt(localStorage.getItem('stairs_best_floor'), 10) || 1;
   save.score = parseInt(localStorage.getItem('stairs_best_score'), 10) || 0;
 } catch (e) {}
@@ -342,6 +346,7 @@ function writeSave() {
   try {
     localStorage.setItem('stairs_best_floor', String(save.floor));
     localStorage.setItem('stairs_best_score', String(save.score));
+    localStorage.setItem('stairs_best_endless', String(save.endless));
   } catch (e) {}
 }
 
@@ -382,7 +387,9 @@ function stairX(i) { ensureStairs(i + 1); return st.x[i]; }
 function floorOfSteps(n) { return 1 + Math.floor(n / CONFIG.stairsPerFloor); }
 function zoneOf(f) { return f <= 20 ? 1 : f <= 40 ? 2 : f <= 60 ? 3 : f <= 99 ? 4 : 5; }
 
-function startRun() {
+// mode: 'normal'(1~100층), 'endless'(무한: 1층부터 모든 장애물, 끝없음), 'practice'(연습: 제자리에서 막기만, 시간 제한·게임 오버 없음)
+function startRun(mode) {
+  if (typeof mode !== 'string') mode = 'normal';
   const seed = SEED + runCount; runCount++;
   newStairs(seed);
   run = {
@@ -398,15 +405,24 @@ function startRun() {
     facing: dirAt(0), animState: '', animStart: 0,
     botT: 0, ended: null, endTimer: 0, rivalIdx: 8,
     crackT: 0, nextFlash: CONFIG.flashGap, camFlash: null,
+    mode: mode, hits: 0,
   };
+  if (mode === 'practice') {                   // 연습: 층 바닥이 있는 칸에 서서 시작, 카메라도 바로 그 자리
+    const r = run; r.steps = (CONFIG.practiceFloor - 1) * CONFIG.stairsPerFloor; r.floor = CONFIG.practiceFloor;
+    r.pvx = r.camX = stairX(r.steps); r.pvy = r.camY = -r.steps * CONFIG.stepH; r.facing = dirAt(r.steps);
+  }
   screen = 'play'; focus = 0; settingsOpen = false;
-  log('run start seed=' + seed);
+  log('run start seed=' + seed + ' mode=' + mode);
 }
 
 /* ---------------------------------------------------------------------
  * 게임 규칙
  * ------------------------------------------------------------------- */
-function diffT(r) { return clamp(((r.floor - 1) % 20) / 19, 0, 1); }   // 승급 구간(20층)마다 다시 쉬워진다
+function diffT(r) {   // 보통은 20층 구간마다, 무한은 60층에 걸쳐 끝까지, 연습은 가운데 값으로 고정
+  if (r.mode === 'endless') return clamp((r.floor - 1) / CONFIG.endlessRampFloors, 0, 1);
+  if (r.mode === 'practice') return CONFIG.practiceDiff;
+  return clamp(((r.floor - 1) % 20) / 19, 0, 1);
+}   // 승급 구간(20층)마다 다시 쉬워진다
 function drainMult(r) { return lerp(CONFIG.drainStart, CONFIG.drainEnd, diffT(r)); }
 function attackInterval(r) {
   const base = lerp(CONFIG.attackIntervalStart, CONFIG.attackIntervalEnd, diffT(r));
@@ -426,12 +442,14 @@ function keyParry(side) {
 }
 // 금 간 계단: 21층부터 일부 칸 (층이 바뀌는 칸은 빼고, 칸 번호로 정해져 매번 같다)
 function isCracked(i) {
-  if (floorOfSteps(i) < CONFIG.crackFromFloor || i % CONFIG.stairsPerFloor === 0) return false;
+  if (run && run.mode === 'practice') return false;   // 연습 모드에는 계단 장애물이 없다
+  const from = run && run.mode === 'endless' ? 2 : CONFIG.crackFromFloor;   // 무한 모드는 2층부터
+  if (floorOfSteps(i) < from || i % CONFIG.stairsPerFloor === 0) return false;
   return (((i * 2654435761) >>> 0) % 1000) / 1000 < CONFIG.crackShare;
 }
 function doStep(dir) {
   const r = run;
-  if (!r || r.ended || screen !== 'play') return;
+  if (!r || r.ended || screen !== 'play' || r.mode === 'practice') return;   // 연습: 계단을 오르지 않는다
   const need = dirAt(r.steps);
   if (dir !== need) {
     log('wrong direction');
@@ -459,7 +477,7 @@ function doStep(dir) {
       addText(nf + 'F', 160, 70, PAL.text);
     }
     if (CONFIG.promoteFloors.indexOf(nf) >= 0) promote(nf);
-    if (nf >= CONFIG.finalFloor && !r.ended) { sfx('sfx_promote'); log('finish ' + nf + 'F'); endRun('promote', 'floor' + nf); }   // 90층: PoC 마무리
+    if (r.mode === 'normal' && nf >= CONFIG.finalFloor && !r.ended) { sfx('sfx_promote'); log('finish ' + nf + 'F'); endRun('promote', 'floor' + nf); }   // 90층: PoC 마무리
   }
 }
 function doParry(side) {
@@ -473,6 +491,10 @@ function doParry(side) {
 }
 function loseHeart(reason) {
   const r = run;
+  if (r.mode === 'practice') {                 // 연습: 하트를 잃지 않고 맞은 수만 센다
+    r.hits++; r.combo = 0; r.mult = 1; r.hitTimer = 0.35; r.shake = 0.25; r.flash = 0.35;
+    sfx('sfx_hit'); log('hit (' + reason + ') practice'); return;
+  }
   r.hearts--; r.combo = 0; r.mult = 1;
   r.hitTimer = 0.35; r.shake = 0.25; r.flash = 0.35;
   sfx('sfx_hit');
@@ -499,6 +521,7 @@ function endRun(kind, cause) {
 }
 // 공격 종류: 결재판(기본), 경쟁 사원(11층~), 전화기(31층~), 서류(41층~)
 function pickType(r) {
+  r = r.mode === 'normal' ? r : Object.assign({}, r, { floor: 999 });   // 무한·연습: 처음부터 모든 공격
   const w = [['clipboard', 1], ['rival', r.floor >= CONFIG.rivalFromFloor ? CONFIG.weightRival : 0],
              ['phone', r.floor >= CONFIG.phoneFromFloor ? CONFIG.weightPhone : 0], ['paper', r.floor >= CONFIG.paperFromFloor ? CONFIG.weightPaper : 0],
              ['monitor', r.floor >= CONFIG.monitorFromFloor ? CONFIG.weightMonitor : 0],
@@ -597,12 +620,12 @@ function updatePlay(dt) {
   if (BOT) botTick(dt);
   if (r.ended) return;
 
-  r.days -= dt / CONFIG.dayDuration * drainMult(r);
+  if (r.mode !== 'practice') r.days -= dt / CONFIG.dayDuration * drainMult(r);   // 연습: 시간 제한 없음
   if (isCracked(r.steps)) {                    // 금 간 계단에 너무 오래 서 있으면 무너진다
     r.crackT += dt;
     if (r.crackT >= CONFIG.crackTime) { log('crack fall'); sfx('sfx_stair_crack'); sfx('sfx_gameover'); endRun('gameover', 'cracked'); return; }
   }
-  if (r.floor >= CONFIG.flashFromFloor) {      // 카메라 플래시: 막을 수 없지만 피해도 없다
+  if (r.floor >= CONFIG.flashFromFloor || r.mode !== 'normal') {      // 카메라 플래시 (무한·연습은 처음부터): 막을 수 없지만 피해도 없다
     r.nextFlash -= dt;
     if (r.nextFlash <= 0) {
       r.camFlash = { t: CONFIG.flashTime, x: 20 + r.decor() * (W - 40), y: 20 + r.decor() * 60 };
@@ -660,12 +683,16 @@ function updatePlay(dt) {
 function finishRun() {
   const r = run;
   const kind = r.ended.kind;
-  const newBest = r.floor > save.floor || r.score > save.score;
-  if (r.floor > save.floor) save.floor = r.floor;
-  if (r.score > save.score) save.score = r.score;
+  let newBest;
+  if (r.mode === 'endless') { newBest = r.floor > save.endless; save.endless = Math.max(save.endless, r.floor); }   // 무한 모드 기록은 따로
+  else {
+    newBest = r.floor > save.floor || r.score > save.score;
+    if (r.floor > save.floor) save.floor = r.floor;
+    if (r.score > save.score) save.score = r.score;
+  }
   writeSave();
   result = {
-    kind: kind, cause: r.ended.cause, floor: r.floor, rankIdx: r.rankIdx,
+    kind: kind, cause: r.ended.cause, floor: r.floor, rankIdx: r.rankIdx, mode: r.mode,
     score: r.score, maxMult: r.maxMult, maxCombo: r.maxCombo, newBest: newBest,
   };
   screen = 'result'; focus = 0; resultLock = 0.5;
@@ -727,7 +754,9 @@ function getButtons() {
       ];
     case 'lobby':
       return [
-        Object.assign(btn('work', '업무 시작', 64, 150, 192, 18, startRun, 10), { tone: 'red' }),   // 05-2 요소 4 (ESC: 타이틀로)
+        Object.assign(btn('work', '업무 시작', 104, 150, 112, 18, function () { startRun('normal'); }, 10), { tone: 'red' }),   // 05-2 요소 4 (ESC: 타이틀로)
+        btn('endless', '무한 모드', 224, 150, 84, 18, function () { startRun('endless'); }, 8),
+        btn('practice', '연습 모드', 12, 150, 84, 18, function () { startRun('practice'); }, 8),
       ];
     case 'pause':
       return [
@@ -738,7 +767,7 @@ function getButtons() {
       ];
     case 'result':
       return [
-        Object.assign(btn('again', result && result.kind === 'promote' ? '1층부터 다시' : '다시 하기', 96, 155, 62, 16, startRun, 8), { tone: 'red' }),   // 05-5 요소 5
+        Object.assign(btn('again', result && result.kind === 'promote' ? '1층부터 다시' : '다시 하기', 96, 155, 62, 16, function () { startRun(result ? result.mode : 'normal'); }, 8), { tone: 'red' }),   // 05-5 요소 5
         btn('share', '기록 공유', 166, 155, 62, 16, shareResult, 8),                                                                                     // 요소 2
       ];
   }
@@ -913,9 +942,9 @@ function drawLobby() {
   rect(248, 5, 64, 18, PAL.red); frameRect(248, 5, 64, 18, PAL.text); frameRect(249, 6, 62, 16, '#6E2626');   // 2 D-30
   txt('D-' + CONFIG.startDays, 280, 14.5, { align: 'center', base: 'middle', size: 11, bold: true });
   drawIdCard(12, 38, rIdx);                                                                 // 3 사원증
-  rect(250, 80, 56, 22, PAL.bg, 0.9); frameRect(250, 80, 56, 22, PAL.gray);                // 5 화이트보드 위 기록
+  rect(244, 80, 68, 22, PAL.bg, 0.9); frameRect(244, 80, 68, 22, PAL.gray);                // 5 화이트보드 위 기록
   txt('최고 ' + save.floor + 'F', 278, 87, { align: 'center', base: 'middle', size: 7, bold: true });
-  txt('전체 랭킹 #-- (오프라인)', 278, 96, { align: 'center', base: 'middle', size: 5, color: '#9AA0A8' });
+  txt('무한 최고 ' + save.endless + 'F · 랭킹 오프라인', 278, 96, { align: 'center', base: 'middle', size: 5, color: '#9AA0A8' });
   drawButtons();                                                                            // 4 업무 시작
 }
 
@@ -1132,16 +1161,23 @@ function drawHud() {
   // 1 층수·직급 명판
   plate(6, 5, 86, 19);
   drawBadgeIcon(10, 9, 12);
-  txt(r.floor + 'F · ' + CONFIG.rankNames[r.rankIdx], 56, 14.5, { align: 'center', base: 'middle', size: 9, bold: true });
-  // 2 남은 일수 명판 + 하트
-  const dayInt = Math.ceil(r.days);
-  const low = r.days <= 7;
-  plate(W - 92, 5, 86, 19);
-  const ok = drawSprite('hud_icons', 'default', 'calendar', 0, W - 88, 9, { anchor: 'tl', dw: 12, dh: 12, nofb: true });
-  if (!ok) rect(W - 88, 9, 12, 12, PAL.gray);
-  txt('D-' + dayInt, W - 44, 14.5, { align: 'center', base: 'middle', size: 10, bold: true, color: low ? PAL.red : PAL.text });
-  rect(W - 89, 21, 80 * clamp(r.days / CONFIG.maxDays, 0, 1), 1, low ? PAL.red : PAL.green);   // 일수 게이지
-  for (let i = 0; i < CONFIG.maxHearts; i++) drawHeart(W - 8 - (CONFIG.maxHearts - i) * 13, 27, i < r.hearts);
+  if (r.mode === 'practice') {                 // 연습: 층 대신 모드 이름, 일수·하트 대신 막은 수와 맞은 수
+    txt('연습 모드', 56, 14.5, { align: 'center', base: 'middle', size: 9, bold: true });
+    plate(W - 92, 5, 86, 19);
+    txt('막음 ' + r.parries + ' · 맞음 ' + r.hits, W - 49, 14.5, { align: 'center', base: 'middle', size: 8, bold: true });
+    txt('ESC → 메인으로', W - 49, 31, { align: 'center', base: 'middle', size: 6, color: '#9AA0A8' });
+  } else {
+    txt((r.mode === 'endless' ? '∞ ' : '') + r.floor + 'F · ' + CONFIG.rankNames[r.rankIdx], 56, 14.5, { align: 'center', base: 'middle', size: r.mode === 'endless' ? 8 : 9, bold: true });
+    // 2 남은 일수 명판 + 하트
+    const dayInt = Math.ceil(r.days);
+    const low = r.days <= 7;
+    plate(W - 92, 5, 86, 19);
+    const ok = drawSprite('hud_icons', 'default', 'calendar', 0, W - 88, 9, { anchor: 'tl', dw: 12, dh: 12, nofb: true });
+    if (!ok) rect(W - 88, 9, 12, 12, PAL.gray);
+    txt('D-' + dayInt, W - 44, 14.5, { align: 'center', base: 'middle', size: 10, bold: true, color: low ? PAL.red : PAL.text });
+    rect(W - 89, 21, 80 * clamp(r.days / CONFIG.maxDays, 0, 1), 1, low ? PAL.red : PAL.green);   // 일수 게이지
+    for (let i = 0; i < CONFIG.maxHearts; i++) drawHeart(W - 8 - (CONFIG.maxHearts - i) * 13, 27, i < r.hearts);
+  }
   // 콤보 (가운데 위, 금색)
   if (r.combo > 0) {
     txt('×' + r.mult + ' COMBO', 160, 10, { align: 'center', size: 10, bold: true, color: '#E3B65C' });
@@ -1246,7 +1282,7 @@ function drawResult() {
   // 3 위 가운데 판정 판
   rect(64, 0, 192, 22, promo ? PAL.green : PAL.red); frameRect(64, 0, 192, 22, PAL.text); frameRect(66, 2, 188, 18, promo ? '#4E5733' : '#6E2626');
   txt(promo ? '승급' : '구조조정 대상', 160, 11, { align: 'center', base: 'middle', size: 13, bold: true });
-  txt(promo ? CONFIG.rankNames[r.rankIdx - 1] + ' → ' + rk + ' · ' + r.floor + '층 도달 (PoC 종료)' : (r.cause === 'days' ? '남은 일수 소진' : r.cause === 'cracked' ? '금 간 계단이 무너짐' : '하트 소진'),
+  txt(promo ? CONFIG.rankNames[r.rankIdx - 1] + ' → ' + rk + ' · ' + r.floor + '층 도달 (PoC 종료)' : ((r.mode === 'endless' ? '무한 모드 · ' + r.floor + 'F 도달 (최고 ' + save.endless + 'F) · ' : '') + (r.cause === 'days' ? '남은 일수 소진' : r.cause === 'cracked' ? '금 간 계단이 무너짐' : '하트 소진')),
       160, 28, { align: 'center', base: 'middle', size: 6, color: '#9AA0A8' });
   // 4 인사 평가 결과 표 (칸마다 테두리, 값은 올리브 글자, 최고 콤보는 흰 테두리)
   rect(112, 34, 140, 114, '#18191C', 0.95); frameRect(112, 34, 140, 114, '#9AA0A8'); frameRect(114, 36, 136, 110, PAL.gray);
