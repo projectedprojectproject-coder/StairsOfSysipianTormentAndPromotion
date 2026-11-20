@@ -14,10 +14,10 @@ Designer와 Developer가 같은 에셋 ID, 변형(variant) 이름, 애니메이�
 | player | 사원, 대리, 과장, 간부, CEO | idle, step, parry_left, parry_right, hit, box_exit, proud | 주인공. 직급은 정장 색과 사원증 색으로만 구분 (03 캐릭터 디자인, 04 보상 성장). box_exit는 짐 상자를 들고 고개 숙여 퇴장, proud는 승급 자세 (05-5 요소 1) |
 | rival | default | walk, attack, leave | 경쟁 사원 (04 레벨 구성, 05-3 요소 5) |
 | commuter | default | walk | 타이틀 거리를 걷는 직장인, 고개 숙이고 서류가방 (05-1 요소 4). 게임이 좌우로 걸어 다니게 그린다 |
-| projectiles | default | document, clipboard, phone, monitor, coffee | 서류, 결재판, 전화기 (04 레벨 구성), 위에서 떨어지는 컴퓨터 모니터 (21층~), 막으면 안 되는 커피 컵 (11층~) |
+| projectiles | default | document, clipboard, phone, monitor, coffee, suitcase, suitcase_open | 서류, 결재판, 전화기 (04 레벨 구성), 위에서 떨어지는 컴퓨터 모니터 (21층~), 막으면 안 되는 커피 컵 (11층~), 날아오다 터지는 서류가방과 터져 열린 모습 (71층~) |
 | sticky | pink, blue, green, yellow, white | fly | 61층~ 포스트잇. 색이 남은 패링 횟수 (분홍 5, 파랑 4, 초록 3, 노랑 2, 흰색 1) |
 | warning | default | blink | 공격 예고 "!" (05-3 요소 4) |
-| stairs | zone1, zone2, zone3, zone4, zone5 | tile, riser | 계단 칸(디딤판)과 그 아래 계단 몸체, 구간별 5종 (03 배경 레벨 무드) |
+| stairs | zone1, zone2, zone3, zone4, zone5 | tile, riser, cracked | 계단 칸(디딤판)과 그 아래 계단 몸체, 구간별 5종 (03 배경 레벨 무드) |
 | hud_icons | default | heart, heart_empty, calendar, arrow_left, arrow_right, shield_q, shield_e, badge, gear | HUD 아이콘 (03 UI 톤, 05-2 요소 3, 05-3 요소 2와 4). gear는 타이틀 오른쪽 위 설정 버튼 (05-1 요소 2) |
 | props | default | cooler, boxes, plant, cabinet | 층 바닥 위 사무실 소품: 정수기, 서류 상자, 화분, 서류함 (05-3 컨셉) |
 
@@ -55,6 +55,9 @@ Designer와 Developer가 같은 에셋 ID, 변형(variant) 이름, 애니메이�
 | sfx_light_flicker | 아니오 | 모니터 예고: 형광등이 '틱' 꺼졌다 '지잉' 켜지기를 불규칙하게 되풀이 (0.6초 안팎, 유리 깨지기 전) |
 | sfx_monitor_shatter | 아니오 | 모니터가 나타날 때(도착 1.0초 전) 위층 창 유리가 깨지는 소리 |
 | sfx_cue_coffee | 아니오 | 커피 타이밍: 경쟁 사원의 "헤이!"를 높게 올린 소리 (막지 말라는 신호), 모음이 0.035초에 시작 |
+| sfx_stair_crack | 아니오 | 금 간 계단에 올라설 때와 무너질 때: 낮게 삐걱이다 콘크리트가 부스러지는 소리 |
+| sfx_camera_flash | 아니오 | 61층~ 카메라 플래시: 셔터 "찰칵"과 충전되는 높은 소리 |
+| sfx_cue_suitcase | 아니오 | 서류가방 타이밍: "똑, 똑, 펑!", 펑이 0.36초에 시작 (터지는 순간) |
 | sfx_phone_ring | 아니오 | 전화기 벨 두 번 (31층~ 전화기 공격). 두 번째 벨이 0.4초 뒤에 시작하며, 게임은 이 벨이 패링하기 가장 좋은 순간에 오도록 튼다 |
 
 ## 컬러 팔레트 (03)

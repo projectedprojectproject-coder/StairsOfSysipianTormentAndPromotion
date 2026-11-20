@@ -53,7 +53,7 @@ class DesignerQAAgent:
         self.llm = llm
         self.paths = paths
 
-    def run(self) -> dict:
+    def run(self, round_no: int = 1) -> dict:
         t0 = time.time()
         p = self.paths
         out = p.design_out
@@ -171,7 +171,7 @@ class DesignerQAAgent:
         user = ("# Designer 규칙 검사 결과\n" + json.dumps(rep.to_dict(), ensure_ascii=False, indent=1) +
                 "\n\n첫 이미지는 대조표(왼쪽 컨셉에서 뽑은 참고, 오른쪽 Designer 프레임)와 시트 미리보기다. "
                 "나머지는 컨셉 원본이다. 위 출력 형식으로 검토하라.")
-        ask_review(self.llm, p, rep, self.name, user, images=[str(i) for i in imgs if Path(i).exists()])
+        ask_review(self.llm, p, rep, self.name, user, images=[str(i) for i in imgs if Path(i).exists()], round_no=round_no)
         return save(p, rep, "Designer QA 보고서", t0)
 
     def _contact(self, pairs, sheets, man, out) -> Path:

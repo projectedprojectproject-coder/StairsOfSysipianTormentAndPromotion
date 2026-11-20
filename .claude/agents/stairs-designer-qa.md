@@ -18,6 +18,7 @@ Designer 바로 뒤에 도는 품질 확인 에이전트입니다. 결과물을 
 1. 규칙 검사(LLM 없음): 에셋 계약, 빈 프레임, 캐릭터·소품 배경 투명, 2배 밀도(프레임 크기 짝수, 이미지 640x360), 시트별 색 수(48 이하), 03 팔레트 근접도, 컨셉 대조(색 거리 90 이하, 실루엣 겹침 0.4 이상, title_bg·bg_zone1과 컨셉 화면의 색·밝기), 사운드 길이·클리핑.
 2. Claude 검토: 규칙 결과와 대조표·컨셉 원본 이미지를 보내 실루엣, 읽힘, 팔레트, 애니메이션을 검토받습니다(`prompts/qa_designer.md`). 재생 모드에 `qa_designer_review.txt`가 없으면 건너뛰고 보고서에 적습니다.
 3. 판정: 규칙 high → fail, mid 또는 Claude revise → revise, 그 밖 pass. `--strict-qa`면 fail일 때 Publisher 전에 멈춥니다.
+4. 고침 반복: pass가 아니면 고칠 점(`qa.feedback_text`)을 Designer에게 돌려줘 다시 만들고 다시 확인하기를 최대 11번(`--qa-rounds`) 되풀이합니다. 나아지지 않으면 일찍 멈추고, 재생 모드는 1번만 확인합니다. 차례별 판정: `output/qa_out/designer_loop.json`
 
 직접 검토할 때는 대조표를 Read로 보고, 컨셉 영역을 더 뽑아야 하면 스킬 `.claude/skills/concept-sprite-extraction/SKILL.md`를 따릅니다.
 
@@ -125,7 +126,7 @@ class DesignerQAAgent:
         self.llm = llm
         self.paths = paths
 
-    def run(self) -> dict:
+    def run(self, round_no: int = 1) -> dict:
         t0 = time.time()
         p = self.paths
         out = p.design_out
@@ -243,7 +244,7 @@ class DesignerQAAgent:
         user = ("# Designer 규칙 검사 결과\n" + json.dumps(rep.to_dict(), ensure_ascii=False, indent=1) +
                 "\n\n첫 이미지는 대조표(왼쪽 컨셉에서 뽑은 참고, 오른쪽 Designer 프레임)와 시트 미리보기다. "
                 "나머지는 컨셉 원본이다. 위 출력 형식으로 검토하라.")
-        ask_review(self.llm, p, rep, self.name, user, images=[str(i) for i in imgs if Path(i).exists()])
+        ask_review(self.llm, p, rep, self.name, user, images=[str(i) for i in imgs if Path(i).exists()], round_no=round_no)
         return save(p, rep, "Designer QA 보고서", t0)
 
     def _contact(self, pairs, sheets, man, out) -> Path:
@@ -289,6 +290,10 @@ QA 에이전트는 두 단계로 확인한다.
    재생 모드에서 응답 파일(replay/qa_<대상>_review.txt)이 없으면 이 단계는 건너뛰고 그 사실을 보고서에 적는다.
 
 판정: 규칙 검사에 high 문제가 하나라도 있으면 fail, high는 없고 mid가 있거나 Claude가 revise라고 하면 revise, 아니면 pass.
+
+고침 반복 (qa_loop): 판정이 pass가 아니면 QA의 고칠 점을 만든 에이전트에게 돌려줘 다시 만들게 하고 다시 확인한다.
+최대 MAX_ROUNDS(11)번까지 돌고, 통과하거나, 문제 목록이 앞 차례와 같아 나아지지 않거나,
+재생 모드처럼 다시 만들어도 같은 응답이 나오는 경우에는 일찍 멈춘다. 차례마다의 판정은 qa_out/<대상>_loop.json에 남는다.
 """
 from __future__ import annotations
 
@@ -299,6 +304,7 @@ from .llm import LLMError
 from .util import Paths, extract_json, load_prompt, log, write_json
 
 SEVERITIES = ("high", "mid", "low")
+MAX_ROUNDS = 11
 
 
 @dataclass
@@ -358,13 +364,13 @@ class QAReport:
         return "\n".join(lines) + "\n"
 
 
-def ask_review(llm, paths: Paths, report: QAReport, agent: str, user: str, images=None) -> None:
+def ask_review(llm, paths: Paths, report: QAReport, agent: str, user: str, images=None, round_no: int = 1) -> None:
     """Claude에 검토를 요청하고 응답의 issues를 report에 더한다. 응답이 없으면 건너뛴 이유를 적는다."""
     if llm is None:
         report.review_note = "건너뜀 (LLM 없이 실행)"
         return
     try:
-        text = llm.complete(agent, "review", load_prompt(paths, agent), user, images=images)
+        text = llm.complete(agent, "review" + (f"_r{round_no}" if round_no > 1 else ""), load_prompt(paths, agent), user, images=images)
     except LLMError as e:
         report.review_note = f"건너뜀 ({e})"
         log.info("[%s] Claude 검토 건너뜀: %s", agent, e)
@@ -392,6 +398,48 @@ def save(paths: Paths, report: QAReport, title: str, t0: float) -> dict:
     log.info("[%s QA] 판정 %s: 문제 %d개 (high %d), 규칙 %d/%d 통과 (%.1f초)", report.target.capitalize(), report.verdict,
              len(report.issues), high, sum(c["ok"] for c in report.checks), len(report.checks), time.time() - t0)
     return d
+
+
+def feedback_text(report: dict, round_no: int) -> str:
+    """QA 보고를 만든 에이전트에게 돌려줄 고칠 점 문구."""
+    order = {s: i for i, s in enumerate(SEVERITIES)}
+    issues = sorted(report.get("issues", []), key=lambda i: order.get(i["severity"], 9))
+    lines = [f"# {report['target']} QA가 돌려준 고칠 점 ({round_no}번째 만들기, 앞 차례 판정 {report['verdict']})",
+             "아래 문제를 고쳐 같은 출력 형식으로 다시 내라. 문제가 없는 부분은 그대로 둔다."]
+    lines += [f"- [{i['severity']}] {i['asset']}: {i['problem']}" + (f" -> {i['fix']}" if i.get("fix") else "") for i in issues]
+    return "\n".join(lines)
+
+
+def _signature(report: dict) -> tuple:
+    return tuple(sorted((i["severity"], i["asset"], i["problem"]) for i in report.get("issues", [])))
+
+
+def qa_loop(paths: Paths, target: str, produce, check, rounds: int = MAX_ROUNDS, can_retry: bool = True):
+    """produce(feedback, round_no)로 만들고 check(round_no)로 확인하기를 판정이 pass가 될 때까지 최대 rounds(<=11)번 되풀이한다.
+    (첫 차례의 produce는 feedback=None으로 부른다.) 마지막 결과와 QA 보고를 돌려준다."""
+    rounds = max(1, min(MAX_ROUNDS, rounds))
+    result = produce(None, 1)
+    rep = check(1)
+    history, stop = [{"round": 1, "verdict": rep["verdict"], "issues": len(rep["issues"])}], "최대 차례"
+    for n in range(2, rounds + 1):
+        if rep["verdict"] == "pass":
+            stop = "통과"; break
+        if not can_retry:
+            stop = "다시 만들 수 없음 (재생 모드는 같은 응답을 돌려준다)"; break
+        prev = _signature(rep)
+        log.info("[%s QA] %d번째 고침: 문제 %d개를 돌려준다", target.capitalize(), n, len(rep["issues"]))
+        result = produce(feedback_text(rep, n), n)
+        rep = check(n)
+        history.append({"round": n, "verdict": rep["verdict"], "issues": len(rep["issues"])})
+        if _signature(rep) == prev and rep["verdict"] != "pass":
+            stop = "나아지지 않음 (앞 차례와 같은 문제)"; break
+    else:
+        if rep["verdict"] == "pass":
+            stop = "통과"
+    rep["loop"] = {"rounds": len(history), "max": rounds, "stop": stop, "history": history}
+    write_json(paths.out / "qa_out" / f"{target}_loop.json", rep["loop"])
+    log.info("[%s QA] 고침 반복 %d/%d번에서 멈춤: %s (판정 %s)", target.capitalize(), len(history), rounds, stop, rep["verdict"])
+    return result, rep
 ```
 
 ### `stairs_agents/concept.py`

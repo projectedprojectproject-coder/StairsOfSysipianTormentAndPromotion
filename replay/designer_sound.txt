@@ -712,6 +712,154 @@
           "duty": 0.25
         }
       ]
+    }, 
+    "sfx_stair_crack": {
+      "segments": [
+        {
+          "wave": "triangle", 
+          "f0": 90, 
+          "f1": 70, 
+          "dur": 0.08, 
+          "volume": 0.5, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "noise", 
+          "f0": 1800, 
+          "f1": 1800, 
+          "dur": 0.05, 
+          "volume": 0.35, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 440, 
+          "f1": 440, 
+          "dur": 0.03, 
+          "volume": 0.0, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "noise", 
+          "f0": 2500, 
+          "f1": 2500, 
+          "dur": 0.03, 
+          "volume": 0.3, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "triangle", 
+          "f0": 80, 
+          "f1": 55, 
+          "dur": 0.1, 
+          "volume": 0.4, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "noise", 
+          "f0": 1200, 
+          "f1": 1200, 
+          "dur": 0.12, 
+          "volume": 0.2, 
+          "duty": 0.5
+        }
+      ]
+    }, 
+    "sfx_camera_flash": {
+      "segments": [
+        {
+          "wave": "noise", 
+          "f0": 9000, 
+          "f1": 9000, 
+          "dur": 0.012, 
+          "volume": 0.5, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 440, 
+          "f1": 440, 
+          "dur": 0.02, 
+          "volume": 0.0, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "noise", 
+          "f0": 7000, 
+          "f1": 7000, 
+          "dur": 0.015, 
+          "volume": 0.4, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 2200, 
+          "f1": 3800, 
+          "dur": 0.16, 
+          "volume": 0.1, 
+          "duty": 0.25
+        }
+      ]
+    }, 
+    "sfx_cue_suitcase": {
+      "segments": [
+        {
+          "wave": "square", 
+          "f0": 1400, 
+          "f1": 1400, 
+          "dur": 0.03, 
+          "volume": 0.25, 
+          "duty": 0.25
+        }, 
+        {
+          "wave": "square", 
+          "f0": 440, 
+          "f1": 440, 
+          "dur": 0.15, 
+          "volume": 0.0, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "square", 
+          "f0": 1400, 
+          "f1": 1400, 
+          "dur": 0.03, 
+          "volume": 0.3, 
+          "duty": 0.25
+        }, 
+        {
+          "wave": "square", 
+          "f0": 440, 
+          "f1": 440, 
+          "dur": 0.15, 
+          "volume": 0.0, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "noise", 
+          "f0": 3000, 
+          "f1": 3000, 
+          "dur": 0.05, 
+          "volume": 0.6, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "noise", 
+          "f0": 1500, 
+          "f1": 1500, 
+          "dur": 0.12, 
+          "volume": 0.4, 
+          "duty": 0.5
+        }, 
+        {
+          "wave": "triangle", 
+          "f0": 110, 
+          "f1": 60, 
+          "dur": 0.1, 
+          "volume": 0.4, 
+          "duty": 0.5
+        }
+      ]
     }
   }
 }

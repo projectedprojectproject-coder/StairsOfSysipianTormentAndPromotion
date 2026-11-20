@@ -81,6 +81,7 @@ Designer 바로 뒤에 도는 품질 확인 에이전트입니다. 결과물을 
 1. 규칙 검사(LLM 없음): 에셋 계약, 빈 프레임, 캐릭터·소품 배경 투명, 2배 밀도(프레임 크기 짝수, 이미지 640x360), 시트별 색 수(48 이하), 03 팔레트 근접도, 컨셉 대조(색 거리 90 이하, 실루엣 겹침 0.4 이상, title_bg·bg_zone1과 컨셉 화면의 색·밝기), 사운드 길이·클리핑.
 2. Claude 검토: 규칙 결과와 대조표·컨셉 원본 이미지를 보내 실루엣, 읽힘, 팔레트, 애니메이션을 검토받습니다(`prompts/qa_designer.md`). 재생 모드에 `qa_designer_review.txt`가 없으면 건너뛰고 보고서에 적습니다.
 3. 판정: 규칙 high → fail, mid 또는 Claude revise → revise, 그 밖 pass. `--strict-qa`면 fail일 때 Publisher 전에 멈춥니다.
+4. 고침 반복: pass가 아니면 고칠 점(`qa.feedback_text`)을 Designer에게 돌려줘 다시 만들고 다시 확인하기를 최대 11번(`--qa-rounds`) 되풀이합니다. 나아지지 않으면 일찍 멈추고, 재생 모드는 1번만 확인합니다. 차례별 판정: `output/qa_out/designer_loop.json`
 
 직접 검토할 때는 대조표를 Read로 보고, 컨셉 영역을 더 뽑아야 하면 스킬 `.claude/skills/concept-sprite-extraction/SKILL.md`를 따릅니다.
 
@@ -152,7 +153,7 @@ Developer 바로 뒤에 도는 품질 확인 에이전트입니다. 코드를 �
 
 1. 규칙 검사(LLM 없음): 필수 파일, `sprite_definition.js`를 `game.js`보다 먼저 불러오는지, `node --check` 문법, `CONFIG` 객체와 기획서 04 수치(mechanics.json에서 출처가 04인 값), "기획서 미정" 표시, 조작 키(← → Q E ESC Enter), 화면 5종, 시험 훅 `window.__stairs`, 정의에 ASSET_LIST 에셋·이름 모두, 수용 형식, 정의한 에셋 사용 여부, `pixel_scale` 사용, 외부 주소·`fetch`·`eval` 없음.
 2. Claude 검토: 규칙 결과, Developer 규칙, `game.js`를 보내 판정 규칙·진행·화면 흐름·버그 위험을 검토받습니다(`prompts/qa_developer.md`). 재생 모드에 `qa_developer_review.txt`가 없으면 건너뜁니다.
-3. 판정은 Designer QA와 같습니다.
+3. 판정과 고침 반복(최대 11번)은 Designer QA와 같습니다. 차례별 판정: `output/qa_out/developer_loop.json`
 
 ## 2단계: 화면 대조 (Publisher 뒤)
 
@@ -161,6 +162,7 @@ Developer 바로 뒤에 도는 품질 확인 에이전트입니다. 코드를 �
 - 규칙 검사: 밝고 어두운 배치의 상관(구도, 0.3 이상), 강조색(빨강) 요소 자리의 겹침(0.25 이상), 색 거리, 밝기 차
 - Claude 검토: 대조표(`output/qa_out/screens_contact.png`, 왼쪽 컨셉, 오른쪽 게임)와 번호 요소 목록으로 요소마다 있는지, 자리와 모양이 맞는지 보고 고칠 쪽(Developer/Designer)을 적습니다 (`prompts/qa_screens.md`)
 - 보고서: `output/qa_out/screens_qa.md`
+- 고침 반복: pass가 아니면 Developer를 고쳐 다시 만들고 Developer QA, Publisher, 화면 대조를 다시 돈다 (최대 11번, `screens_loop.json`)
 
 ## 실행
 

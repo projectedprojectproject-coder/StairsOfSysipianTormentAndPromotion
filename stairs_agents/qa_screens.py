@@ -50,7 +50,7 @@ def accent_iou(a: Image.Image, b: Image.Image) -> tuple[float, float]:
     return (round(inter / union, 3) if union else 1.0), round(sum(mb) / len(mb), 3)
 
 
-def run_screen_qa(llm, paths: Paths) -> dict:
+def run_screen_qa(llm, paths: Paths, round_no: int = 1) -> dict:
     t0 = time.time()
     rep = QAReport("screens")
     spec = concept.load_regions()
@@ -88,7 +88,7 @@ def run_screen_qa(llm, paths: Paths) -> dict:
                 f"## {n} (컨셉 {s['concept']})\n" + "\n".join("- " + e for e in s["elements"]) for n, s, _, _ in pairs) +
             "\n\n대조표 이미지는 줄마다 왼쪽이 컨셉, 오른쪽이 실제 게임 화면이다. 요소마다 있는지, 자리와 모양이 맞는지 보고, "
             "issues의 asset에는 '화면/요소 번호', fix 앞에는 고칠 쪽(Developer 또는 Designer)을 적어라.")
-    ask_review(llm, paths, rep, "qa_screens", user, images=[str(contact)])
+    ask_review(llm, paths, rep, "qa_screens", user, images=[str(contact)], round_no=round_no)
     return save(paths, rep, "화면 대조 QA 보고서 (Developer QA 2단계)", t0)
 
 

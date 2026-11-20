@@ -25,7 +25,8 @@ class DeveloperAgent:
         self.llm = llm
         self.paths = paths
 
-    def run(self) -> dict:
+    def run(self, feedback: str | None = None, round_no: int = 1) -> dict:
+        """feedback: Developer QA(또는 화면 대조 QA)가 돌려준 고칠 점 (2번째 차례부터)."""
         t0 = time.time()
         out = self.paths.dev_out
         if out.exists():
@@ -40,8 +41,9 @@ class DeveloperAgent:
 
         log.info("[Developer] 게임 코드와 스프라이트 정의 작성 요청")
         files = extract_files(self.llm.complete(
-            self.name, "code", load_prompt(p, "developer"),
-            ctx + "\n\n위 기획서로 1~20층 PoC 게임 코드와 스프라이트 정의를 작성하라."))
+            self.name, "code" + (f"_r{round_no}" if round_no > 1 else ""), load_prompt(p, "developer"),
+            ctx + "\n\n위 기획서와 Developer 규칙의 범위로 PoC 게임 코드와 스프라이트 정의를 작성하라."
+            + ("\n\n" + feedback if feedback else "")))
         missing = [f for f in REQUIRED_FILES if f not in files]
         if missing:
             raise ValueError(f"[Developer] 필수 파일이 없습니다: {missing}")

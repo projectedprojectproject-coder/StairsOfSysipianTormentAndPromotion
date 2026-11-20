@@ -59,6 +59,8 @@ python -m stairs_agents designer --replay replay  # 저장된 응답으로 실�
 - bg_result(05-5): 어둡게 가라앉은 사무실, 천장 형광등 두 줄, 왼쪽 서류장과 선반의 상자, 의자, 오른쪽 불 켜진 창 하나와 책상. 가운데 x 112~252(인사 평가 표)와 왼쪽 큰 캐릭터 자리는 가려진다.
 - projectiles의 coffee: 뚜껑 덮인 테이크아웃 컵(흰 컵, 갈색 슬리브, 김). 막으면 안 되는 물건이라 위협들과 한눈에 다르게 보여야 한다.
 - sticky(61층~ 포스트잇): 24x24 네모 메모지(접착 윗단, 접힌 모서리, 글씨 두 줄), fly 2프레임. 변형 pink, blue, green, yellow, white는 메모지 색만 바꾼다(남은 패링 횟수 5~1).
+- stairs의 cracked: tile과 같은 칸에 디딤판과 챌판을 가로지르는 갈라진 금과 깨져 나간 모서리 (21층~ 금 간 계단)
+- projectiles의 suitcase: 각진 검정 가죽 서류가방(바느질 테두리, 금색 잠금쇠 두 개, 두꺼운 손잡이), 2프레임. 서류·결재판과 한눈에 달라야 한다 (71층~, 날아오다 터진다). suitcase_open은 덮개가 젖혀져 붉은 안감이 보이는 열린 모습
 - projectiles의 monitor: 위에서 떨어지는 컴퓨터 모니터(회색 틀, 금 간 푸른 화면, 받침대), 2프레임으로 기울기를 바꿔 구르는 느낌 로고와 버튼이 가운데 위·아래를 덮으므로 꼭대기 층은 화면 위쪽 30px 안에 둔다.
 
 ## 출력 형식
@@ -200,7 +202,10 @@ class DesignerAgent:
             parts.append("# 원본 리소스 데이터베이스 (원본리소스_DB.json)\n" + read(db))
         return "\n\n".join(parts)
 
-    def run(self) -> dict:
+    def run(self, feedback: str | None = None, round_no: int = 1) -> dict:
+        """feedback: Designer QA가 돌려준 고칠 점 (2번째 차례부터). 요청마다 덧붙이고, 응답 단계 이름에 _r<차례>를 붙인다."""
+        sfx = f"_r{round_no}" if round_no > 1 else ""
+        fb = ("\n\n" + feedback) if feedback else ""
         t0 = time.time()
         out = self.paths.design_out
         if out.exists():
@@ -222,7 +227,7 @@ class DesignerAgent:
             ref = concept.ref_text(refs, aid)
             if ref:
                 req = ref + "\n\n" + req
-            return aid, extract_json(self.llm.complete(self.name, f"sprite_{aid}", system_sprites, ctx + "\n\n" + req))
+            return aid, extract_json(self.llm.complete(self.name, f"sprite_{aid}{sfx}", system_sprites, ctx + "\n\n" + req + fb))
 
         def ask_images():
             req = ("이번 요청에서는 images만 설계하라: " + ", ".join(contract["images"]) +
@@ -230,11 +235,11 @@ class DesignerAgent:
             ref = concept.ref_text(refs, "__images__")
             if ref:
                 req = ref + "\n\n" + req
-            return extract_json(self.llm.complete(self.name, "images", system_sprites, ctx + "\n\n" + req))
+            return extract_json(self.llm.complete(self.name, "images" + sfx, system_sprites, ctx + "\n\n" + req + fb))
 
         def ask_sound():
-            return extract_json(self.llm.complete(self.name, "sound", system_sound,
-                                                  ctx + "\n\nASSET_LIST의 모든 사운드를 위 출력 형식으로 설계하라."))
+            return extract_json(self.llm.complete(self.name, "sound" + sfx, system_sound,
+                                                  ctx + "\n\nASSET_LIST의 모든 사운드를 위 출력 형식으로 설계하라." + fb))
 
         log.info("[Designer] 스프라이트 %d종, 이미지, 사운드 설계를 동시에 요청", len(contract["sheets"]))
         with ThreadPoolExecutor(max_workers=8) as ex:

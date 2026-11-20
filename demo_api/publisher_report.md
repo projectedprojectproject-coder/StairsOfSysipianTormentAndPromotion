@@ -39,6 +39,9 @@
 | sfx_monitor_shatter | audio | sfx_monitor_shatter.wav | sfx_monitor_shatter.mp3, sfx_monitor_shatter.ogg | 불일치, wav -> mp3, ogg 변환 |
 | sfx_light_flicker | audio | sfx_light_flicker.wav | sfx_light_flicker.mp3, sfx_light_flicker.ogg | 불일치, wav -> mp3, ogg 변환 |
 | sfx_cue_coffee | audio | sfx_cue_coffee.wav | sfx_cue_coffee.mp3, sfx_cue_coffee.ogg | 불일치, wav -> mp3, ogg 변환 |
+| sfx_stair_crack | audio | sfx_stair_crack.wav | sfx_stair_crack.mp3, sfx_stair_crack.ogg | 불일치, wav -> mp3, ogg 변환 |
+| sfx_camera_flash | audio | sfx_camera_flash.wav | sfx_camera_flash.mp3, sfx_camera_flash.ogg | 불일치, wav -> mp3, ogg 변환 |
+| sfx_cue_suitcase | audio | sfx_cue_suitcase.wav | sfx_cue_suitcase.mp3, sfx_cue_suitcase.ogg | 불일치, wav -> mp3, ogg 변환 |
 
 ## 2. 코드와 디자인 연결
 
@@ -52,8 +55,8 @@
 | 타이틀 화면 | 통과 | title |
 | 타이틀 -> 로비 이동 | 통과 |  |
 | 로비 -> 플레이 이동 | 통과 |  |
-| 일시정지 (ESC)와 남은 일수 정지 | 통과 | 29.90 -> 29.90 |
-| 80층 도달과 승급 판정 | 통과 | 층 80, 직급 CEO (목표 80층 CEO), 점수 40190, 최고 배수 x3 |
+| 일시정지 (ESC)와 남은 일수 정지 | 통과 | 29.84 -> 29.84 |
+| 100층 도달과 승급 판정 | 통과 | 층 100, 직급 CEO (목표 100층 CEO), 점수 52640, 최고 배수 x3 |
 | 입력 없음 -> 구조조정 (게임 오버) | 통과 | 9.8초 뒤, 하트 0, 남은 일수 3.4 |
 | 파일로 직접 열기 (file://) | 통과 |  |
 | 브라우저 오류 없음 | 통과 |  |
@@ -61,5 +64,5 @@
 ## 4. 내보내기
 
 - 파일: 승급의계단_PoC_web.zip
-- 포함 파일 수: 56
+- 포함 파일 수: 62
 - 동작 확인 전체 통과: 예

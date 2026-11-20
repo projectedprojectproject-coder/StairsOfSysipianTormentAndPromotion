@@ -155,6 +155,19 @@
             9
           ],
           "fps": 4
+        },
+        "suitcase": {
+          "frames": [
+            10,
+            11
+          ],
+          "fps": 4
+        },
+        "suitcase_open": {
+          "frames": [
+            12
+          ],
+          "fps": 1
         }
       }
     },
@@ -196,6 +209,12 @@
         "riser": {
           "frames": [
             1
+          ],
+          "fps": 1
+        },
+        "cracked": {
+          "frames": [
+            2
           ],
           "fps": 1
         }
@@ -505,6 +524,27 @@
       "files": {
         "mp3": "sfx_cue_coffee.mp3",
         "ogg": "sfx_cue_coffee.ogg"
+      }
+    },
+    "sfx_stair_crack": {
+      "loop": false,
+      "files": {
+        "mp3": "sfx_stair_crack.mp3",
+        "ogg": "sfx_stair_crack.ogg"
+      }
+    },
+    "sfx_camera_flash": {
+      "loop": false,
+      "files": {
+        "mp3": "sfx_camera_flash.mp3",
+        "ogg": "sfx_camera_flash.ogg"
+      }
+    },
+    "sfx_cue_suitcase": {
+      "loop": false,
+      "files": {
+        "mp3": "sfx_cue_suitcase.mp3",
+        "ogg": "sfx_cue_suitcase.ogg"
       }
     }
   }

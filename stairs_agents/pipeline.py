@@ -2,6 +2,8 @@
 
 Designer와 Developer 뒤에는 각자의 QA 에이전트(Designer QA, Developer QA)가 바로 이어서 돈다.
 Publisher 뒤에는 Developer QA 2단계(화면 대조, qa_screens.py)가 실제 게임 화면을 컨셉 화면과 비교한다.
+QA마다 판정이 pass가 아니면 고칠 점을 만든 에이전트에게 돌려줘 다시 만들고 다시 확인하기를 최대 11번 되풀이한다(qa_rounds).
+화면 대조가 pass가 아니면 Developer를 고쳐 다시 만들고 Developer QA, Publisher, 화면 대조를 다시 돈다.
 QA 판정이 fail이면 경고만 남기고 계속하며, strict_qa=True면 Publisher 전에 멈춘다.
 """
 from __future__ import annotations
@@ -16,23 +18,27 @@ from .mechanics import MechanicsAgent
 from .publisher import PublisherAgent
 from .qa_designer import DesignerQAAgent
 from .qa_developer import DeveloperQAAgent
+from .qa import MAX_ROUNDS, qa_loop
 from .qa_screens import run_screen_qa
+from .llm import ReplayClient
 from .util import Paths, log
 
 
 def run_pipeline(llm, paths: Paths, use_resource_db: bool = True, skip_test: bool = False,
-                 qa: bool = True, strict_qa: bool = False) -> dict:
+                 qa: bool = True, strict_qa: bool = False, qa_rounds: int = MAX_ROUNDS) -> dict:
     t0 = time.time()
     # Developer가 mechanics.json을 읽으므로 Mechanics를 먼저 끝낸다
     mech = MechanicsAgent(llm, paths).run()
     designer = DesignerAgent(llm, paths, use_resource_db=use_resource_db)
     developer = DeveloperAgent(llm, paths)
     qa_results = {}
+    can_retry = llm is not None and not isinstance(llm, ReplayClient)   # 재생 모드는 다시 만들어도 같은 응답
 
     def with_qa(agent, qa_agent, key):
-        res = agent.run()
-        if qa:
-            qa_results[key] = qa_agent.run()
+        if not qa:
+            return agent.run()
+        res, qa_results[key] = qa_loop(paths, key, lambda fb, n: agent.run(feedback=fb, round_no=n),
+                                       lambda n: qa_agent.run(round_no=n), qa_rounds, can_retry)
         return res
 
     with ThreadPoolExecutor(max_workers=2) as ex:
@@ -57,8 +63,18 @@ def run_pipeline(llm, paths: Paths, use_resource_db: bool = True, skip_test: boo
     if skip_test:
         publisher.test = lambda: False
     pub = publisher.run()
-    if qa and not skip_test:  # Developer QA 2단계: Publisher가 찍은 화면을 컨셉 화면과 대조
-        qa_results["screens"] = run_screen_qa(llm, paths)
+    if qa and not skip_test:  # Developer QA 2단계: Publisher가 찍은 화면을 컨셉 화면과 대조, 고치면 Developer부터 다시
+        state = {"pub": pub}
+
+        def rebuild(fb, n):
+            if n == 1:
+                return state["pub"]
+            developer.run(feedback=fb, round_no=n)
+            qa_results["developer"] = DeveloperQAAgent(llm, paths).run(round_no=n)
+            state["pub"] = publisher.run()
+            return state["pub"]
+        pub, qa_results["screens"] = qa_loop(paths, "screens", rebuild, lambda n: run_screen_qa(llm, paths, round_no=n),
+                                             qa_rounds, can_retry)
     qa_dir = paths.out / "qa_out"
     if qa_dir.exists():  # QA 보고서를 배포 폴더에 함께 둔다
         shutil.copytree(qa_dir, paths.dist / "qa", dirs_exist_ok=True)

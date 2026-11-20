@@ -64,7 +64,7 @@ class DeveloperQAAgent:
                 out[k] = val
         return out or dict(GDD_VALUES)
 
-    def run(self) -> dict:
+    def run(self, round_no: int = 1) -> dict:
         t0 = time.time()
         p = self.paths
         d = p.dev_out
@@ -159,5 +159,5 @@ class DeveloperQAAgent:
         user = ("# Developer 규칙 검사 결과\n" + json.dumps(rep.to_dict(), ensure_ascii=False, indent=1) +
                 "\n\n# Developer가 지켜야 할 규칙 (prompts/developer.md)\n" + rules +
                 "\n\n# game.js\n" + js + "\n\n위 출력 형식으로 검토하라.")
-        ask_review(self.llm, p, rep, self.name, user)
+        ask_review(self.llm, p, rep, self.name, user, round_no=round_no)
         return save(p, rep, "Developer QA 보고서", t0)

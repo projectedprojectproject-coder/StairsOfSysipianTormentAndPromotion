@@ -4,7 +4,11 @@ import unittest
 from PIL import Image
 
 from stairs_agents import concept
-from stairs_agents.qa import QAReport
+import tempfile
+from pathlib import Path
+
+from stairs_agents.qa import MAX_ROUNDS, QAReport, qa_loop
+from stairs_agents.util import Paths
 from stairs_agents.qa_developer import config_block, numbers
 from stairs_agents.qa_screens import accent_iou, layout_corr
 
@@ -88,6 +92,36 @@ class ScreenQATest(unittest.TestCase):
             for y in range(140, 170):
                 b.putpixel((x, y), (161, 61, 61))
         self.assertEqual(accent_iou(a, b)[0], 0.0)
+
+
+class QALoopTest(unittest.TestCase):
+    def _run(self, verdicts, can_retry=True, rounds=MAX_ROUNDS):
+        """verdicts[n-1] = n번째 확인의 판정. 문제 목록은 차례마다 달라지게 한다."""
+        made = []
+        with tempfile.TemporaryDirectory() as d:
+            paths = Paths(out=Path(d))
+            def produce(fb, n):
+                made.append((n, fb is not None)); return n
+            def check(n):
+                v = verdicts[min(n, len(verdicts)) - 1]
+                return {"target": "t", "verdict": v, "issues": [] if v == "pass" else [{"severity": "mid", "asset": f"a{n}", "problem": "p", "fix": "f"}]}
+            res, rep = qa_loop(paths, "t", produce, check, rounds, can_retry)
+        return made, rep
+
+    def test_stops_on_pass(self):
+        made, rep = self._run(["revise", "revise", "pass"])
+        self.assertEqual(rep["loop"]["rounds"], 3)
+        self.assertEqual(rep["loop"]["stop"], "통과")
+        self.assertEqual(made, [(1, False), (2, True), (3, True)])    # 2번째부터 고칠 점을 받는다
+
+    def test_max_eleven(self):
+        made, rep = self._run(["revise"], rounds=99)
+        self.assertEqual(rep["loop"]["rounds"], MAX_ROUNDS)
+        self.assertEqual(MAX_ROUNDS, 11)
+
+    def test_no_retry_in_replay(self):
+        made, rep = self._run(["revise"], can_retry=False)
+        self.assertEqual(rep["loop"]["rounds"], 1)
 
 
 if __name__ == "__main__":

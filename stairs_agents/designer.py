@@ -36,7 +36,10 @@ class DesignerAgent:
             parts.append("# 원본 리소스 데이터베이스 (원본리소스_DB.json)\n" + read(db))
         return "\n\n".join(parts)
 
-    def run(self) -> dict:
+    def run(self, feedback: str | None = None, round_no: int = 1) -> dict:
+        """feedback: Designer QA가 돌려준 고칠 점 (2번째 차례부터). 요청마다 덧붙이고, 응답 단계 이름에 _r<차례>를 붙인다."""
+        sfx = f"_r{round_no}" if round_no > 1 else ""
+        fb = ("\n\n" + feedback) if feedback else ""
         t0 = time.time()
         out = self.paths.design_out
         if out.exists():
@@ -58,7 +61,7 @@ class DesignerAgent:
             ref = concept.ref_text(refs, aid)
             if ref:
                 req = ref + "\n\n" + req
-            return aid, extract_json(self.llm.complete(self.name, f"sprite_{aid}", system_sprites, ctx + "\n\n" + req))
+            return aid, extract_json(self.llm.complete(self.name, f"sprite_{aid}{sfx}", system_sprites, ctx + "\n\n" + req + fb))
 
         def ask_images():
             req = ("이번 요청에서는 images만 설계하라: " + ", ".join(contract["images"]) +
@@ -66,11 +69,11 @@ class DesignerAgent:
             ref = concept.ref_text(refs, "__images__")
             if ref:
                 req = ref + "\n\n" + req
-            return extract_json(self.llm.complete(self.name, "images", system_sprites, ctx + "\n\n" + req))
+            return extract_json(self.llm.complete(self.name, "images" + sfx, system_sprites, ctx + "\n\n" + req + fb))
 
         def ask_sound():
-            return extract_json(self.llm.complete(self.name, "sound", system_sound,
-                                                  ctx + "\n\nASSET_LIST의 모든 사운드를 위 출력 형식으로 설계하라."))
+            return extract_json(self.llm.complete(self.name, "sound" + sfx, system_sound,
+                                                  ctx + "\n\nASSET_LIST의 모든 사운드를 위 출력 형식으로 설계하라." + fb))
 
         log.info("[Designer] 스프라이트 %d종, 이미지, 사운드 설계를 동시에 요청", len(contract["sheets"]))
         with ThreadPoolExecutor(max_workers=8) as ex:

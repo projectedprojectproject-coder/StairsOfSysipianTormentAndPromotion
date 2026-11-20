@@ -23,7 +23,7 @@
 </file>
 
 <file path="game.js">
-/* 승급의 계단 PoC (1~80층) — Developer 에이전트 작성
+/* 승급의 계단 PoC (1~100층) — Developer 에이전트 작성
  * 근거: 기획서 01 게임 컨셉, 04 게임 메카니즘, 05 화면 설계서
  * 실행 시 window.SPRITE_DEF (Publisher가 만든 assets/sprite_definition.js)를 읽는다.
  */
@@ -41,7 +41,16 @@
     PARRY_WINDOW: 0.20,
     TELEGRAPH: 1.0,
     PROMO_FLOORS: [20, 40, 60, 80], // 04: 승급 심사 층. 20·40·60층은 승급 뒤 계속 오른다 (결정 2026-11-20: PoC 1~80층)
-    FINAL_FLOOR: 80,          // 결정(2026-11-20): 80층 승급 심사(간부 → CEO)로 PoC 마무리
+    FINAL_FLOOR: 100,         // 결정(2026-11-20): 80층에서 CEO로 승급한 뒤 100층(CEO실)에 오르면 PoC 마무리
+    CRACK_FROM_FLOOR: 21,     // 결정(2026-11-20): 21층부터 금 간 계단
+    CRACK_SHARE: 0.16,        // 기획서 미정: 금 간 계단 비율 (층이 바뀌는 칸은 빼고)
+    CRACK_TIME: 1.5,          // 결정: 금 간 계단에 이만큼(초) 서 있으면 무너져 바로 구조조정
+    FLASH_FROM_FLOOR: 61,     // 결정(2026-11-20): 61층부터 카메라 플래시. 막을 수 없지만 피해도 없다 (눈부심만)
+    FLASH_GAP: 3.5,           // 기획서 미정: 플래시 평균 간격(초, ±40%)
+    FLASH_TIME: 0.28,         // 기획서 미정: 플래시가 번쩍이는 시간(초)
+    SUITCASE_FROM_FLOOR: 71,  // 결정(2026-11-20): 71층부터 서류가방. 전화기처럼 아래에서 솟다가 도중에 터져 서류·결재판이 쏟아진다
+    W_SUITCASE: 0.6,          // 기획서 미정
+    SUITCASE_BURST: 0.1,      // 결정: 도착 몇 초 전에 터지는지. 판정 창(도착 전 0.2초)의 한가운데 = 터지는 순간
     COFFEE_FROM_FLOOR: 11,    // 결정(2026-11-20): 11층부터 커피. 결재판처럼 날아오지만 막으면 안 된다(막으면 하트 -1, 그냥 두면 지나감)
     W_COFFEE: 0.5,            // 기획서 미정
     STICKY_FROM_FLOOR: 61,    // 결정(2026-11-20): 61층부터 포스트잇. 막으면 튕겨 나갔다 돌아와 1~5번 막아야 없어진다
@@ -66,7 +75,8 @@
     // 판정 창(도착 전 0.2초)의 한가운데, 곧 도착 0.1초 전에 오도록 박 위치 + 0.1초 앞에서 튼다 (결정 2026-11-20)
     CUES: { clipboard: ["sfx_cue_clipboard", 0.40], rival: ["sfx_cue_rival", 0.145],
             phone: ["sfx_phone_ring", 0.50], paper: ["sfx_cue_paper", 0.35],
-            coffee: ["sfx_cue_coffee", 0.135], sticky: ["sfx_cue_clipboard", 0.40] },   // 커피: 높은 "헤이!"(막지 말라는 신호)
+            coffee: ["sfx_cue_coffee", 0.135], sticky: ["sfx_cue_clipboard", 0.40],
+            suitcase: ["sfx_cue_suitcase", 0.46] },   // 서류가방: "똑, 똑, 펑!"의 펑(0.36초)이 터지는 순간   // 커피: 높은 "헤이!"(막지 말라는 신호)
     RIVAL_SPEED: 240,         // 기획서 미정: 경쟁 사원이 층 바닥을 걷는 속도(px/초)
     RIVAL_CLIMB: 10,          // 기획서 미정: 경쟁 사원이 계단을 따라 오르는 속도(칸/초). 플레이어보다 빠르다
     COMMUTERS: 5,             // 기획서 미정: 타이틀 거리를 걷는 사원 수 (05-1 요소 4)
@@ -274,6 +284,7 @@
       dirs, step: 0, hearts: CONFIG.HEARTS, days: CONFIG.DAYS_MAX, score: 0, combo: 0, mult: 1, maxMult: 1,
       rankIdx: 0, t: 0, nextAttack: 1.5, attacks: [], facing: 1, pose: "idle", poseT: 0,
       camX: 0, camY: 0, result: null, botCool: 0, flash: 0, popups: [], banner: null,
+      crackT: 0, fell: false, nextFlash: CONFIG.FLASH_GAP, camFlash: null,
     };
   }
   const floorOf = (step) => 1 + Math.floor(step / CONFIG.STEPS_PER_FLOOR);
@@ -348,11 +359,17 @@
     G.popups = G.popups.filter((q) => q.lane !== lane);
     G.popups.push({ text, t: 0.6, side, lane, color });
   }
+  // 금 간 계단: 21층부터 일부 칸 (층이 바뀌는 칸은 빼고, 칸 번호로 정해져 매번 같다)
+  function isCracked(i) {
+    if (floorOf(i) < CONFIG.CRACK_FROM_FLOOR || i % CONFIG.STEPS_PER_FLOOR === 0) return false;
+    return (((i * 2654435761) >>> 0) % 1000) / 1000 < CONFIG.CRACK_SHARE;
+  }
   function tryStep(dir) {
     if (screen !== "play") return;
     G.facing = dir;
     if (G.dirs[G.step] === dir) {
-      G.step += 1;
+      G.step += 1; G.crackT = 0;
+      if (isCracked(G.step)) { play("sfx_stair_crack", 0.6); T.log.push("crack:step"); }   // 금 간 계단에 올라섰다
       G.days = Math.min(CONFIG.DAYS_MAX, G.days + CONFIG.STEP_DAYS);
       G.score += CONFIG.STEP_SCORE * G.mult;
       G.pose = "step"; G.poseT = 0.12;
@@ -365,6 +382,7 @@
       }
       if (f >= CONFIG.TENSE_FROM_FLOOR) setBgm("bgm_loop_tense");
       if (f > floorOf(G.step - 1) && CONFIG.PROMO_FLOORS.includes(f)) promote(f);
+      if (f >= CONFIG.FINAL_FLOOR && screen === "play") { play("sfx_promote", 0.6); T.log.push("finish:" + f); endRun("promote"); }   // 90층: PoC 마무리
     } else {
       hurt("wrong-step");
     }
@@ -413,7 +431,8 @@
     const w = [["clipboard", 1], ["rival", f >= CONFIG.RIVAL_FROM_FLOOR ? CONFIG.W_RIVAL : 0],
                ["phone", f >= CONFIG.PHONE_FROM_FLOOR ? CONFIG.W_PHONE : 0], ["paper", f >= CONFIG.PAPER_FROM_FLOOR ? CONFIG.W_PAPER : 0],
                ["monitor", f >= CONFIG.MONITOR_FROM_FLOOR ? CONFIG.W_MONITOR : 0],
-               ["coffee", f >= CONFIG.COFFEE_FROM_FLOOR ? CONFIG.W_COFFEE : 0], ["sticky", f >= CONFIG.STICKY_FROM_FLOOR ? CONFIG.W_STICKY : 0]];
+               ["coffee", f >= CONFIG.COFFEE_FROM_FLOOR ? CONFIG.W_COFFEE : 0], ["sticky", f >= CONFIG.STICKY_FROM_FLOOR ? CONFIG.W_STICKY : 0],
+               ["suitcase", f >= CONFIG.SUITCASE_FROM_FLOOR ? CONFIG.W_SUITCASE : 0]];
     let r = rand() * w.reduce((s, x) => s + x[1], 0);
     for (const [k, v] of w) { if (r < v) return k; r -= v; }
     return "clipboard";
@@ -435,7 +454,8 @@
     const lead = kind === "monitor" ? CONFIG.FLICKER : 0;
     G.attacks.push({ side, from: kind === "paper" ? -side : side, warnAt: G.t, spawn: G.t + lead, hitAt: G.t + lead + CONFIG.TELEGRAPH,
                      kind, done: false, spin: (rand() < 0.5 ? -1 : 1) * (4 + rand() * 6), wob: 1.5 + rand() * 3, ph: rand() * 6.28,
-                     hp: kind === "sticky" ? 1 + Math.floor(rand() * CONFIG.STICKY_MAX) : 1 });
+                     hp: kind === "sticky" ? 1 + Math.floor(rand() * CONFIG.STICKY_MAX) : 1,
+                     debris: rand() < 0.5 ? "document" : "clipboard" });   // 서류가방에서 쏟아질 것
     T.log.push(kind + ":spawn");
     if (kind === "monitor") play("sfx_light_flicker", 0.6);     // 형광등 깜박이는 소리
     else if (kind !== "phone" && kind !== "coffee") play("sfx_warning", 0.3);   // 커피는 경고음 없이 높은 "헤이!"만
@@ -445,6 +465,19 @@
     G.t += dt;
     const floor = floorOf(G.step), p = zoneProgress(floor);
     G.days -= (dt / CONFIG.SEC_PER_DAY) * (1 + CONFIG.DRAIN_RAMP * p);
+    if (isCracked(G.step)) {                     // 금 간 계단에 너무 오래 서 있으면 무너진다
+      G.crackT += dt;
+      if (G.crackT >= CONFIG.CRACK_TIME) { G.fell = true; T.log.push("crack:fall"); play("sfx_stair_crack", 0.8); endRun("gameover"); return; }
+    }
+    if (floor >= CONFIG.FLASH_FROM_FLOOR) {      // 카메라 플래시: 막을 수 없지만 피해도 없다
+      G.nextFlash -= dt;
+      if (G.nextFlash <= 0) {
+        G.camFlash = { t: CONFIG.FLASH_TIME, x: 20 + rand() * (LW - 40), y: 20 + rand() * 60 };
+        G.nextFlash = CONFIG.FLASH_GAP * (0.6 + rand() * 0.8);
+        play("sfx_camera_flash", 0.6); T.log.push("flash");
+      }
+    }
+    if (G.camFlash) { G.camFlash.t -= dt; if (G.camFlash.t <= 0) G.camFlash = null; }
     if (G.days <= 0) { G.days = 0; endRun("gameover"); return; }
     G.nextAttack -= dt;
     if (G.nextAttack <= 0) {
@@ -636,7 +669,16 @@
       const sx = ox + p.x, sy = oy + p.y;
       if (sy < -10 || sy > LH + 10) continue;
       const tf = floorOf(i);
-      sprite("stairs", "tile", "zone" + zoneOf(tf), 0, sx, sy + th, { fallback: PAL.main });
+      const cracked = isCracked(i), anims = st && st.animations;
+      // 금 간 계단: 위에 서 있으면 시간이 갈수록 흔들리고 붉어지며 부스러기가 떨어진다
+      const shake = cracked && i === G.step ? (G.crackT / CONFIG.CRACK_TIME) : 0;
+      const jx = shake ? Math.round(Math.sin(G.t * 70) * shake * 1.5 * PX) / PX : 0;
+      sprite("stairs", cracked && anims && anims.cracked ? "cracked" : "tile", "zone" + zoneOf(tf), 0, sx + jx, sy + th, { fallback: PAL.main });
+      if (shake) {
+        ctx.fillStyle = `rgba(161,61,61,${0.45 * shake})`; ctx.fillRect(sx - tw / 4 + jx, sy, tw / 2, th);
+        ctx.fillStyle = "#3A3D43";
+        for (let d = 0; d < 4; d++) ctx.fillRect(snap(sx - tw / 4 + ((d * 37 + G.step * 11) % (tw / 2)) + jx), snap(sy + th + ((G.t * 60 + d * 9) % 14)), 1, 1);
+      }
       if (i % CONFIG.STEPS_PER_FLOOR === 0 && i > 0) text(`${tf}F`, sx + tw / 2 + 2, sy - 1, 6, PAL.text, "left", 400);
     }
     // 난간: 칸마다 기둥, 이웃 칸 기둥끼리 손잡이로 잇는다 (아트 픽셀 단위로 그려 각지게)
@@ -680,6 +722,10 @@
       let ax, ay;
       if (a.bounce) {                                         // 포스트잇: 튕겨 나갔다가 같은 쪽으로 돌아온다
         ax = hx + a.side * 64 * Math.sin(k * Math.PI); ay = hy - 26 * Math.sin(k * Math.PI);
+      } else if (a.kind === "suitcase") {                     // 아래에서 솟아 날아오다가 도중에 터진다
+        const x0 = px + a.side * 80, y0 = LH + 14, bx = px + a.side * 40, by = py - 32;
+        const kb = 1 - CONFIG.SUITCASE_BURST / CONFIG.TELEGRAPH, u = Math.min(1, k / kb);
+        ax = x0 + (bx - x0) * u; ay = y0 + (by - y0) * u - Math.sin(Math.pow(u, 0.7) * Math.PI) * 56;
       } else if (a.kind === "phone") {                        // 화면 아래에서 솟아 꼭대기에서 잠깐 멈칫한 뒤 중력처럼 빨라지며 떨어진다
         const x0 = px + a.side * 80, y0 = LH + 14;
         ax = x0 + (hx - x0) * k; ay = y0 + (hy - y0) * k - Math.sin(Math.pow(k, 0.7) * Math.PI) * 84;
@@ -699,7 +745,22 @@
       ctx.globalAlpha = a.fade !== undefined ? Math.max(0, a.fade / 0.25) : 1;
       // 회전: 모니터·전화기는 불규칙하게 빙글빙글, 결재판은 납작한 판이 수평으로 도는 것처럼 폭이 줄었다 늘었다 한다
       let so = {}, at = G.t;
-      if (a.kind === "monitor" || a.kind === "phone") { so = { rot: a.ph + a.spin * tt + 0.8 * Math.sin(a.wob * tt * 3) }; at = 0; }
+      if (a.kind === "suitcase" && G.t >= a.hitAt - CONFIG.SUITCASE_BURST) {   // 터졌다: 서류·결재판이 사방으로, 두 장은 플레이어에게
+        const t0 = G.t - (a.hitAt - CONFIG.SUITCASE_BURST);
+        // 열린 가방은 덮개가 젖혀진 채 돌며 아래로 떨어진다
+        sprite("projectiles", "suitcase_open", "default", 0, ax + a.side * 30 * t0, ay + 6 - 30 * t0 + 160 * t0 * t0, { rot: a.ph + t0 * 5, scale: 1.35 });
+        for (let j = 0; j < 7; j++) {
+          const ang = a.ph + j * 0.9, toMe = j < 2 && !a.parried;
+          const dx = toMe ? (hx - ax) / CONFIG.SUITCASE_BURST : Math.cos(ang) * 120, dy = toMe ? (hy - ay) / CONFIG.SUITCASE_BURST : Math.sin(ang) * 90 - 40;
+          sprite("projectiles", a.debris, "default", 0, ax + dx * t0 * (a.parried ? 1.6 : 1), ay + 6 + dy * t0 + (toMe ? 0 : 120 * t0 * t0),
+                 { rot: ang + t0 * 9, scale: 0.7 });
+        }
+        if (t0 < 0.08) { ctx.fillStyle = `rgba(232,230,223,${0.8 - t0 * 10})`; ctx.fillRect(ax - 10, ay - 8, 20, 20); }   // 터지는 빛
+        ctx.globalAlpha = 1;
+        continue;
+      }
+      if (a.kind === "monitor" || a.kind === "phone" || a.kind === "suitcase") { so = { rot: a.ph + a.spin * tt + 0.8 * Math.sin(a.wob * tt * 3) }; at = 0; }
+      if (a.kind === "suitcase") so.scale = 1.35;           // 서류가방은 크게 (서류·결재판과 헷갈리지 않게)
       else if (a.kind === "clipboard" || a.kind === "coffee" || a.kind === "sticky") { const c = Math.cos(tt * 13 + a.ph); so = { sx: (c < 0 ? -1 : 1) * Math.max(0.14, Math.abs(c)), sy: 0.82, rot: 0.12 * a.side }; at = 0; }
       if (a.kind === "sticky") sprite("sticky", "fly", STICKY_COLORS[a.hp], at, ax, ay + 6, so);   // 색 = 남은 횟수
       else sprite("projectiles", a.kind === "paper" ? "document" : a.kind, "default", at, ax, ay + 6, so);
@@ -740,6 +801,14 @@
       panel(x, y, 18, 18, keyGlow[code] > 0 ? PAL.sub : "rgba(20,21,24,0.85)", "#9AA0A8");
       icon(ic, x + 3, y + 3);
     });
+    // 카메라 플래시: 화면이 하얗게 번쩍이고, 터진 자리에 빛줄기가 남는다 (막을 수 없고 피해도 없다)
+    if (G.camFlash) {
+      const f = G.camFlash, k = f.t / CONFIG.FLASH_TIME;
+      ctx.fillStyle = `rgba(245,245,240,${0.85 * k})`; ctx.fillRect(0, 0, LW, LH);
+      ctx.fillStyle = `rgba(255,255,255,${k})`;
+      ctx.fillRect(f.x - 14 * k - 1, f.y - 0.5, 28 * k + 2, 1); ctx.fillRect(f.x - 0.5, f.y - 14 * k - 1, 1, 28 * k + 2);
+      ctx.fillRect(f.x - 3, f.y - 3, 6, 6);
+    }
   }
   function drawPause() {
     drawWorld(); drawHud();
@@ -759,7 +828,7 @@
     panel(64, 0, 192, 22, promo ? PAL.sub : PAL.accent, PAL.text);
     ctx.strokeStyle = promo ? "#4E5733" : "#6E2626"; ctx.strokeRect(66.5, 2.5, 187, 17);
     text(promo ? "승급" : "구조조정 대상", 160, 4, 13, PAL.text, "center");
-    text(promo ? `${CONFIG.RANKS[G.rankIdx - 1]} → ${rankName()} · ${floorOf(G.step)}층 승급 심사 통과 (PoC 종료)` : "짐을 챙겨 주십시오",
+    text(promo ? `${CONFIG.RANKS[G.rankIdx - 1]} → ${rankName()} · ${floorOf(G.step)}층 도달 (PoC 종료)` : (G.fell ? "금 간 계단이 무너졌습니다" : "짐을 챙겨 주십시오"),
          160, 25, 6, "#9AA0A8", "center", 400);
     // 요소 4: 인사 평가 결과 표 (칸마다 테두리, 값은 올리브 글자, 최고 콤보는 흰 테두리)
     panel(112, 34, 140, 114, "rgba(24,25,28,0.95)", "#9AA0A8"); ctx.strokeStyle = PAL.main; ctx.strokeRect(114.5, 36.5, 135, 109);
@@ -793,16 +862,17 @@
       ["Enter", "메뉴 결정 (방향키 선택·클릭)"],
     ];
     rows.forEach(([k, d], i) => {
-      const y = 40 + i * 14;
+      const y = 38 + i * 13;
       panel(66, y, 34, 12, PAL.main, PAL.text);
       text(k, 83, y + 2, 7, PAL.text, "center");
       text(d, 108, y + 2, 7, PAL.text, "left", 400);
     });
-    text("\"!\" 1초 뒤 도착, 도착 직전 0.2초 안에 맞는 쪽 키 (소리의 박에 맞춰)", LW / 2, 108, 6, PAL.warm, "center", 400);
-    text("11층~ 경쟁 사원 · 커피(× 표시, 높은 \"헤이!\": 막으면 하트 -1)", LW / 2, 115, 6, PAL.accent, "center", 400);
-    text("21층~ 모니터 · 31층~ 전화기 · 41층~ 서류(반대쪽에서 맞음)", LW / 2, 122, 6, PAL.warm, "center", 400);
-    text("61층~ 포스트잇: 분홍5 파랑4 초록3 노랑2 흰색1번 더 막기", LW / 2, 129, 6, PAL.warm, "center", 400);
-    text("틀린 방향·놓친 공격은 하트 -1, 새 층마다 하트 +1", LW / 2, 136, 6, PAL.sub, "center", 400);
+    text("\"!\" 1초 뒤 도착 · 도착 직전 0.2초 안에 맞는 쪽 키 (소리의 박)", LW / 2, 103, 6, PAL.warm, "center", 400);
+    text("11층~ 경쟁 사원 · 커피(× 표시: 막으면 하트 -1)", LW / 2, 110, 6, PAL.accent, "center", 400);
+    text("21층~ 모니터 · 금 간 계단(1.5초 넘게 서 있으면 무너짐)", LW / 2, 117, 6, PAL.accent, "center", 400);
+    text("31층~ 전화기 · 41층~ 서류(반대쪽) · 61층~ 포스트잇(색=횟수)", LW / 2, 124, 6, PAL.warm, "center", 400);
+    text("61층~ 카메라 플래시(무해) · 71층~ 서류가방(터질 때 막기)", LW / 2, 131, 6, PAL.warm, "center", 400);
+    text("틀린 방향·놓친 공격은 하트 -1, 새 층마다 하트 +1", LW / 2, 138, 6, PAL.sub, "center", 400);
     drawButtons();
   }
 
@@ -907,7 +977,9 @@
         "clipboard",
         "phone",
         "monitor",
-        "coffee"
+        "coffee",
+        "suitcase",
+        "suitcase_open"
       ],
       "file": null,
       "frame_w": null,
@@ -934,7 +1006,8 @@
       ],
       "animations": [
         "tile",
-        "riser"
+        "riser",
+        "cracked"
       ],
       "file": null,
       "frame_w": null,
@@ -1095,6 +1168,18 @@
       "files": null
     },
     "sfx_cue_coffee": {
+      "loop": false,
+      "files": null
+    },
+    "sfx_stair_crack": {
+      "loop": false,
+      "files": null
+    },
+    "sfx_camera_flash": {
+      "loop": false,
+      "files": null
+    },
+    "sfx_cue_suitcase": {
       "loop": false,
       "files": null
     }

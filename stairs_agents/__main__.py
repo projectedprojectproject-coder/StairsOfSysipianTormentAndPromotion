@@ -46,6 +46,7 @@ def main(argv=None) -> int:
     ap.add_argument("--out", default=str(ROOT / "output"), help="출력 폴더")
     ap.add_argument("--no-qa", action="store_true", help="QA 에이전트를 돌리지 않음")
     ap.add_argument("--strict-qa", action="store_true", help="QA 판정이 fail이면 Publisher 전에 멈춤")
+    ap.add_argument("--qa-rounds", type=int, default=11, help="QA 고침 반복 최대 횟수 (1~11, 기본 11)")
     args = ap.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%H:%M:%S")
@@ -77,7 +78,8 @@ def main(argv=None) -> int:
     if args.command == "developer":
         DeveloperAgent(llm, paths).run()
         return 0
-    result = run_pipeline(llm, paths, use_resource_db=not args.no_resource_db, qa=not args.no_qa, strict_qa=args.strict_qa)
+    result = run_pipeline(llm, paths, use_resource_db=not args.no_resource_db, qa=not args.no_qa, strict_qa=args.strict_qa,
+                          qa_rounds=args.qa_rounds)
     return 0 if result["publisher"]["passed"] else 1
 
 
