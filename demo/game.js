@@ -18,6 +18,9 @@
     PROMO_FLOOR: 20,          // 04: 승급 20층 (PoC 종료 지점)
     PROMO_HEAL: 1,            // 04 난이도 곡선: 승급 심사에서 하트 1 회복
     FLOOR_HEAL: 1,            // 플레이테스트 반영: 새 층에 오를 때마다 하트 1 회복 (최대 HEARTS)
+    RIVAL_FROM_FLOOR: 11,     // 결정(2026-11-19): 기획서상 21층 위협인 경쟁 사원을 PoC 11층부터 미리 등장
+    RIVAL_SHARE: 0.4,         // 기획서 미정: 11층부터 공격 중 경쟁 사원 비율
+    RIVAL_WALK: 0.6,          // 기획서 미정: 화면 끝에서 걸어 들어오는 시간(초). 이후 예고 1.0초 뒤 근접 공격
     RANKS: ["사원", "대리", "과장", "간부", "CEO"],
     // 기획서 미정 (PoC 가정값)
     STEPS_PER_FLOOR: 5,       // 기획서 미정: 한 층을 오르는 계단 칸 수
@@ -50,6 +53,9 @@
 
   const DEF = window.SPRITE_DEF || { assets_dir: "assets", sprites: {}, images: {}, sounds: {} };
   const DIR = (DEF.assets_dir || "assets") + "/";
+  // 에셋 밀도: 2면 논리 해상도(320x180)의 2배로 그린 픽셀 아트를 절반 크기로 그린다 (sprite_definition.pixel_scale)
+  const PX = DEF.pixel_scale || 1;
+  const snap = (v) => Math.round(v * PX) / PX;
   const T = window.__stairs = {
     ready: false, screen: "boot", floor: 1, rank: "사원", hearts: CONFIG.HEARTS, days: CONFIG.DAYS_MAX,
     score: 0, maxMult: 1, steps: 0, assetErrors: [], audioFormat: null, log: [],
@@ -61,7 +67,9 @@
   const ctx = canvas.getContext("2d");
   let S = 1;
   function resize() {
-    S = Math.max(1, Math.floor(Math.min(window.innerWidth / LW, window.innerHeight / LH)));
+    // 아트 픽셀이 화면 픽셀에 딱 맞도록 배율을 PX의 배수로 고른다 (창이 너무 작으면 1배)
+    const k = Math.floor(Math.min(window.innerWidth / (LW * PX), window.innerHeight / (LH * PX)));
+    S = k >= 1 ? k * PX : Math.max(1, Math.floor(Math.min(window.innerWidth / LW, window.innerHeight / LH)));
     canvas.width = LW * S; canvas.height = LH * S;
     canvas.style.width = LW * S + "px"; canvas.style.height = LH * S + "px";
   }
@@ -134,21 +142,22 @@
     }
     const col = a.frames[Math.floor(t * (a.fps || 1)) % a.frames.length];
     const row = (s.variants[variant] !== undefined ? s.variants[variant] : 0);
-    const dx = Math.round(x - s.frame_w / 2), dy = Math.round(y - s.frame_h);
+    const w = s.frame_w / PX, h = s.frame_h / PX;
+    const dx = snap(x - w / 2), dy = snap(y - h);
     if (opt.flip) {
-      ctx.save(); ctx.translate(dx + s.frame_w, dy); ctx.scale(-1, 1);
-      ctx.drawImage(im, col * s.frame_w, row * s.frame_h, s.frame_w, s.frame_h, 0, 0, s.frame_w, s.frame_h);
+      ctx.save(); ctx.translate(dx + w, dy); ctx.scale(-1, 1);
+      ctx.drawImage(im, col * s.frame_w, row * s.frame_h, s.frame_w, s.frame_h, 0, 0, w, h);
       ctx.restore();
     } else {
-      ctx.drawImage(im, col * s.frame_w, row * s.frame_h, s.frame_w, s.frame_h, dx, dy, s.frame_w, s.frame_h);
+      ctx.drawImage(im, col * s.frame_w, row * s.frame_h, s.frame_w, s.frame_h, dx, dy, w, h);
     }
   }
   function icon(name, x, y) { // 왼쪽 위 기준
     const s = DEF.sprites && DEF.sprites.hud_icons;
-    sprite("hud_icons", name, "default", 0, x + (s ? s.frame_w / 2 : 6), y + (s ? s.frame_h : 12), { fallback: PAL.main });
+    sprite("hud_icons", name, "default", 0, x + (s ? s.frame_w / PX / 2 : 6), y + (s ? s.frame_h / PX : 12), { fallback: PAL.main });
   }
   function image(id, x, y) {
-    if (IMG[id]) ctx.drawImage(IMG[id], Math.round(x), Math.round(y));
+    if (IMG[id]) ctx.drawImage(IMG[id], snap(x), snap(y), IMG[id].width / PX, IMG[id].height / PX);
     else { ctx.fillStyle = PAL.bg; ctx.fillRect(x, y, LW, LH); }
   }
   function text(str, x, y, size = 8, color = PAL.text, align = "left", weight = 700) {
@@ -167,7 +176,14 @@
   function drawButtons() {
     buttons.forEach((b, i) => {
       const on = i === focus;
-      panel(b.x, b.y, b.w, b.h, on ? PAL.accent : PAL.bg, on ? PAL.text : PAL.main);
+      if (b.icon) { // 아이콘만 있는 버튼 (타이틀의 톱니바퀴)
+        panel(b.x, b.y, b.w, b.h, on ? "rgba(20,21,24,0.95)" : "rgba(20,21,24,0.6)", on ? PAL.text : PAL.main);
+        icon(b.icon, b.x + (b.w - 12) / 2, b.y + (b.h - 12) / 2);
+        return;
+      }
+      const red = b.tone === "red";
+      panel(b.x, b.y, b.w, b.h, red ? (on ? "#B84545" : PAL.accent) : (on ? PAL.accent : PAL.bg), on ? PAL.text : PAL.main);
+      if (red) { ctx.strokeStyle = "#6E2626"; ctx.strokeRect(b.x + 1.5, b.y + 1.5, b.w - 3, b.h - 3); }
       text(b.label, b.x + b.w / 2, b.y + (b.h - 9) / 2, 8, PAL.text, "center");
     });
   }
@@ -204,7 +220,7 @@
   // 계단 i의 월드 좌표 (계단 윗면 가운데)
   function stairPos(i) {
     const st = DEF.sprites && DEF.sprites.stairs;
-    const dx = st ? Math.floor(st.frame_w / 2) : 16, dy = st ? st.frame_h : 8;
+    const dx = st ? Math.floor(st.frame_w / PX / 2) : 16, dy = st ? st.frame_h / PX : 8;
     let x = 0;
     for (let k = 0; k < i; k++) x += G.dirs[k] * dx;
     return { x, y: -i * dy };
@@ -215,9 +231,8 @@
     if (next === "title") {
       setBgm("bgm_loop"); setAmb(false);
       setButtons([
-        { label: "시작하기", x: 120, y: 112, w: 80, h: 16, on: () => go("lobby") },
-        { label: "조작법", x: 120, y: 132, w: 38, h: 14, on: openHelp },
-        { label: "설정", x: 162, y: 132, w: 38, h: 14, on: () => (settingsOpen = true, setButtons(settingsButtons())) },
+        { label: "시작하기", x: 122, y: 98, w: 76, h: 18, tone: "red", on: () => go("lobby") },
+        { label: "", icon: "gear", x: 298, y: 4, w: 18, h: 18, on: () => (settingsOpen = true, setButtons(settingsButtons())) },
       ]);
     } else if (next === "lobby") {
       newRun(); setAmb(true);
@@ -249,6 +264,7 @@
   function settingsButtons() {
     return [
       { label: muted ? "사운드: 끔" : "사운드: 켬", x: 110, y: 80, w: 100, h: 16, on: () => { muted = !muted; if (muted) stopAllAudio(); else { setAmb(screen !== "title" && screen !== "result"); const id = bgmId; bgmId = null; setBgm(id); } setButtons(settingsButtons()); } },
+      { label: "조작법", x: 110, y: 100, w: 100, h: 16, on: openHelp },
       { label: "닫기", x: 110, y: 120, w: 100, h: 16, on: () => go(screen) },
     ];
   }
@@ -320,6 +336,12 @@
   }
   function spawnAttack() {
     const side = rand() < 0.5 ? -1 : 1;
+    if (floorOf(G.step) >= CONFIG.RIVAL_FROM_FLOOR && rand() < CONFIG.RIVAL_SHARE) {
+      // 경쟁 사원: 걸어 들어와 멈춘 뒤 "!" 1.0초 후 근접 공격. 한 번 막으면 퇴장 (04, 05-3 요소 5)
+      G.attacks.push({ side, spawn: G.t, hitAt: G.t + CONFIG.RIVAL_WALK + CONFIG.TELEGRAPH, kind: "rival", done: false });
+      T.log.push("rival:spawn");
+      return;
+    }
     G.attacks.push({ side, spawn: G.t, hitAt: G.t + CONFIG.TELEGRAPH, kind: "document", done: false });
     play("sfx_warning", 0.3);
   }
@@ -394,10 +416,10 @@
   // ------------------------------------------------------------------ 화면 그리기
   function drawTitle() {
     image("title_bg", 0, 0);
-    if (IMG.logo) ctx.drawImage(IMG.logo, Math.round((LW - IMG.logo.width) / 2), 34); // 05-1 요소 1
+    if (IMG.logo) image("logo", (LW - IMG.logo.width / PX) / 2, 34);                  // 05-1 요소 1: 본사 앞 명판
     else text("승급의 계단", LW / 2, 40, 20, PAL.text, "center");
     drawButtons();                                                                      // 요소 2, 3
-    text(`${CONFIG.VERSION} · 승급의 계단 PoC`, LW / 2, 168, 6, PAL.main, "center", 400); // 요소 5
+    text(`${CONFIG.VERSION} · 승급의 계단 PoC`, LW / 2, 172, 6, PAL.main, "center", 400); // 요소 5
   }
   function rankName() { return CONFIG.RANKS[G ? G.rankIdx : 0]; }
   function drawLobby() {
@@ -429,14 +451,52 @@
     image("bg_zone" + zone, 0, 0);
     const ox = 160 - G.camX, oy = 128 - G.camY;
     const st = DEF.sprites && DEF.sprites.stairs;
-    const tw = st ? st.frame_w : 32;
+    const tw = st ? st.frame_w / PX : 32, th = st ? st.frame_h / PX : 8;
+    const RAIL = ["#4E5733", "#44484E", "#5C4F3B", "#5E2323", "#8A6A2E"][zone - 1];
+    const PROPS = ["cooler", "boxes", "plant", "cabinet"];
+    // 층 바닥(콘크리트 슬래브)과 소품: 층이 바뀌는 칸 높이에 화면 끝까지 깐다
+    const spf = CONFIG.STEPS_PER_FLOOR;
+    for (let i = Math.floor(Math.max(0, G.step - 12) / spf) * spf; i < G.step + 16; i += spf) {
+      if (i <= 0) continue;
+      const p = stairPos(i), sx = ox + p.x, sy = oy + p.y;
+      if (sy < -30 || sy > LH + 10) continue;
+      const h = (i * 2654435761) >>> 0;
+      for (const [k, side] of [[0, -1], [1, 1]]) {
+        if (DEF.sprites && DEF.sprites.props) sprite("props", PROPS[(h >>> (16 + k * 4)) % PROPS.length], "default", 0, sx + side * (64 + ((h >>> (k * 8)) % 50)), sy);
+      }
+      ctx.fillStyle = "#4E5259"; ctx.fillRect(0, sy, LW, 7);
+      ctx.fillStyle = "#7B8088"; ctx.fillRect(0, sy, LW, 1);
+      ctx.fillStyle = "rgba(20,21,24,0.55)"; ctx.fillRect(0, sy + 7, LW, 2);
+    }
+    // 계단 받침(stringer): 디딤판 아래를 계단 기울기대로 비스듬히 깎아, 아래가 뚫린 계단처럼 보이게 한다 (컨셉 05-3)
+    const STR = ["#3A4226", "#33363C", "#463A2B", "#461A1A", "#5E4820"], STR_EDGE = ["#2C3320", "#26282C", "#352C20", "#341313", "#463618"];
+    for (let i = Math.max(0, G.step - 12); i < G.step + 16; i++) {
+      const p = stairPos(i), sx = ox + p.x, sy = oy + p.y;
+      if (sy < -30 || sy > LH + 10) continue;
+      const d = G.dirs[i] || 1, half = tw / 4;
+      for (let c = 0; c < half * 2 * PX; c++) {
+        const x = sx - half + c / PX, u = snap(th - d * (x + 0.5 / PX - sx) * (th / (half * 2)));
+        ctx.fillStyle = STR[zone - 1]; ctx.fillRect(x, sy + th, 1 / PX, u);
+        ctx.fillStyle = STR_EDGE[zone - 1]; ctx.fillRect(x, sy + th + u - 1 / PX, 1 / PX, 1 / PX);
+      }
+    }
     for (let i = Math.max(0, G.step - 12); i < G.step + 16; i++) {
       const p = stairPos(i);
       const sx = ox + p.x, sy = oy + p.y;
       if (sy < -10 || sy > LH + 10) continue;
       const tf = floorOf(i);
-      sprite("stairs", "tile", "zone" + zoneOf(tf), 0, sx, sy + (st ? st.frame_h : 8), { fallback: PAL.main });
-      if (i % CONFIG.STEPS_PER_FLOOR === 0 && i > 0) text(`${tf}F`, sx + tw / 2 + 2, sy - 1, 6, PAL.main, "left", 400);
+      sprite("stairs", "tile", "zone" + zoneOf(tf), 0, sx, sy + th, { fallback: PAL.main });
+      if (i % CONFIG.STEPS_PER_FLOOR === 0 && i > 0) text(`${tf}F`, sx + tw / 2 + 2, sy - 1, 6, PAL.text, "left", 400);
+    }
+    // 난간: 칸마다 기둥, 이웃 칸 기둥끼리 손잡이로 잇는다 (아트 픽셀 단위로 그려 각지게)
+    ctx.fillStyle = RAIL;
+    for (let i = Math.max(0, G.step - 12); i < G.step + 16; i++) {
+      const a = stairPos(i), b = stairPos(i + 1);
+      const ax = ox + a.x, ay = oy + a.y, bx = ox + b.x, by = oy + b.y;
+      if (ay < -20 || ay > LH + 20) continue;
+      ctx.fillRect(snap(ax) - 0.5, ay - 12, 1, 12);
+      const n = Math.max(1, Math.round(Math.max(Math.abs(bx - ax), Math.abs(by - ay)) * PX));
+      for (let s = 0; s <= n; s++) ctx.fillRect(snap(ax + (bx - ax) * s / n) - 0.5, snap(ay - 12 + (by - ay) * s / n), 1, 2 / PX);
     }
     // 플레이어
     const pp = stairPos(G.step);
@@ -447,6 +507,18 @@
     else sprite("player", pose, rankName(), clock, px, py, { flip: pose === "step" && G.facing < 0 });
     // 서류 투척 (05-3 요소 3, 4)
     for (const a of G.attacks) {
+      if (a.kind === "rival") {
+        const stand = px + a.side * 16, edge = a.side < 0 ? -12 : LW + 12;
+        const walk = Math.min(1, (G.t - a.spawn) / CONFIG.RIVAL_WALK), left = a.hitAt - G.t;
+        let rx = edge + (stand - edge) * walk, anim = "walk";
+        if (a.done) { rx = stand + a.side * (0.25 - a.fade) * 200; anim = "leave"; }
+        else if (left < 0.25) { rx = stand - a.side * (0.25 - left) * 24; anim = "attack"; }
+        ctx.globalAlpha = a.fade !== undefined ? Math.max(0, a.fade / 0.25) : 1;
+        sprite("rival", anim, "default", G.t, rx, py, { flip: a.side > 0 });
+        ctx.globalAlpha = 1;
+        if (!a.done && left <= CONFIG.TELEGRAPH) sprite("warning", "blink", "default", G.t, rx, py - 28);
+        continue;
+      }
       const k = Math.min(1, (G.t - a.spawn) / CONFIG.TELEGRAPH);
       const startX = a.side < 0 ? -8 : LW + 8;
       const ax = startX + (px - 10 * a.side - startX) * k;
@@ -460,22 +532,26 @@
   }
   function drawHud() {
     const floor = floorOf(G.step);
-    // 05-3 요소 1
-    panel(4, 4, 74, 16, "rgba(20,21,24,0.85)", PAL.main);
-    icon("badge", 6, 6); text(`${floor}F · ${rankName()}`, 20, 8, 7);
-    // 요소 2
-    panel(LW - 104, 4, 100, 16, "rgba(20,21,24,0.85)", PAL.main);
-    icon("calendar", LW - 102, 6);
-    text(`D-${Math.ceil(G.days)}`, LW - 88, 8, 7, G.days < 8 ? PAL.accent : PAL.text);
-    for (let i = 0; i < CONFIG.HEARTS; i++) icon(i < G.hearts ? "heart" : "heart_empty", LW - 56 + i * 13, 6);
-    // 콤보
-    if (G.mult > 1) text(`×${G.mult} COMBO`, LW / 2, 8, 9, PAL.warm, "center");
-    // 요소 4: 조작 키
-    const keys = [["ArrowLeft", "arrow_left", "←"], ["ArrowRight", "arrow_right", "→"], ["KeyQ", "shield_q", "Q"], ["KeyE", "shield_e", "E"]];
-    keys.forEach(([code, ic, label], i) => {
-      const x = 104 + i * 30 + (i >= 2 ? 6 : 0), y = 160;
-      panel(x, y, 22, 16, keyGlow[code] > 0 ? PAL.sub : "rgba(20,21,24,0.85)", PAL.main);
-      icon(ic, x + 1, y + 2); text(label, x + 15, y + 4, 6, PAL.text, "center");
+    const plate = (x, y, w, h) => { // 이중 테두리 명판
+      panel(x, y, w, h, "rgba(20,21,24,0.92)", "#9AA0A8");
+      ctx.strokeStyle = PAL.main; ctx.strokeRect(x + 2.5, y + 2.5, w - 5, h - 5);
+    };
+    // 05-3 요소 1: 층수·직급 명판
+    plate(6, 5, 86, 19);
+    icon("badge", 10, 9); text(`${floor}F · ${rankName()}`, 56, 9, 9, PAL.text, "center");
+    // 요소 2: 남은 일수 명판, 그 아래 하트
+    plate(LW - 92, 5, 86, 19);
+    icon("calendar", LW - 88, 9);
+    text(`D-${Math.ceil(G.days)}`, LW - 44, 9, 10, G.days < 8 ? PAL.accent : PAL.text, "center");
+    for (let i = 0; i < CONFIG.HEARTS; i++) icon(i < G.hearts ? "heart" : "heart_empty", LW - 47 + i * 13, 27);
+    // 콤보 (가운데 위)
+    if (G.mult > 1) text(`×${G.mult} COMBO`, LW / 2, 10, 10, PAL.warm, "center");
+    // 요소 4: 조작 키 (아래 가운데)
+    const keys = [["ArrowLeft", "arrow_left"], ["ArrowRight", "arrow_right"], ["KeyQ", "shield_q"], ["KeyE", "shield_e"]];
+    keys.forEach(([code, ic], i) => {
+      const x = 114 + i * 22 + (i >= 2 ? 8 : 0), y = 158;
+      panel(x, y, 18, 18, keyGlow[code] > 0 ? PAL.sub : "rgba(20,21,24,0.85)", "#9AA0A8");
+      icon(ic, x + 3, y + 3);
     });
   }
   function drawPause() {
@@ -511,7 +587,7 @@
     ctx.fillStyle = "rgba(20,21,24,0.75)"; ctx.fillRect(0, 0, LW, LH);
     panel(96, 56, 128, 90, PAL.bg, PAL.main);
     text("설정", LW / 2, 62, 9, PAL.text, "center");
-    text("화면 · 키 설정은 PoC 미구현", LW / 2, 102, 6, PAL.main, "center", 400);
+    text("키 변경은 PoC 미구현", LW / 2, 72, 6, PAL.main, "center", 400);
     drawButtons();
   }
 

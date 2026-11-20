@@ -6,7 +6,7 @@ tools: Read, Grep, Glob, Bash, Edit, Write
 
 # 파이프라인 (조율과 공통 계층)
 
-에이전트 맵의 실행 순서입니다. **Mechanics**로 규칙과 수치를 먼저 확정하고, **Designer와 Developer를 동시에** 돌린 뒤, 둘 다 끝나면 **Publisher**를 돌립니다. 재생 폴더에 Mechanics 응답이 없으면(예: `replay_api`) Mechanics는 건너뜁니다.
+에이전트 맵의 실행 순서입니다. **Mechanics**로 규칙과 수치를 먼저 확정하고, **Designer → Designer QA**와 **Developer → Developer QA**를 동시에 돌린 뒤, 둘 다 끝나면 **Publisher**를 돌립니다. QA 보고서는 `output/qa_out/`과 배포 폴더 `output/dist/qa/`에 남습니다. 재생 폴더에 Mechanics 응답이 없으면(예: `replay_api`) Mechanics는 건너뜁니다.
 
 ## 구성
 
@@ -24,10 +24,11 @@ tools: Read, Grep, Glob, Bash, Edit, Write
 python -m stairs_agents run                    # Claude API (ANTHROPIC_API_KEY 필요)
 python -m stairs_agents run --record           # 응답을 replay/ 에 저장
 python -m stairs_agents run --replay replay    # API 키 없이 실행, 마지막에 "동작 확인 통과"
-python -m unittest discover tests              # Mechanics 검사기 시험
+python -m stairs_agents qa --replay replay     # 이미 만든 결과물에 QA만
+python -m unittest discover tests              # Mechanics 검사기, QA 시험
 ```
 
-선택 사항: `--model`(기본 claude-sonnet-5-5), `--max-tokens`(기본 64000), `--no-resource-db`.
+선택 사항: `--model`(기본 claude-sonnet-5-5), `--max-tokens`(기본 64000), `--no-resource-db`, `--no-qa`, `--strict-qa`(QA fail이면 Publisher 전에 멈춤).
 
 API 키는 환경 변수 `ANTHROPIC_API_KEY`로만 넘기고, 파일에 적거나 저장소에 올리지 않습니다.
 
@@ -38,9 +39,14 @@ API 키는 환경 변수 `ANTHROPIC_API_KEY`로만 넘기고, 파일에 적거�
 ### `stairs_agents/pipeline.py`
 
 ```python
-"""에이전트 맵대로 실행한다: Mechanics로 규칙을 확정하고, Designer와 Developer를 동시에 돌린 뒤 Publisher를 돌린다."""
+"""에이전트 맵대로 실행한다: Mechanics로 규칙을 확정하고, Designer와 Developer를 동시에 돌린 뒤 Publisher를 돌린다.
+
+Designer와 Developer 뒤에는 각자의 QA 에이전트(Designer QA, Developer QA)가 바로 이어서 돈다.
+QA 판정이 fail이면 경고만 남기고 계속하며, strict_qa=True면 Publisher 전에 멈춘다.
+"""
 from __future__ import annotations
 
+import shutil
 import time
 from concurrent.futures import ThreadPoolExecutor
 
@@ -48,17 +54,29 @@ from .designer import DesignerAgent
 from .developer import DeveloperAgent
 from .mechanics import MechanicsAgent
 from .publisher import PublisherAgent
+from .qa_designer import DesignerQAAgent
+from .qa_developer import DeveloperQAAgent
 from .util import Paths, log
 
 
-def run_pipeline(llm, paths: Paths, use_resource_db: bool = True, skip_test: bool = False) -> dict:
+def run_pipeline(llm, paths: Paths, use_resource_db: bool = True, skip_test: bool = False,
+                 qa: bool = True, strict_qa: bool = False) -> dict:
     t0 = time.time()
     # Developer가 mechanics.json을 읽으므로 Mechanics를 먼저 끝낸다
     mech = MechanicsAgent(llm, paths).run()
     designer = DesignerAgent(llm, paths, use_resource_db=use_resource_db)
     developer = DeveloperAgent(llm, paths)
+    qa_results = {}
+
+    def with_qa(agent, qa_agent, key):
+        res = agent.run()
+        if qa:
+            qa_results[key] = qa_agent.run()
+        return res
+
     with ThreadPoolExecutor(max_workers=2) as ex:
-        f_des, f_dev = ex.submit(designer.run), ex.submit(developer.run)
+        f_des = ex.submit(with_qa, designer, DesignerQAAgent(llm, paths), "designer")
+        f_dev = ex.submit(with_qa, developer, DeveloperQAAgent(llm, paths), "developer")
         errors = {}
         for name, f in (("Designer", f_des), ("Developer", f_dev)):
             if f.exception():
@@ -68,12 +86,21 @@ def run_pipeline(llm, paths: Paths, use_resource_db: bool = True, skip_test: boo
             raise RuntimeError("에이전트 실패: " + ", ".join(f"{k}: {v}" for k, v in errors.items()))
         design, dev = f_des.result(), f_dev.result()
 
+    failed = [k for k, r in qa_results.items() if r["verdict"] == "fail"]
+    for k in failed:
+        log.warning("[%s QA] 판정 fail: output/qa_out/%s_qa.md 를 보세요", k.capitalize(), k)
+    if strict_qa and failed:
+        raise RuntimeError("QA 판정 fail: " + ", ".join(failed))
+
     publisher = PublisherAgent(paths)
     if skip_test:
         publisher.test = lambda: False
     pub = publisher.run()
+    qa_dir = paths.out / "qa_out"
+    if qa_dir.exists():  # QA 보고서를 배포 폴더에 함께 둔다
+        shutil.copytree(qa_dir, paths.dist / "qa", dirs_exist_ok=True)
     log.info("파이프라인 완료 (%.1f초): %s", time.time() - t0, pub["zip"])
-    return {"mechanics": mech, "designer": design, "developer": dev, "publisher": pub}
+    return {"mechanics": mech, "designer": design, "developer": dev, "qa": qa_results, "publisher": pub}
 ```
 
 ### `stairs_agents/llm.py`
@@ -85,10 +112,12 @@ ClaudeClient   Anthropic Messages API를 스트리밍으로 호출한다 (ANTHRO
 ReplayClient   replay/ 폴더에 저장된 응답을 돌려준다. API 키 없이 파이프라인을 시험할 때 쓴다.
 RecordingClient 실제 응답을 replay/ 형식으로 저장해 다음 실행에서 재사용할 수 있게 한다.
 
-세 클라이언트 모두 complete(agent, step, system, user) 하나의 메서드만 가진다.
+세 클라이언트 모두 complete(agent, step, system, user, images=None) 하나의 메서드만 가진다.
+images는 PNG 파일 경로 목록이며 ClaudeClient만 메시지에 이미지로 넣는다 (QA 에이전트가 화면을 보고 검토할 때 쓴다).
 """
 from __future__ import annotations
 
+import base64
 import os
 import time
 from pathlib import Path
@@ -114,7 +143,10 @@ class ClaudeClient:
         self.max_tokens = max_tokens
         self.retries = retries
 
-    def complete(self, agent: str, step: str, system: str, user: str) -> str:
+    def complete(self, agent: str, step: str, system: str, user: str, images=None) -> str:
+        content = [{"type": "image", "source": {"type": "base64", "media_type": "image/png",
+                    "data": base64.b64encode(Path(p).read_bytes()).decode()}} for p in images or []]
+        content.append({"type": "text", "text": user})
         last_err = None
         for attempt in range(1, self.retries + 1):
             try:
@@ -122,7 +154,7 @@ class ClaudeClient:
                     model=self.model,
                     max_tokens=self.max_tokens,
                     system=system,
-                    messages=[{"role": "user", "content": user}],
+                    messages=[{"role": "user", "content": content}],
                 ) as stream:
                     msg = stream.get_final_message()
                 text = "".join(b.text for b in msg.content if getattr(b, "type", "") == "text")
@@ -144,7 +176,7 @@ class ReplayClient:
     def __init__(self, replay_dir: Path):
         self.replay_dir = Path(replay_dir)
 
-    def complete(self, agent: str, step: str, system: str, user: str) -> str:
+    def complete(self, agent: str, step: str, system: str, user: str, images=None) -> str:
         path = self.replay_dir / f"{agent}_{step}.txt"
         if not path.exists():
             raise LLMError(f"재생 응답 파일이 없습니다: {path}")
@@ -159,8 +191,8 @@ class RecordingClient:
         self.replay_dir = Path(replay_dir)
         self.replay_dir.mkdir(parents=True, exist_ok=True)
 
-    def complete(self, agent: str, step: str, system: str, user: str) -> str:
-        text = self.inner.complete(agent, step, system, user)
+    def complete(self, agent: str, step: str, system: str, user: str, images=None) -> str:
+        text = self.inner.complete(agent, step, system, user, images)
         (self.replay_dir / f"{agent}_{step}.txt").write_text(text, encoding="utf-8")
         return text
 ```
@@ -323,6 +355,8 @@ def check_manifest(contract: dict, manifest: dict) -> list[str]:
   python -m stairs_agents run --record              # API 응답을 replay/ 에 저장
   python -m stairs_agents run --replay replay       # 저장된 응답으로 실행 (API 키 불필요)
   python -m stairs_agents mechanics|designer|developer|publisher [...]   # 에이전트 하나만 실행
+  python -m stairs_agents qa --replay replay        # 이미 만든 결과물에 Designer QA, Developer QA만 실행
+  python -m stairs_agents qa-designer|qa-developer  # QA 하나만
 """
 from __future__ import annotations
 
@@ -337,6 +371,8 @@ from .llm import DEFAULT_MODEL, ClaudeClient, LLMError, RecordingClient, ReplayC
 from .mechanics import MechanicsAgent
 from .pipeline import run_pipeline
 from .publisher import PublisherAgent
+from .qa_designer import DesignerQAAgent
+from .qa_developer import DeveloperQAAgent
 from .util import ROOT, Paths
 
 
@@ -349,7 +385,7 @@ def make_llm(args):
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="stairs_agents", description="승급의 계단 에이전트 PoC")
-    ap.add_argument("command", choices=["run", "mechanics", "designer", "developer", "publisher"])
+    ap.add_argument("command", choices=["run", "mechanics", "designer", "developer", "publisher", "qa", "qa-designer", "qa-developer"])
     ap.add_argument("--model", default=DEFAULT_MODEL, help=f"Claude 모델 (기본 {DEFAULT_MODEL})")
     ap.add_argument("--max-tokens", type=int, default=64000)
     ap.add_argument("--replay", help="저장된 응답 폴더로 실행 (API 호출 없음)")
@@ -357,6 +393,8 @@ def main(argv=None) -> int:
     ap.add_argument("--record-dir", default=str(ROOT / "replay_api"), help="응답 저장 폴더 (기본 replay_api)")
     ap.add_argument("--no-resource-db", action="store_true", help="Designer가 원본 리소스 데이터베이스를 쓰지 않음")
     ap.add_argument("--out", default=str(ROOT / "output"), help="출력 폴더")
+    ap.add_argument("--no-qa", action="store_true", help="QA 에이전트를 돌리지 않음")
+    ap.add_argument("--strict-qa", action="store_true", help="QA 판정이 fail이면 Publisher 전에 멈춤")
     args = ap.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%H:%M:%S")
@@ -373,13 +411,20 @@ def main(argv=None) -> int:
     if args.command == "mechanics":
         result = MechanicsAgent(llm, paths).run()
         return 1 if result["problems"] and not result["skipped"] else 0
+    if args.command in ("qa", "qa-designer", "qa-developer"):
+        verdicts = []
+        if args.command != "qa-developer":
+            verdicts.append(DesignerQAAgent(llm, paths).run()["verdict"])
+        if args.command != "qa-designer":
+            verdicts.append(DeveloperQAAgent(llm, paths).run()["verdict"])
+        return 1 if "fail" in verdicts else 0
     if args.command == "designer":
         DesignerAgent(llm, paths, use_resource_db=not args.no_resource_db).run()
         return 0
     if args.command == "developer":
         DeveloperAgent(llm, paths).run()
         return 0
-    result = run_pipeline(llm, paths, use_resource_db=not args.no_resource_db)
+    result = run_pipeline(llm, paths, use_resource_db=not args.no_resource_db, qa=not args.no_qa, strict_qa=args.strict_qa)
     return 0 if result["publisher"]["passed"] else 1
 
 

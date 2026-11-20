@@ -1,7 +1,8 @@
 """Designer 에이전트.
 
 역할 (에이전트 맵): 생성형 AI로 스프라이트, 리소스, 사운드를 제작한다. 필요하면 원본 리소스 데이터베이스 파일을 사용한다.
-입력: docs/GDD.md (특히 03 디자인 컨셉), docs/ASSET_LIST.md, data/원본리소스_DB.json
+입력: docs/GDD.md (특히 03 디자인 컨셉), docs/ASSET_LIST.md, data/원본리소스_DB.json,
+      data/concept/ 컨셉 아트 (concept.py로 주요 색과 참고 스프라이트 격자를 뽑아 요청에 붙인다)
 출력: output/design_out/ 의 디자인 파일(PNG, WAV)과 design_manifest.json
       내보내는 형식은 Designer의 도구가 만드는 그대로이며, 형식 맞춤은 Publisher가 맡는다.
 """
@@ -11,7 +12,7 @@ import shutil
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-from . import render, synth
+from . import concept, render, synth
 from .contract import check_manifest, load_contract
 from .util import Paths, extract_json, load_prompt, log, read, write_json
 
@@ -46,16 +47,25 @@ class DesignerAgent:
 
         system_sprites = load_prompt(self.paths, "designer_sprites")
         system_sound = load_prompt(self.paths, "designer_sound")
+        refs = concept.extract_regions(self.paths.out / "concept_refs")
+        if refs:
+            log.info("[Designer] 컨셉 참고 스프라이트 %d개를 요청에 붙임", len(refs["regions"]))
 
         def ask_sheet(aid):
             c = contract["sheets"][aid]
             req = (f"이번 요청에서는 sheet '{aid}' 하나만 설계하라. 변형: {', '.join(c['variants'])}. "
                    f"애니메이션: {', '.join(c['animations'])}. 출력 JSON에는 palette와 sheets.{aid}만 넣는다.")
+            ref = concept.ref_text(refs, aid)
+            if ref:
+                req = ref + "\n\n" + req
             return aid, extract_json(self.llm.complete(self.name, f"sprite_{aid}", system_sprites, ctx + "\n\n" + req))
 
         def ask_images():
             req = ("이번 요청에서는 images만 설계하라: " + ", ".join(contract["images"]) +
                    ". 출력 JSON에는 images만 넣는다.")
+            ref = concept.ref_text(refs, "__images__")
+            if ref:
+                req = ref + "\n\n" + req
             return extract_json(self.llm.complete(self.name, "images", system_sprites, ctx + "\n\n" + req))
 
         def ask_sound():

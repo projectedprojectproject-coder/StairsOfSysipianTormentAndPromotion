@@ -10,8 +10,9 @@ tools: Read, Grep, Glob, Bash, Edit, Write
 
 ## 입력과 출력
 
-- 입력: `docs/GDD.md`(특히 03 디자인 컨셉), `docs/ASSET_LIST.md`, `data/원본리소스_DB.json`
+- 입력: `docs/GDD.md`(특히 03 디자인 컨셉), `docs/ASSET_LIST.md`, `data/원본리소스_DB.json`, 컨셉 아트 `data/concept/`(영역 목록 `regions.json`)
 - 출력: `output/design_out/` 의 PNG, WAV, `design_manifest.json`, 설계 명세 `_spec_*.json`
+- 결과물은 바로 **Designer QA**(`stairs-designer-qa`)가 검사합니다. 보고서: `output/qa_out/designer_qa.md`
 - 내보내는 형식은 Designer 도구가 만드는 그대로입니다. 형식 맞춤은 Publisher가 맡습니다.
 
 ## 작업 방법
@@ -19,6 +20,7 @@ tools: Read, Grep, Glob, Bash, Edit, Write
 1. 에셋마다 따로 Claude에 설계를 요청합니다(스프라이트 시트 6종 각각, 이미지 1건, 사운드 1건). 한 번에 요청하면 응답이 64000 토큰을 넘어 잘립니다.
 2. 스프라이트·이미지 명세(JSON)는 `render.py`가 PNG로 그리고, 사운드 명세는 `synth.py`가 WAV로 합성합니다.
 3. `contract.py`로 ASSET_LIST의 ID, 변형, 애니메이션 이름이 모두 있는지 검사합니다.
+4. 컨셉 아트 참고: `concept.py`가 `data/concept/regions.json`의 영역을 뽑아(`output/concept_refs/`) 시트별 설계 요청에 참고 격자와 컨셉 주요 색을 붙입니다. 직접 그릴 때는 스킬 `.claude/skills/concept-sprite-extraction/SKILL.md`를 따릅니다.
 
 ## 실행
 
@@ -47,7 +49,11 @@ python -m stairs_agents designer --replay replay  # 저장된 응답으로 실�
 - 03 컬러 팔레트(#5A5F66, #8A9A5B, #A13D3D, #1E1F22, #E8E6DF)를 기본으로 쓰고, 명암용 중간색만 추가한다.
 - 캐릭터는 4~5등신, 단순화된 픽셀 실루엣. 표정은 그리지 않고 자세로 상태를 표현한다. 직급은 정장 색과 사원증 색으로만 구분한다.
 - 요청받은 에셋을 빠짐없이 만든다.
-- 게임 논리 해상도가 320x180이므로 프레임 크기는 player와 rival 16x24, projectiles와 hud_icons 12x12, warning 8x12, stairs 32x8을 기준으로 한다. 변형 이름과 애니메이션 이름은 ASSET_LIST와 정확히 같아야 한다.
+- 게임 논리 해상도는 320x180이지만 에셋은 2배 밀도(pixel_scale 2)로 그린다. 프레임 크기는 player와 rival 32x48, projectiles와 hud_icons 24x24, warning 16x24, props 32x48, stairs 64x16(demo) 또는 88x24(demo_api), 이미지(title_bg, bg_zone1~5)는 640x360을 기준으로 한다. 게임은 이를 절반 크기로 그려 픽셀이 2배 촘촘해진다. 변형 이름과 애니메이션 이름은 ASSET_LIST와 정확히 같아야 한다.
+- 컨셉 이미지(data/concept/05-1_title.png, 05-3_play.png)의 구도와 색을 따른다.
+- stairs는 실제 계단처럼 보여야 한다(컨셉 05-3의 올리브색 계단). 프레임 폭은 계단 두 칸 간격이므로 가운데 절반만 칠한다. tile = 디딤판(위 1줄 밝게, 그 아래 몇 줄) + 앞 모서리 그림자 1줄 + 챌판(프레임 아래 끝까지). 칸마다 디딤판과 챌판이 이어져 계단 단면이 된다. 디딤판 아래 비스듬한 받침과 난간은 게임 코드가 그린다. riser는 같은 폭의 어두운 몸체 색 견본이다.
+- props(소품): cooler(정수기), boxes(상자), plant(화분), cabinet(서류장). 층 바닥 위에 놓인다(발 위치가 프레임 아래).
+- title_bg(05-1 요소 4): 흐린 구름(clouds), 어두운 빌딩 숲(city 여러 겹), 가운데 가장 높은 본사(tower, 위로 갈수록 좁아지는 여러 단), 맨 위 층 통창만 따뜻한 불빛(glow로 번짐), 그 창가에서 아래를 내려다보는 한 사람(silhouette), 아래 거리에 서류가방을 든 채 걷는 사원들(walkers). crowd·lamps도 쓸 수 있다. 로고와 버튼이 가운데 위·아래를 덮으므로 꼭대기 층은 화면 위쪽 30px 안에 둔다.
 
 ## 출력 형식
 JSON은 들여쓰기와 줄바꿈 없이 한 줄로 쓰고, 좌우 반전으로 만들 수 있는 동작은 mirror로 재사용해 출력 길이를 줄인다.
@@ -88,6 +94,15 @@ JSON은 들여쓰기와 줄바꿈 없이 한 줄로 쓰고, 좌우 반전으로 
 - {"kind":"frame","x","y","w","h","color","inner"}  벽 액자
 - {"kind":"light_cone","x","y","w","h","color","alpha"}  위에서 아래로 퍼지는 조명, alpha 0~1
 - {"kind":"workers","x","y","count","spacing","color","pose"}  pose는 "bowed" 또는 "standing", y는 발 위치
+- {"kind":"glow","x","y","rx","ry","color","alpha","steps"}  둥근 빛 번짐 (가운데가 가장 밝다)
+- {"kind":"tower","x","y","tiers":[{"w","h"},...],"color","edge","shade","window","lit","lit_ratio","crown_lit","spire","beacon","seed"}  x는 가운데, y는 바닥, tiers는 아래에서 위로, 맨 위 단은 통창이 crown_lit 색으로 켜진다
+- {"kind":"silhouette","x","y","color","face"}  창가에서 아래를 내려다보는 사람 (9x14), face 1 오른쪽 / -1 왼쪽
+- {"kind":"crowd","x0","x1","y","color","pose","min_gap","max_gap","jitter","accent","accent_ratio","seed"}  사원 무리 (한 명 9x14), pose bowed는 고개 숙인 모습, accent는 서류가방 색
+- {"kind":"lamps","xs":[...],"y","h","color","light","alpha","spread"}  가로등과 아래로 퍼지는 불빛
+- {"kind":"clouds","y0","y1","count","min_r","max_r","flat","color","rim","shade","seed"}  납작한 밤구름 띠 (rim은 위쪽 가장자리 밝은 색)
+- {"kind":"city","y","count","min_h","max_h","min_w","max_w","min_gap","max_gap","color","edge","shade","window","lit","warm","lit_ratio","warm_ratio","win","stripe_ratio","stripe_gap","stripe_floor","setback_ratio","antenna_ratio","skip_x0","skip_x1","seed"}  창 격자·기둥·단·안테나가 있는 빌딩 숲 (skip 구간은 비운다)
+- {"kind":"walkers","xs":[...],"y","size","hair","suit","pants","shirt","tie","skin","bag","bag_ratio","seed"}  거리를 걷는 사원 (size "large" 20x40, 그 밖은 16x30), y는 발 위치
+- tower에는 crown_style("band" 또는 "windows"), win([창폭,창높이,가로간격,세로간격]), stripes(세로 기둥 수)를 더할 수 있다.
 ```
 
 ### `prompts/designer_sound.md`
@@ -142,7 +157,8 @@ JSON은 들여쓰기와 줄바꿈 없이 한 줄로 쓰고, 좌우 반전으로 
 """Designer 에이전트.
 
 역할 (에이전트 맵): 생성형 AI로 스프라이트, 리소스, 사운드를 제작한다. 필요하면 원본 리소스 데이터베이스 파일을 사용한다.
-입력: docs/GDD.md (특히 03 디자인 컨셉), docs/ASSET_LIST.md, data/원본리소스_DB.json
+입력: docs/GDD.md (특히 03 디자인 컨셉), docs/ASSET_LIST.md, data/원본리소스_DB.json,
+      data/concept/ 컨셉 아트 (concept.py로 주요 색과 참고 스프라이트 격자를 뽑아 요청에 붙인다)
 출력: output/design_out/ 의 디자인 파일(PNG, WAV)과 design_manifest.json
       내보내는 형식은 Designer의 도구가 만드는 그대로이며, 형식 맞춤은 Publisher가 맡는다.
 """
@@ -152,7 +168,7 @@ import shutil
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-from . import render, synth
+from . import concept, render, synth
 from .contract import check_manifest, load_contract
 from .util import Paths, extract_json, load_prompt, log, read, write_json
 
@@ -187,16 +203,25 @@ class DesignerAgent:
 
         system_sprites = load_prompt(self.paths, "designer_sprites")
         system_sound = load_prompt(self.paths, "designer_sound")
+        refs = concept.extract_regions(self.paths.out / "concept_refs")
+        if refs:
+            log.info("[Designer] 컨셉 참고 스프라이트 %d개를 요청에 붙임", len(refs["regions"]))
 
         def ask_sheet(aid):
             c = contract["sheets"][aid]
             req = (f"이번 요청에서는 sheet '{aid}' 하나만 설계하라. 변형: {', '.join(c['variants'])}. "
                    f"애니메이션: {', '.join(c['animations'])}. 출력 JSON에는 palette와 sheets.{aid}만 넣는다.")
+            ref = concept.ref_text(refs, aid)
+            if ref:
+                req = ref + "\n\n" + req
             return aid, extract_json(self.llm.complete(self.name, f"sprite_{aid}", system_sprites, ctx + "\n\n" + req))
 
         def ask_images():
             req = ("이번 요청에서는 images만 설계하라: " + ", ".join(contract["images"]) +
                    ". 출력 JSON에는 images만 넣는다.")
+            ref = concept.ref_text(refs, "__images__")
+            if ref:
+                req = ref + "\n\n" + req
             return extract_json(self.llm.complete(self.name, "images", system_sprites, ctx + "\n\n" + req))
 
         def ask_sound():
@@ -461,11 +486,310 @@ def _workers(img, d, e):
             d.rectangle([x, y - 12, x + 2, y - 10], fill=c)
 
 
+def _glow(img, d, e):
+    """둥근 빛 번짐. 바깥에서 안쪽으로 옅은 타원을 겹쳐 그린다."""
+    steps = max(1, e.get("steps", 6))
+    for i in range(steps):  # 겹칠수록 밝아지도록 고리마다 따로 합성한다
+        k = 1 - i / steps
+        rx, ry = e["rx"] * k, e["ry"] * k
+        layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+        ImageDraw.Draw(layer).ellipse([e["x"] - rx, e["y"] - ry, e["x"] + rx, e["y"] + ry],
+                                      fill=rgba(e["color"], round(255 * e.get("alpha", 0.3) / steps)))
+        img.alpha_composite(layer)
+
+
+def _tower(img, d, e):
+    """가운데 우뚝 선 본사 타워. tiers(아래에서 위로)를 가운데 맞춰 쌓고, 맨 위 층 창만 crown_lit 색으로 켠다."""
+    rnd = random.Random(e.get("seed", 1))
+    cx, base = e["x"], e["y"]
+    tiers = e["tiers"]
+    y = base
+    for ti, t in enumerate(tiers):
+        w, h = t["w"], t["h"]
+        x0, top = cx - w // 2, y - h
+        d.rectangle([x0, top, x0 + w - 1, y - 1], fill=rgba(e["color"]))
+        d.line([x0, top, x0, y - 1], fill=rgba(e.get("edge", e["color"])))           # 빛 받는 모서리
+        d.line([x0 + w - 1, top, x0 + w - 1, y - 1], fill=rgba(e.get("shade", e["color"])))
+        d.line([x0, top, x0 + w - 1, top], fill=rgba(e.get("edge", e["color"])))     # 층 구분 처마
+        ww, wh, gx, gy = e.get("win", [2, 2, 1, 2])
+        crown = ti == len(tiers) - 1
+        if crown and e.get("crown_style", "band") == "band":
+            # 맨 위 층: 통창 하나가 따뜻하게 켜져 있고, 세로 창틀만 어둡게 남는다
+            d.rectangle([x0 + 2, top + 3, x0 + w - 3, y - 3], fill=rgba(e["crown_lit"]))
+            for mx in range(x0 + 2, x0 + w - 2, e.get("mullion", 6)):
+                d.line([mx, top + 3, mx, y - 3], fill=rgba(e["color"]))
+        else:
+            # 창 격자. crown_style "windows"면 맨 위 단의 창이 하나하나 따뜻하게 켜진다
+            for wy in range(top + 3, y - wh - 1, wh + gy):
+                for wx in range(x0 + 3, x0 + w - ww - 2, ww + gx):
+                    if crown:
+                        col = e["crown_lit"] if rnd.random() < e.get("crown_ratio", 0.9) else e["lit"]
+                    else:
+                        col = e["lit"] if rnd.random() < e.get("lit_ratio", 0) else e["window"]
+                    d.rectangle([wx, wy, wx + ww - 1, wy + wh - 1], fill=rgba(col))
+        if e.get("stripes"):
+            for sx in range(x0 + 2, x0 + w - 1, e["stripes"]):
+                d.line([sx, top + 1, sx, y - 1], fill=rgba(e.get("edge", e["color"])))
+        y = top
+    if e.get("spire"):
+        d.line([cx, y - e["spire"], cx, y - 1], fill=rgba(e.get("edge", e["color"])))
+        if e.get("beacon"):
+            d.point([cx, y - e["spire"]], fill=rgba(e["beacon"]))
+
+
+# 고개 숙인 사원 (9x14, 오른쪽을 봄): 굽은 등이 가장 높고, 머리는 어깨보다 앞쪽 아래로 떨어진다. b = 서류가방
+FIGURE_BOWED = [
+    ".###.....",
+    "#####....",
+    "######.##",
+    "######.##",
+    ".#####.#.",
+    ".####....",
+    ".####....",
+    ".####....",
+    "b####....",
+    "bb###....",
+    "bb#.#....",
+    "..#.#....",
+    "..#..#...",
+    ".##..##..",
+]
+# 똑바로 선 사람 (9x14)
+FIGURE_STANDING = [
+    "...##....",
+    "..####...",
+    "..####...",
+    "...##....",
+    "..####...",
+    ".######..",
+    ".######..",
+    ".######..",
+    "b.####...",
+    "bb####...",
+    "bb#..#...",
+    "..#..#...",
+    "..#..#...",
+    ".##..##..",
+]
+
+
+def _figure(d, x, y, c, pose, face, accent=None):
+    """사원 한 명. x는 왼쪽, y는 발 위치, face는 1(오른쪽) 또는 -1(왼쪽, 좌우 반전)."""
+    rows = FIGURE_BOWED if pose == "bowed" else FIGURE_STANDING
+    h, w = len(rows), len(rows[0])
+    for ry, line in enumerate(rows):
+        for rx, ch in enumerate(line if face > 0 else line[::-1]):
+            if ch == "#":
+                d.point([x + rx, y - h + ry], fill=c)
+            elif ch == "b" and accent:
+                d.point([x + rx, y - h + ry], fill=accent)
+    return w
+
+
+# 2배 해상도용 고개 숙인 직장인 (16x30, 오른쪽으로 걷는다). k = 머리카락·신발, s = 정장, x = 셔츠, w = 피부, b = 가방
+WALKER_2X = [
+    "................",
+    "......kkkk......",
+    ".....kkkkkk.....",
+    ".....kkkkkkk....",
+    "......wwwkkk....",
+    ".......wwwkk....",
+    ".....sss.ww.....",
+    "....sssssx......",
+    "...ssssssxs.....",
+    "...sssssssss....",
+    "...sssssssss....",
+    "...ssssssss.....",
+    "...ssssssss.....",
+    "..sss.sssss.....",
+    "..ss..sssss.....",
+    "..ss..sssss.....",
+    "..ww..sssss.....",
+    ".bbbb.sssss.....",
+    ".bbbb.sssss.....",
+    ".bbbb.ssss......",
+    "......ssss......",
+    ".....ss..ss.....",
+    ".....ss..ss.....",
+    "....ss....ss....",
+    "....ss....ss....",
+    "....ss.....ss...",
+    "...ss......ss...",
+    "...ss.......ss..",
+    "..kkk.......kkk.",
+    "..kkk.......kkk.",
+]
+
+
+WALKER_2X_L = [
+    "....................",
+    "........kkkk........",
+    ".......kkkkkk.......",
+    "......kkkkkkkk......",
+    "......kkkkkkkkk.....",
+    ".......wwwwkkkk.....",
+    "........wwwwkkk.....",
+    ".........wwwkk......",
+    ".......ssxxww.......",
+    "......sssxxss.......",
+    ".....ssssxtsss......",
+    "....sssssxtssss.....",
+    "....sssssxtssss.....",
+    "....ssssssxssss.....",
+    "....ssssssssss......",
+    "....ssssssssss......",
+    "...sss.sssssss......",
+    "...sss.sssssss......",
+    "...ss..sssssss......",
+    "...ss..sssssss......",
+    "...ww..sssssss......",
+    "..bbbb.sssssss......",
+    "..bbbb.dddddd.......",
+    "..bbbb.dddddd.......",
+    "..bbbb.dddddd.......",
+    ".......ddd.ddd......",
+    ".......ddd..ddd.....",
+    "......ddd....dd.....",
+    "......ddd....ddd....",
+    "......dd......dd....",
+    ".....ddd......ddd...",
+    ".....dd........dd...",
+    ".....dd........dd...",
+    "....ddd........ddd..",
+    "....dd..........dd..",
+    "....dd..........dd..",
+    "...kkk..........kkk.",
+    "...kkkk.........kkkk",
+    "....................",
+    "....................",
+]
+
+
+def _draw_template(d, rows, x, y, colors, face=1):
+    """문자 그림 rows를 (x, y=발 위치)에 그린다. colors는 문자 → 색."""
+    h = len(rows)
+    for ry, line in enumerate(rows):
+        for rx, ch in enumerate(line if face > 0 else line[::-1]):
+            if ch in colors and colors[ch] is not None:
+                d.point([x + rx, y - h + ry], fill=colors[ch])
+
+
+def _walkers(img, d, e):
+    """2배 해상도 거리의 직장인들. xs 위치마다 한 명, 고개를 숙이고 걷는다."""
+    rnd = random.Random(e.get("seed", 1))
+    cols = {"k": rgba(e["hair"]), "s": rgba(e["suit"]), "x": rgba(e["shirt"]), "w": rgba(e["skin"]),
+            "b": rgba(e["bag"]), "d": rgba(e.get("pants", e["suit"])), "t": rgba(e.get("tie", e["suit"]))}
+    rows = WALKER_2X_L if e.get("size", "large") == "large" else WALKER_2X
+    for x in e["xs"]:
+        face = 1 if rnd.random() < 0.5 else -1
+        c = dict(cols)
+        if rnd.random() > e.get("bag_ratio", 0.5):
+            c["b"] = None
+        _draw_template(d, rows, x, e["y"], c, face)
+
+
+def _clouds(img, d, e):
+    """밤구름 띠. 무작위 타원 덩어리를 겹치고, 위쪽 가장자리를 밝게 칠한다."""
+    rnd = random.Random(e.get("seed", 1))
+    body, rim, shade = rgba(e["color"]), rgba(e["rim"]), rgba(e.get("shade", e["color"]))
+    blobs = []
+    for _ in range(e["count"]):
+        cx = rnd.randint(e.get("x0", 0), e.get("x1", img.width))
+        cy = rnd.randint(e["y0"], e["y1"])
+        rx = rnd.randint(e["min_r"], e["max_r"])
+        blobs.append((cx, cy, rx, max(3, rx // e.get("flat", 3))))
+    for cx, cy, rx, ry in blobs:          # 그림자(아래쪽)
+        d.ellipse([cx - rx, cy - ry + 2, cx + rx, cy + ry + 2], fill=shade)
+    for cx, cy, rx, ry in blobs:          # 밝은 윗가장자리
+        d.ellipse([cx - rx, cy - ry - 1, cx + rx, cy + ry - 1], fill=rim)
+    for cx, cy, rx, ry in blobs:          # 몸통
+        d.ellipse([cx - rx, cy - ry, cx + rx, cy + ry], fill=body)
+
+
+def _city(img, d, e):
+    """세밀한 빌딩 숲 (2배 해상도). 건물마다 층별 창 격자, 일부는 따뜻하게·일부는 흐리게 켜져 있고, 옥상 계단·안테나가 있다."""
+    rnd = random.Random(e.get("seed", 1))
+    x = e.get("x0", 0) - rnd.randint(0, 12)
+    ww, wh, gx, gy = e.get("win", [2, 3, 2, 3])
+    while x < e.get("x1", img.width):
+        w = rnd.randint(e["min_w"], e["max_w"])
+        h = rnd.randint(e["min_h"], e["max_h"])
+        if e.get("skip_x0") is not None and e["skip_x0"] < x + w and x < e["skip_x1"]:
+            x += w + rnd.randint(e.get("min_gap", 0), e.get("max_gap", 4))
+            continue
+        base, top = e["y"], e["y"] - h
+        body = rgba(e["color"])
+        d.rectangle([x, top, x + w - 1, base - 1], fill=body)
+        d.line([x + w - 1, top, x + w - 1, base - 1], fill=rgba(e.get("shade", e["color"])))
+        d.line([x, top, x, base - 1], fill=rgba(e.get("edge", e["color"])))
+        if rnd.random() < e.get("setback_ratio", 0.3) and w > 14:   # 옥상 한 단
+            sw = w // 2
+            d.rectangle([x + (w - sw) // 2, top - 6, x + (w + sw) // 2, top - 1], fill=body)
+        if rnd.random() < e.get("antenna_ratio", 0.25):
+            ax = x + rnd.randint(3, max(3, w - 3))
+            d.line([ax, top - rnd.randint(8, 16), ax, top - 1], fill=rgba(e.get("edge", e["color"])))
+        if rnd.random() < e.get("stripe_ratio", 0):
+            # 세로 기둥 줄무늬 외벽: 밝은 기둥선 사이로 좁은 창 띠
+            step = e.get("stripe_gap", 4)
+            for sx in range(x + 2, x + w - 2, step):
+                d.line([sx, top + 2, sx, base - 1], fill=rgba(e.get("edge", e["color"])))
+            for wy in range(top + 6, base - 4, e.get("stripe_floor", 9)):
+                for sx in range(x + 3, x + w - 3, step):
+                    r = rnd.random()
+                    col = e["warm"] if r < e.get("warm_ratio", 0.15) * 0.3 else (e["lit"] if r < e.get("lit_ratio", 0.1) else e["window"])
+                    d.rectangle([sx, wy, sx + step - 2, wy + 3], fill=rgba(col))
+            x += w + rnd.randint(e.get("min_gap", 0), e.get("max_gap", 4))
+            continue
+        warm_floor = rnd.random() < e.get("warm_ratio", 0.15)
+        for wy in range(top + 4, base - wh - 2, wh + gy):
+            for wx in range(x + 3, x + w - ww - 2, ww + gx):
+                r = rnd.random()
+                if warm_floor and r < 0.7:
+                    col = e["warm"]
+                elif r < e.get("lit_ratio", 0.1):
+                    col = e["lit"]
+                else:
+                    col = e["window"]
+                d.rectangle([wx, wy, wx + ww - 1, wy + wh - 1], fill=rgba(col))
+        x += w + rnd.randint(e.get("min_gap", 0), e.get("max_gap", 4))
+
+
+def _crowd(img, d, e):
+    """출근길 사원 무리. x0~x1 사이에 간격을 섞어 세우고, 방향과 가방을 무작위로 정한다."""
+    rnd = random.Random(e.get("seed", 1))
+    c = rgba(e["color"])
+    acc = rgba(e["accent"]) if e.get("accent") else None
+    x = e["x0"]
+    while x < e["x1"]:
+        face = 1 if rnd.random() < 0.5 else -1
+        _figure(d, x, e["y"] - rnd.randint(0, e.get("jitter", 0)), c, e.get("pose", "bowed"), face,
+                acc if rnd.random() < e.get("accent_ratio", 0.5) else None)
+        x += rnd.randint(e.get("min_gap", 8), e.get("max_gap", 16))
+
+
+def _silhouette(img, d, e):
+    """창가에 서서 아래를 내려다보는 한 사람 (최상층 CEO 등)."""
+    _figure(d, e["x"], e["y"], rgba(e["color"]), "bowed", e.get("face", 1))
+
+
+def _lamps(img, d, e):
+    """가로등 여러 개. 기둥, 팔, 등, 아래로 퍼지는 불빛."""
+    for x in e["xs"]:
+        top = e["y"] - e["h"]
+        d.line([x, top, x, e["y"] - 1], fill=rgba(e["color"]))
+        d.line([x, top, x + 4, top], fill=rgba(e["color"]))
+        d.rectangle([x + 4, top, x + 5, top + 1], fill=rgba(e["light"]))
+        _light_cone(img, d, {"x": x + 5, "y": top + 2, "w": e.get("spread", 22), "h": e["h"] - 2,
+                             "color": e["light"], "alpha": e.get("alpha", 0.12)})
+
+
 SCENE_KINDS = {
     "rect": _rect, "gradient": _gradient, "line": _line, "window_grid": _window_grid,
     "skyline": _skyline, "building": _building, "partition": _partition, "desk": _desk,
     "monitor": _monitor, "chair": _chair, "plant": _plant, "table": _table, "door": _door,
     "frame": _frame, "light_cone": _light_cone, "workers": _workers,
+    "glow": _glow, "tower": _tower, "crowd": _crowd, "silhouette": _silhouette, "lamps": _lamps,
+    "clouds": _clouds, "city": _city, "walkers": _walkers,
 }
 
 
@@ -493,13 +817,15 @@ def render_logo(spec: dict) -> Image.Image:
     title = _pixel_text(spec["text"], spec["font_px"], rgba(spec["fg"]))
     shadow = _pixel_text(spec["text"], spec["font_px"], rgba(spec["shadow"]))
     sub = _pixel_text(spec["subtitle"], max(8, spec["font_px"] // 3), rgba(spec["border"])) if spec.get("subtitle") else None
-    pad = 5
+    pad, gap = spec.get("pad", 5), spec.get("gap", 2)
     w = title.width + pad * 2 + 1
     h = title.height + pad * 2 + 1 + (sub.height + 2 if sub else 0)
     img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     d.rectangle([0, 0, w - 1, h - 1], fill=rgba(spec["plate"]), outline=rgba(spec["border"]))
-    d.rectangle([2, 2, w - 3, h - 3], outline=rgba(spec["border"]))
+    d.rectangle([gap, gap, w - 1 - gap, h - 1 - gap], outline=rgba(spec["border"]))   # 이중 테두리
+    if gap > 2:
+        d.rectangle([1, 1, w - 2, h - 2], outline=rgba(spec["border"]))
     img.alpha_composite(shadow, (pad + 1, pad + 1))
     img.alpha_composite(title, (pad, pad))
     if sub:
@@ -655,4 +981,337 @@ def render_all(spec: dict, out_dir: Path) -> dict:
             dur = write_wav(out_dir / fname, fn(s, sr), sr)
             manifest[sid] = {"file": fname, "loop": bool(s.get("loop", False)), "duration": round(dur, 3)}
     return manifest
+```
+
+### `stairs_agents/concept.py`
+
+```python
+"""컨셉 아트에서 스프라이트 뽑기 (Designer와 Designer QA가 함께 쓰는 도구, LLM 호출 없음).
+
+컨셉 이미지(data/concept/*.png)의 한 영역을 잘라 배경을 지우고, 프레임 크기로 줄이고, 색을 줄여
+Designer 명세와 같은 글자 격자(rows + palette)로 바꾼다. Designer는 이것을 참고 스프라이트로 받고,
+Designer QA는 만든 스프라이트를 이것과 비교한다(색 거리, 실루엣 겹침).
+
+  python -m stairs_agents.concept palette data/concept/05-3_play.png            # 주요 색
+  python -m stairs_agents.concept extract data/concept/05-3_play.png --box 272,140,36,74 --size 32x48
+  python -m stairs_agents.concept regions                                         # regions.json 전부 -> output/concept_refs/
+  python -m stairs_agents.concept boxes data/concept/05-3_play.png                # 배경과 다른 덩어리 자동 찾기
+
+영역 목록은 data/concept/regions.json 에 둔다 (id, image, box[x,y,w,h], size[w,h], colors, tol, clear, sheet, anim, variant).
+배경이 덜 지워지면 tol(배경색 허용 거리)을 바꾸거나, 남는 조각을 clear([x,y,w,h], 자른 영역 기준)로 지운다.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+from collections import deque
+from pathlib import Path
+
+from PIL import Image, ImageDraw
+
+from .util import ROOT
+
+SYMBOLS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789#@$%&*+=?"
+REGIONS = ROOT / "data" / "concept" / "regions.json"
+
+
+# ---------------------------------------------------------------------- 색
+def hexc(c) -> str:
+    return "#%02X%02X%02X" % tuple(c[:3])
+
+
+def rgb(h: str) -> tuple[int, int, int]:
+    h = h.lstrip("#")
+    return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+
+
+def dist(a, b) -> float:
+    """사람 눈에 가까운 가중 RGB 거리 (0~약 765)."""
+    r = (a[0] + b[0]) / 2
+    dr, dg, db = a[0] - b[0], a[1] - b[1], a[2] - b[2]
+    return ((2 + r / 256) * dr * dr + 4 * dg * dg + (2 + (255 - r) / 256) * db * db) ** 0.5
+
+
+def dominant(img: Image.Image, k: int = 12, box=None) -> list[dict]:
+    """주요 색 k개와 비율. 투명 픽셀은 뺀다."""
+    im = img.convert("RGBA")
+    if box:
+        x, y, w, h = box
+        im = im.crop((x, y, x + w, y + h))
+    px = [p[:3] for p in (im.get_flattened_data() if hasattr(im, "get_flattened_data") else im.getdata()) if p[3] >= 128]
+    if not px:
+        return []
+    flat = Image.new("RGB", (len(px), 1)); flat.putdata(px)
+    q = flat.quantize(colors=k, method=Image.Quantize.MEDIANCUT)
+    pal = q.getpalette()[: 3 * k]
+    counts = sorted(q.getcolors(), reverse=True)
+    total = len(px)
+    return [{"hex": hexc(pal[3 * i: 3 * i + 3]), "share": round(n / total, 4)} for n, i in counts]
+
+
+# ---------------------------------------------------------------------- 배경 지우기
+def remove_bg(crop: Image.Image, tol: float = 70.0) -> Image.Image:
+    """테두리 색과 비슷하고 테두리에서 이어진 픽셀을 투명하게 한다 (flood fill)."""
+    im = crop.convert("RGBA")
+    w, h = im.size
+    px = im.load()
+    border = [px[x, y][:3] for x in range(w) for y in (0, h - 1)] + [px[x, y][:3] for y in range(h) for x in (0, w - 1)]
+    seeds = [c["hex"] for c in dominant(_strip(border), 4)]
+    seeds = [rgb(s) for s in seeds]
+    close = lambda c: min(dist(c, s) for s in seeds) <= tol  # noqa: E731
+    seen = [[False] * h for _ in range(w)]
+    q = deque((x, y) for x in range(w) for y in (0, h - 1))
+    q.extend((x, y) for y in range(h) for x in (0, w - 1))
+    while q:
+        x, y = q.popleft()
+        if x < 0 or y < 0 or x >= w or y >= h or seen[x][y]:
+            continue
+        seen[x][y] = True
+        if not close(px[x, y][:3]):
+            continue
+        r, g, b, _ = px[x, y]
+        px[x, y] = (r, g, b, 0)
+        q.extend(((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)))
+    return im
+
+
+def _strip(colors) -> Image.Image:
+    im = Image.new("RGB", (len(colors), 1)); im.putdata(colors)
+    return im
+
+
+# ---------------------------------------------------------------------- 줄이기와 색 줄이기
+def fit(im: Image.Image, w: int, h: int, anchor: str = "bottom") -> Image.Image:
+    """불투명 부분만 남겨 w x h 안에 비율을 지켜 줄이고, 가운데 아래(발 위치)에 놓는다."""
+    bbox = im.getchannel("A").point(lambda a: 255 if a >= 128 else 0).getbbox()
+    if not bbox:
+        return Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    im = im.crop(bbox)
+    s = min(w / im.width, h / im.height)
+    nw, nh = max(1, round(im.width * s)), max(1, round(im.height * s))
+    # 색은 상자 평균, 투명도는 반 이상이면 불투명 (픽셀아트 가장자리를 또렷하게)
+    small = im.resize((nw, nh), Image.Resampling.BOX)
+    a = small.getchannel("A").point(lambda v: 255 if v >= 110 else 0)
+    small.putalpha(a)
+    out = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    y = h - nh if anchor == "bottom" else (h - nh) // 2
+    out.paste(small, ((w - nw) // 2, y))
+    return out
+
+
+def quantize(im: Image.Image, colors: int = 10, palette: list[str] | None = None) -> Image.Image:
+    """불투명 픽셀의 색을 palette(주어지면) 또는 median cut colors개로 맞춘다."""
+    im = im.convert("RGBA")
+    px = im.load()
+    opaque = [px[x, y][:3] for y in range(im.height) for x in range(im.width) if px[x, y][3]]
+    if not opaque:
+        return im
+    pal = [rgb(p) for p in palette] if palette else [rgb(c["hex"]) for c in dominant(_strip(opaque), colors)]
+    cache: dict = {}
+    for y in range(im.height):
+        for x in range(im.width):
+            r, g, b, a = px[x, y]
+            if not a:
+                continue
+            c = cache.get((r, g, b))
+            if c is None:
+                c = cache[(r, g, b)] = min(pal, key=lambda p: dist(p, (r, g, b)))
+            px[x, y] = (*c, 255)
+    return im
+
+
+def to_grid(im: Image.Image) -> tuple[list[str], dict[str, str]]:
+    """RGBA 이미지를 Designer 명세의 글자 격자와 팔레트로 바꾼다 ('.'은 투명)."""
+    px = im.load()
+    sym: dict[str, str] = {}
+    rows = []
+    for y in range(im.height):
+        row = []
+        for x in range(im.width):
+            r, g, b, a = px[x, y]
+            if not a:
+                row.append("."); continue
+            hx = hexc((r, g, b))
+            if hx not in sym:
+                if len(sym) >= len(SYMBOLS):
+                    raise ValueError("색이 너무 많습니다. colors를 줄이세요.")
+                sym[hx] = SYMBOLS[len(sym)]
+            row.append(sym[hx])
+        rows.append("".join(row))
+    return rows, {s: hx for hx, s in sym.items()}
+
+
+def extract(image_path: Path, box, size, colors: int = 10, palette=None, tol: float = 70.0,
+            keep_bg: bool = False, clear=None) -> dict:
+    """컨셉 이미지의 box 영역을 size 프레임의 스프라이트 격자로 뽑는다. clear는 지울 [x, y, w, h] 목록(자른 영역 기준)."""
+    src = Image.open(image_path).convert("RGBA")
+    x, y, w, h = box
+    crop = src.crop((x, y, x + w, y + h))
+    cut = crop.copy() if keep_bg else remove_bg(crop, tol)
+    for cx, cy, cw, ch in clear or []:
+        cut.paste((0, 0, 0, 0), (cx, cy, cx + cw, cy + ch))
+    small = quantize(fit(cut, *size), colors, palette)
+    rows, pal = to_grid(small)
+    return {"rows": rows, "palette": pal, "image": small, "crop": cut}
+
+
+# ---------------------------------------------------------------------- 비교 (QA용)
+def palette_distance(a: list[str], b: list[str]) -> float:
+    """두 팔레트의 평균 최근접 색 거리 (양방향 평균, 낮을수록 비슷)."""
+    if not a or not b:
+        return 999.0
+    A, B = [rgb(x) for x in a], [rgb(x) for x in b]
+    ab = sum(min(dist(p, q) for q in B) for p in A) / len(A)
+    ba = sum(min(dist(p, q) for q in A) for p in B) / len(B)
+    return round((ab + ba) / 2, 1)
+
+
+def silhouette_iou(a: Image.Image, b: Image.Image) -> float:
+    """두 스프라이트의 불투명 영역 겹침 (각자 불투명 부분을 같은 크기로 맞춘 뒤 IoU)."""
+    def mask(im):
+        im = im.convert("RGBA")
+        bb = im.getchannel("A").getbbox()
+        if not bb:
+            return None
+        return im.crop(bb).getchannel("A").resize((24, 36), Image.Resampling.NEAREST)
+    ma, mb = mask(a), mask(b)
+    if ma is None or mb is None:
+        return 0.0
+    pa, pb = list(ma.get_flattened_data() if hasattr(ma, "get_flattened_data") else ma.getdata()), list(mb.get_flattened_data() if hasattr(mb, "get_flattened_data") else mb.getdata())
+    inter = sum(1 for p, q in zip(pa, pb) if p >= 128 and q >= 128)
+    union = sum(1 for p, q in zip(pa, pb) if p >= 128 or q >= 128)
+    return round(inter / union, 3) if union else 0.0
+
+
+def luminance(img: Image.Image) -> float:
+    g = img.convert("L")
+    return round(sum(g.get_flattened_data() if hasattr(g, "get_flattened_data") else g.getdata()) / (g.width * g.height), 1)
+
+
+# ---------------------------------------------------------------------- 덩어리 자동 찾기
+def boxes(image_path: Path, tol: float = 60.0, min_area: int = 120) -> list[list[int]]:
+    """이미지 전체의 주요 배경색과 다른 픽셀 덩어리의 경계 상자 목록 (영역을 고를 때 참고)."""
+    im = Image.open(image_path).convert("RGB")
+    w, h = im.size
+    px = im.load()
+    bg = [rgb(c["hex"]) for c in dominant(im, 6)[:3]]
+    fg = [[min(dist(px[x, y], b) for b in bg) > tol for y in range(h)] for x in range(w)]
+    seen = [[False] * h for _ in range(w)]
+    out = []
+    for sx in range(w):
+        for sy in range(h):
+            if not fg[sx][sy] or seen[sx][sy]:
+                continue
+            q, n = deque([(sx, sy)]), 0
+            x0 = x1 = sx; y0 = y1 = sy
+            seen[sx][sy] = True
+            while q:
+                x, y = q.popleft(); n += 1
+                x0, x1, y0, y1 = min(x0, x), max(x1, x), min(y0, y), max(y1, y)
+                for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                    if 0 <= nx < w and 0 <= ny < h and fg[nx][ny] and not seen[nx][ny]:
+                        seen[nx][ny] = True; q.append((nx, ny))
+            if n >= min_area:
+                out.append([x0, y0, x1 - x0 + 1, y1 - y0 + 1])
+    return sorted(out, key=lambda b: -b[2] * b[3])
+
+
+# ---------------------------------------------------------------------- regions.json 전체
+def load_regions(path: Path = REGIONS) -> dict:
+    return json.loads(Path(path).read_text(encoding="utf-8")) if Path(path).exists() else {}
+
+
+def extract_regions(out_dir: Path, path: Path = REGIONS) -> dict:
+    """regions.json의 모든 영역을 뽑아 out_dir에 refs.json, 미리보기 PNG, 영역 표시 이미지를 쓴다."""
+    spec = load_regions(path)
+    if not spec:
+        return {}
+    out_dir.mkdir(parents=True, exist_ok=True)
+    base = Path(path).parent
+    refs = {"images": {}, "regions": {}}
+    marked = {}
+    for name, rel in spec.get("images", {}).items():
+        img = Image.open(base / rel).convert("RGB")
+        refs["images"][name] = {"file": rel, "size": list(img.size), "palette": dominant(img, 12),
+                                "luminance": luminance(img)}
+        marked[name] = img.copy()
+    for r in spec.get("regions", []):
+        res = extract(base / spec["images"][r["image"]], r["box"], r["size"], r.get("colors", 10),
+                      r.get("palette"), r.get("tol", 70.0), r.get("keep_bg", False), r.get("clear"))
+        res["image"].save(out_dir / f"{r['id']}.png")
+        res["image"].resize((r["size"][0] * 4, r["size"][1] * 4), Image.Resampling.NEAREST).save(out_dir / f"{r['id']}_x4.png")
+        refs["regions"][r["id"]] = {k: r.get(k) for k in ("image", "box", "size", "sheet", "anim", "variant", "note")}
+        refs["regions"][r["id"]].update(rows=res["rows"], palette=res["palette"], file=f"{r['id']}.png")
+        d = ImageDraw.Draw(marked[r["image"]])
+        x, y, w, h = r["box"]
+        d.rectangle((x, y, x + w - 1, y + h - 1), outline=(255, 64, 160))
+        d.text((x + 1, y + 1), r["id"], fill=(255, 64, 160))
+    for name, img in marked.items():
+        img.save(out_dir / f"_regions_{name}.png")
+    (out_dir / "refs.json").write_text(json.dumps(refs, ensure_ascii=False, indent=1), encoding="utf-8")
+    return refs
+
+
+def ref_text(refs: dict, sheet: str | None = None) -> str:
+    """Designer에게 줄 참고 문구. sheet를 주면 그 시트의 참고 격자만 넣는다 ("__images__"는 시트 없는 배경 참고)."""
+    if not refs:
+        return ""
+    lines = ["# 컨셉 아트 참고 (concept.py가 data/concept/ 이미지에서 뽑음)"]
+    for name, im in refs["images"].items():
+        lines.append(f"- {name} 주요 색: " + ", ".join(f"{c['hex']}({c['share']:.0%})" for c in im["palette"][:10]))
+    for rid, r in refs["regions"].items():
+        if sheet and r.get("sheet") != (None if sheet == "__images__" else sheet):  # __images__: 시트 없는 배경 참고
+            continue
+        lines.append(f"\n## 참고 스프라이트 {rid} ({r.get('note') or ''}, {r['size'][0]}x{r['size'][1]}, "
+                     f"시트 {r.get('sheet')}/{r.get('anim')})")
+        lines.append("팔레트: " + json.dumps(r["palette"], ensure_ascii=False))
+        lines.append("\n".join(r["rows"]))
+    lines.append("\n참고 격자는 실루엣, 비율, 색 배치를 맞추는 데 쓴다. 그대로 베끼지 말고 03 팔레트와 프레임 크기에 맞게 다듬는다.")
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------- 명령줄
+def _box(s: str) -> list[int]:
+    return [int(v) for v in s.split(",")]
+
+
+def _size(s: str) -> list[int]:
+    return [int(v) for v in s.lower().split("x")]
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(prog="stairs_agents.concept", description="컨셉 아트에서 스프라이트 뽑기")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    p = sub.add_parser("palette"); p.add_argument("image"); p.add_argument("-k", type=int, default=12)
+    p.add_argument("--box", type=_box)
+    e = sub.add_parser("extract"); e.add_argument("image"); e.add_argument("--box", type=_box, required=True)
+    e.add_argument("--size", type=_size, required=True); e.add_argument("--colors", type=int, default=10)
+    e.add_argument("--tol", type=float, default=70.0); e.add_argument("--keep-bg", action="store_true")
+    e.add_argument("--out", help="미리보기 PNG 경로 (4배)")
+    b = sub.add_parser("boxes"); b.add_argument("image"); b.add_argument("--tol", type=float, default=60.0)
+    b.add_argument("--min-area", type=int, default=120)
+    r = sub.add_parser("regions"); r.add_argument("--out", default=str(ROOT / "output" / "concept_refs"))
+    r.add_argument("--file", default=str(REGIONS))
+    a = ap.parse_args(argv)
+
+    if a.cmd == "palette":
+        for c in dominant(Image.open(a.image), a.k, a.box):
+            print(f"{c['hex']}  {c['share']:.1%}")
+    elif a.cmd == "extract":
+        res = extract(Path(a.image), a.box, a.size, a.colors, None, a.tol, a.keep_bg)
+        print(json.dumps({"palette": res["palette"]}, ensure_ascii=False))
+        print("\n".join(res["rows"]))
+        if a.out:
+            res["image"].resize((a.size[0] * 4, a.size[1] * 4), Image.Resampling.NEAREST).save(a.out)
+    elif a.cmd == "boxes":
+        for bx in boxes(Path(a.image), a.tol, a.min_area)[:40]:
+            print(",".join(map(str, bx)))
+    else:
+        refs = extract_regions(Path(a.out), Path(a.file))
+        print(f"영역 {len(refs.get('regions', {}))}개 -> {a.out}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
 ```

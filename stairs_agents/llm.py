@@ -4,10 +4,12 @@ ClaudeClient   Anthropic Messages API를 스트리밍으로 호출한다 (ANTHRO
 ReplayClient   replay/ 폴더에 저장된 응답을 돌려준다. API 키 없이 파이프라인을 시험할 때 쓴다.
 RecordingClient 실제 응답을 replay/ 형식으로 저장해 다음 실행에서 재사용할 수 있게 한다.
 
-세 클라이언트 모두 complete(agent, step, system, user) 하나의 메서드만 가진다.
+세 클라이언트 모두 complete(agent, step, system, user, images=None) 하나의 메서드만 가진다.
+images는 PNG 파일 경로 목록이며 ClaudeClient만 메시지에 이미지로 넣는다 (QA 에이전트가 화면을 보고 검토할 때 쓴다).
 """
 from __future__ import annotations
 
+import base64
 import os
 import time
 from pathlib import Path
@@ -33,7 +35,10 @@ class ClaudeClient:
         self.max_tokens = max_tokens
         self.retries = retries
 
-    def complete(self, agent: str, step: str, system: str, user: str) -> str:
+    def complete(self, agent: str, step: str, system: str, user: str, images=None) -> str:
+        content = [{"type": "image", "source": {"type": "base64", "media_type": "image/png",
+                    "data": base64.b64encode(Path(p).read_bytes()).decode()}} for p in images or []]
+        content.append({"type": "text", "text": user})
         last_err = None
         for attempt in range(1, self.retries + 1):
             try:
@@ -41,7 +46,7 @@ class ClaudeClient:
                     model=self.model,
                     max_tokens=self.max_tokens,
                     system=system,
-                    messages=[{"role": "user", "content": user}],
+                    messages=[{"role": "user", "content": content}],
                 ) as stream:
                     msg = stream.get_final_message()
                 text = "".join(b.text for b in msg.content if getattr(b, "type", "") == "text")
@@ -63,7 +68,7 @@ class ReplayClient:
     def __init__(self, replay_dir: Path):
         self.replay_dir = Path(replay_dir)
 
-    def complete(self, agent: str, step: str, system: str, user: str) -> str:
+    def complete(self, agent: str, step: str, system: str, user: str, images=None) -> str:
         path = self.replay_dir / f"{agent}_{step}.txt"
         if not path.exists():
             raise LLMError(f"재생 응답 파일이 없습니다: {path}")
@@ -78,7 +83,7 @@ class RecordingClient:
         self.replay_dir = Path(replay_dir)
         self.replay_dir.mkdir(parents=True, exist_ok=True)
 
-    def complete(self, agent: str, step: str, system: str, user: str) -> str:
-        text = self.inner.complete(agent, step, system, user)
+    def complete(self, agent: str, step: str, system: str, user: str, images=None) -> str:
+        text = self.inner.complete(agent, step, system, user, images)
         (self.replay_dir / f"{agent}_{step}.txt").write_text(text, encoding="utf-8")
         return text

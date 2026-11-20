@@ -226,11 +226,310 @@ def _workers(img, d, e):
             d.rectangle([x, y - 12, x + 2, y - 10], fill=c)
 
 
+def _glow(img, d, e):
+    """둥근 빛 번짐. 바깥에서 안쪽으로 옅은 타원을 겹쳐 그린다."""
+    steps = max(1, e.get("steps", 6))
+    for i in range(steps):  # 겹칠수록 밝아지도록 고리마다 따로 합성한다
+        k = 1 - i / steps
+        rx, ry = e["rx"] * k, e["ry"] * k
+        layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+        ImageDraw.Draw(layer).ellipse([e["x"] - rx, e["y"] - ry, e["x"] + rx, e["y"] + ry],
+                                      fill=rgba(e["color"], round(255 * e.get("alpha", 0.3) / steps)))
+        img.alpha_composite(layer)
+
+
+def _tower(img, d, e):
+    """가운데 우뚝 선 본사 타워. tiers(아래에서 위로)를 가운데 맞춰 쌓고, 맨 위 층 창만 crown_lit 색으로 켠다."""
+    rnd = random.Random(e.get("seed", 1))
+    cx, base = e["x"], e["y"]
+    tiers = e["tiers"]
+    y = base
+    for ti, t in enumerate(tiers):
+        w, h = t["w"], t["h"]
+        x0, top = cx - w // 2, y - h
+        d.rectangle([x0, top, x0 + w - 1, y - 1], fill=rgba(e["color"]))
+        d.line([x0, top, x0, y - 1], fill=rgba(e.get("edge", e["color"])))           # 빛 받는 모서리
+        d.line([x0 + w - 1, top, x0 + w - 1, y - 1], fill=rgba(e.get("shade", e["color"])))
+        d.line([x0, top, x0 + w - 1, top], fill=rgba(e.get("edge", e["color"])))     # 층 구분 처마
+        ww, wh, gx, gy = e.get("win", [2, 2, 1, 2])
+        crown = ti == len(tiers) - 1
+        if crown and e.get("crown_style", "band") == "band":
+            # 맨 위 층: 통창 하나가 따뜻하게 켜져 있고, 세로 창틀만 어둡게 남는다
+            d.rectangle([x0 + 2, top + 3, x0 + w - 3, y - 3], fill=rgba(e["crown_lit"]))
+            for mx in range(x0 + 2, x0 + w - 2, e.get("mullion", 6)):
+                d.line([mx, top + 3, mx, y - 3], fill=rgba(e["color"]))
+        else:
+            # 창 격자. crown_style "windows"면 맨 위 단의 창이 하나하나 따뜻하게 켜진다
+            for wy in range(top + 3, y - wh - 1, wh + gy):
+                for wx in range(x0 + 3, x0 + w - ww - 2, ww + gx):
+                    if crown:
+                        col = e["crown_lit"] if rnd.random() < e.get("crown_ratio", 0.9) else e["lit"]
+                    else:
+                        col = e["lit"] if rnd.random() < e.get("lit_ratio", 0) else e["window"]
+                    d.rectangle([wx, wy, wx + ww - 1, wy + wh - 1], fill=rgba(col))
+        if e.get("stripes"):
+            for sx in range(x0 + 2, x0 + w - 1, e["stripes"]):
+                d.line([sx, top + 1, sx, y - 1], fill=rgba(e.get("edge", e["color"])))
+        y = top
+    if e.get("spire"):
+        d.line([cx, y - e["spire"], cx, y - 1], fill=rgba(e.get("edge", e["color"])))
+        if e.get("beacon"):
+            d.point([cx, y - e["spire"]], fill=rgba(e["beacon"]))
+
+
+# 고개 숙인 사원 (9x14, 오른쪽을 봄): 굽은 등이 가장 높고, 머리는 어깨보다 앞쪽 아래로 떨어진다. b = 서류가방
+FIGURE_BOWED = [
+    ".###.....",
+    "#####....",
+    "######.##",
+    "######.##",
+    ".#####.#.",
+    ".####....",
+    ".####....",
+    ".####....",
+    "b####....",
+    "bb###....",
+    "bb#.#....",
+    "..#.#....",
+    "..#..#...",
+    ".##..##..",
+]
+# 똑바로 선 사람 (9x14)
+FIGURE_STANDING = [
+    "...##....",
+    "..####...",
+    "..####...",
+    "...##....",
+    "..####...",
+    ".######..",
+    ".######..",
+    ".######..",
+    "b.####...",
+    "bb####...",
+    "bb#..#...",
+    "..#..#...",
+    "..#..#...",
+    ".##..##..",
+]
+
+
+def _figure(d, x, y, c, pose, face, accent=None):
+    """사원 한 명. x는 왼쪽, y는 발 위치, face는 1(오른쪽) 또는 -1(왼쪽, 좌우 반전)."""
+    rows = FIGURE_BOWED if pose == "bowed" else FIGURE_STANDING
+    h, w = len(rows), len(rows[0])
+    for ry, line in enumerate(rows):
+        for rx, ch in enumerate(line if face > 0 else line[::-1]):
+            if ch == "#":
+                d.point([x + rx, y - h + ry], fill=c)
+            elif ch == "b" and accent:
+                d.point([x + rx, y - h + ry], fill=accent)
+    return w
+
+
+# 2배 해상도용 고개 숙인 직장인 (16x30, 오른쪽으로 걷는다). k = 머리카락·신발, s = 정장, x = 셔츠, w = 피부, b = 가방
+WALKER_2X = [
+    "................",
+    "......kkkk......",
+    ".....kkkkkk.....",
+    ".....kkkkkkk....",
+    "......wwwkkk....",
+    ".......wwwkk....",
+    ".....sss.ww.....",
+    "....sssssx......",
+    "...ssssssxs.....",
+    "...sssssssss....",
+    "...sssssssss....",
+    "...ssssssss.....",
+    "...ssssssss.....",
+    "..sss.sssss.....",
+    "..ss..sssss.....",
+    "..ss..sssss.....",
+    "..ww..sssss.....",
+    ".bbbb.sssss.....",
+    ".bbbb.sssss.....",
+    ".bbbb.ssss......",
+    "......ssss......",
+    ".....ss..ss.....",
+    ".....ss..ss.....",
+    "....ss....ss....",
+    "....ss....ss....",
+    "....ss.....ss...",
+    "...ss......ss...",
+    "...ss.......ss..",
+    "..kkk.......kkk.",
+    "..kkk.......kkk.",
+]
+
+
+WALKER_2X_L = [
+    "....................",
+    "........kkkk........",
+    ".......kkkkkk.......",
+    "......kkkkkkkk......",
+    "......kkkkkkkkk.....",
+    ".......wwwwkkkk.....",
+    "........wwwwkkk.....",
+    ".........wwwkk......",
+    ".......ssxxww.......",
+    "......sssxxss.......",
+    ".....ssssxtsss......",
+    "....sssssxtssss.....",
+    "....sssssxtssss.....",
+    "....ssssssxssss.....",
+    "....ssssssssss......",
+    "....ssssssssss......",
+    "...sss.sssssss......",
+    "...sss.sssssss......",
+    "...ss..sssssss......",
+    "...ss..sssssss......",
+    "...ww..sssssss......",
+    "..bbbb.sssssss......",
+    "..bbbb.dddddd.......",
+    "..bbbb.dddddd.......",
+    "..bbbb.dddddd.......",
+    ".......ddd.ddd......",
+    ".......ddd..ddd.....",
+    "......ddd....dd.....",
+    "......ddd....ddd....",
+    "......dd......dd....",
+    ".....ddd......ddd...",
+    ".....dd........dd...",
+    ".....dd........dd...",
+    "....ddd........ddd..",
+    "....dd..........dd..",
+    "....dd..........dd..",
+    "...kkk..........kkk.",
+    "...kkkk.........kkkk",
+    "....................",
+    "....................",
+]
+
+
+def _draw_template(d, rows, x, y, colors, face=1):
+    """문자 그림 rows를 (x, y=발 위치)에 그린다. colors는 문자 → 색."""
+    h = len(rows)
+    for ry, line in enumerate(rows):
+        for rx, ch in enumerate(line if face > 0 else line[::-1]):
+            if ch in colors and colors[ch] is not None:
+                d.point([x + rx, y - h + ry], fill=colors[ch])
+
+
+def _walkers(img, d, e):
+    """2배 해상도 거리의 직장인들. xs 위치마다 한 명, 고개를 숙이고 걷는다."""
+    rnd = random.Random(e.get("seed", 1))
+    cols = {"k": rgba(e["hair"]), "s": rgba(e["suit"]), "x": rgba(e["shirt"]), "w": rgba(e["skin"]),
+            "b": rgba(e["bag"]), "d": rgba(e.get("pants", e["suit"])), "t": rgba(e.get("tie", e["suit"]))}
+    rows = WALKER_2X_L if e.get("size", "large") == "large" else WALKER_2X
+    for x in e["xs"]:
+        face = 1 if rnd.random() < 0.5 else -1
+        c = dict(cols)
+        if rnd.random() > e.get("bag_ratio", 0.5):
+            c["b"] = None
+        _draw_template(d, rows, x, e["y"], c, face)
+
+
+def _clouds(img, d, e):
+    """밤구름 띠. 무작위 타원 덩어리를 겹치고, 위쪽 가장자리를 밝게 칠한다."""
+    rnd = random.Random(e.get("seed", 1))
+    body, rim, shade = rgba(e["color"]), rgba(e["rim"]), rgba(e.get("shade", e["color"]))
+    blobs = []
+    for _ in range(e["count"]):
+        cx = rnd.randint(e.get("x0", 0), e.get("x1", img.width))
+        cy = rnd.randint(e["y0"], e["y1"])
+        rx = rnd.randint(e["min_r"], e["max_r"])
+        blobs.append((cx, cy, rx, max(3, rx // e.get("flat", 3))))
+    for cx, cy, rx, ry in blobs:          # 그림자(아래쪽)
+        d.ellipse([cx - rx, cy - ry + 2, cx + rx, cy + ry + 2], fill=shade)
+    for cx, cy, rx, ry in blobs:          # 밝은 윗가장자리
+        d.ellipse([cx - rx, cy - ry - 1, cx + rx, cy + ry - 1], fill=rim)
+    for cx, cy, rx, ry in blobs:          # 몸통
+        d.ellipse([cx - rx, cy - ry, cx + rx, cy + ry], fill=body)
+
+
+def _city(img, d, e):
+    """세밀한 빌딩 숲 (2배 해상도). 건물마다 층별 창 격자, 일부는 따뜻하게·일부는 흐리게 켜져 있고, 옥상 계단·안테나가 있다."""
+    rnd = random.Random(e.get("seed", 1))
+    x = e.get("x0", 0) - rnd.randint(0, 12)
+    ww, wh, gx, gy = e.get("win", [2, 3, 2, 3])
+    while x < e.get("x1", img.width):
+        w = rnd.randint(e["min_w"], e["max_w"])
+        h = rnd.randint(e["min_h"], e["max_h"])
+        if e.get("skip_x0") is not None and e["skip_x0"] < x + w and x < e["skip_x1"]:
+            x += w + rnd.randint(e.get("min_gap", 0), e.get("max_gap", 4))
+            continue
+        base, top = e["y"], e["y"] - h
+        body = rgba(e["color"])
+        d.rectangle([x, top, x + w - 1, base - 1], fill=body)
+        d.line([x + w - 1, top, x + w - 1, base - 1], fill=rgba(e.get("shade", e["color"])))
+        d.line([x, top, x, base - 1], fill=rgba(e.get("edge", e["color"])))
+        if rnd.random() < e.get("setback_ratio", 0.3) and w > 14:   # 옥상 한 단
+            sw = w // 2
+            d.rectangle([x + (w - sw) // 2, top - 6, x + (w + sw) // 2, top - 1], fill=body)
+        if rnd.random() < e.get("antenna_ratio", 0.25):
+            ax = x + rnd.randint(3, max(3, w - 3))
+            d.line([ax, top - rnd.randint(8, 16), ax, top - 1], fill=rgba(e.get("edge", e["color"])))
+        if rnd.random() < e.get("stripe_ratio", 0):
+            # 세로 기둥 줄무늬 외벽: 밝은 기둥선 사이로 좁은 창 띠
+            step = e.get("stripe_gap", 4)
+            for sx in range(x + 2, x + w - 2, step):
+                d.line([sx, top + 2, sx, base - 1], fill=rgba(e.get("edge", e["color"])))
+            for wy in range(top + 6, base - 4, e.get("stripe_floor", 9)):
+                for sx in range(x + 3, x + w - 3, step):
+                    r = rnd.random()
+                    col = e["warm"] if r < e.get("warm_ratio", 0.15) * 0.3 else (e["lit"] if r < e.get("lit_ratio", 0.1) else e["window"])
+                    d.rectangle([sx, wy, sx + step - 2, wy + 3], fill=rgba(col))
+            x += w + rnd.randint(e.get("min_gap", 0), e.get("max_gap", 4))
+            continue
+        warm_floor = rnd.random() < e.get("warm_ratio", 0.15)
+        for wy in range(top + 4, base - wh - 2, wh + gy):
+            for wx in range(x + 3, x + w - ww - 2, ww + gx):
+                r = rnd.random()
+                if warm_floor and r < 0.7:
+                    col = e["warm"]
+                elif r < e.get("lit_ratio", 0.1):
+                    col = e["lit"]
+                else:
+                    col = e["window"]
+                d.rectangle([wx, wy, wx + ww - 1, wy + wh - 1], fill=rgba(col))
+        x += w + rnd.randint(e.get("min_gap", 0), e.get("max_gap", 4))
+
+
+def _crowd(img, d, e):
+    """출근길 사원 무리. x0~x1 사이에 간격을 섞어 세우고, 방향과 가방을 무작위로 정한다."""
+    rnd = random.Random(e.get("seed", 1))
+    c = rgba(e["color"])
+    acc = rgba(e["accent"]) if e.get("accent") else None
+    x = e["x0"]
+    while x < e["x1"]:
+        face = 1 if rnd.random() < 0.5 else -1
+        _figure(d, x, e["y"] - rnd.randint(0, e.get("jitter", 0)), c, e.get("pose", "bowed"), face,
+                acc if rnd.random() < e.get("accent_ratio", 0.5) else None)
+        x += rnd.randint(e.get("min_gap", 8), e.get("max_gap", 16))
+
+
+def _silhouette(img, d, e):
+    """창가에 서서 아래를 내려다보는 한 사람 (최상층 CEO 등)."""
+    _figure(d, e["x"], e["y"], rgba(e["color"]), "bowed", e.get("face", 1))
+
+
+def _lamps(img, d, e):
+    """가로등 여러 개. 기둥, 팔, 등, 아래로 퍼지는 불빛."""
+    for x in e["xs"]:
+        top = e["y"] - e["h"]
+        d.line([x, top, x, e["y"] - 1], fill=rgba(e["color"]))
+        d.line([x, top, x + 4, top], fill=rgba(e["color"]))
+        d.rectangle([x + 4, top, x + 5, top + 1], fill=rgba(e["light"]))
+        _light_cone(img, d, {"x": x + 5, "y": top + 2, "w": e.get("spread", 22), "h": e["h"] - 2,
+                             "color": e["light"], "alpha": e.get("alpha", 0.12)})
+
+
 SCENE_KINDS = {
     "rect": _rect, "gradient": _gradient, "line": _line, "window_grid": _window_grid,
     "skyline": _skyline, "building": _building, "partition": _partition, "desk": _desk,
     "monitor": _monitor, "chair": _chair, "plant": _plant, "table": _table, "door": _door,
     "frame": _frame, "light_cone": _light_cone, "workers": _workers,
+    "glow": _glow, "tower": _tower, "crowd": _crowd, "silhouette": _silhouette, "lamps": _lamps,
+    "clouds": _clouds, "city": _city, "walkers": _walkers,
 }
 
 
@@ -258,13 +557,15 @@ def render_logo(spec: dict) -> Image.Image:
     title = _pixel_text(spec["text"], spec["font_px"], rgba(spec["fg"]))
     shadow = _pixel_text(spec["text"], spec["font_px"], rgba(spec["shadow"]))
     sub = _pixel_text(spec["subtitle"], max(8, spec["font_px"] // 3), rgba(spec["border"])) if spec.get("subtitle") else None
-    pad = 5
+    pad, gap = spec.get("pad", 5), spec.get("gap", 2)
     w = title.width + pad * 2 + 1
     h = title.height + pad * 2 + 1 + (sub.height + 2 if sub else 0)
     img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     d.rectangle([0, 0, w - 1, h - 1], fill=rgba(spec["plate"]), outline=rgba(spec["border"]))
-    d.rectangle([2, 2, w - 3, h - 3], outline=rgba(spec["border"]))
+    d.rectangle([gap, gap, w - 1 - gap, h - 1 - gap], outline=rgba(spec["border"]))   # 이중 테두리
+    if gap > 2:
+        d.rectangle([1, 1, w - 2, h - 2], outline=rgba(spec["border"]))
     img.alpha_composite(shadow, (pad + 1, pad + 1))
     img.alpha_composite(title, (pad, pad))
     if sub:

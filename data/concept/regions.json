@@ -1,0 +1,27 @@
+{
+ "note": "컨셉 이미지에서 참고 스프라이트로 뽑을 영역. box는 [x, y, w, h] (원본 이미지 픽셀), size는 뽑을 프레임 크기. sheet/anim/variant는 비교할 Designer 시트의 프레임. 숫자 표시(분홍 원)는 상자에 넣지 않는다.",
+ "images": {
+  "05-1_title": "05-1_title.png",
+  "05-3_play": "05-3_play.png"
+ },
+ "regions": [
+  {"id": "player_idle", "image": "05-3_play", "box": [276, 143, 31, 70], "tol": 60, "clear": [[0, 0, 9, 18]], "size": [32, 48], "colors": 10,
+   "sheet": "player", "anim": "idle", "variant": "사원", "note": "05-3 요소 3, 계단을 오르는 사원"},
+  {"id": "rival_walk", "image": "05-3_play", "box": [76, 192, 53, 76], "tol": 45, "size": [32, 48], "colors": 10,
+   "sheet": "rival", "anim": "walk", "variant": "default", "note": "05-3 요소 5, 달려오는 경쟁 사원"},
+  {"id": "doc", "image": "05-3_play", "box": [356, 134, 32, 34], "size": [24, 24], "colors": 6,
+   "sheet": "projectiles", "anim": "document", "variant": "default", "note": "날아오는 서류"},
+  {"id": "clipboard", "image": "05-3_play", "box": [430, 126, 38, 40], "size": [24, 24], "colors": 6,
+   "sheet": "projectiles", "anim": "clipboard", "variant": "default", "note": "결재판"},
+  {"id": "phone", "image": "05-3_play", "box": [482, 156, 36, 38], "size": [24, 24], "colors": 6,
+   "sheet": "projectiles", "anim": "phone", "variant": "default", "note": "전화기"},
+  {"id": "warning", "image": "05-3_play", "box": [401, 95, 17, 29], "size": [16, 24], "colors": 4,
+   "sheet": "warning", "anim": "blink", "variant": "default", "note": "공격 예고 !"},
+  {"id": "cooler", "image": "05-3_play", "box": [90, 56, 24, 54], "size": [32, 48], "colors": 6,
+   "sheet": "props", "anim": "cooler", "variant": "default", "note": "정수기"},
+  {"id": "heart", "image": "05-3_play", "box": [512, 44, 20, 18], "size": [24, 24], "colors": 4,
+   "sheet": "hud_icons", "anim": "heart", "variant": "default", "note": "하트"},
+  {"id": "walker", "image": "05-1_title", "box": [72, 270, 26, 46], "size": [20, 40], "colors": 6,
+   "sheet": null, "anim": null, "variant": null, "note": "05-1 거리를 걷는 사원 (title_bg walkers)"}
+ ]
+}

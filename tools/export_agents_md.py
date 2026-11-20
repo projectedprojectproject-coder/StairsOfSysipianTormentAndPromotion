@@ -34,8 +34,9 @@ AGENTS = [
 
 ## 입력과 출력
 
-- 입력: `docs/GDD.md`(특히 03 디자인 컨셉), `docs/ASSET_LIST.md`, `data/원본리소스_DB.json`
+- 입력: `docs/GDD.md`(특히 03 디자인 컨셉), `docs/ASSET_LIST.md`, `data/원본리소스_DB.json`, 컨셉 아트 `data/concept/`(영역 목록 `regions.json`)
 - 출력: `output/design_out/` 의 PNG, WAV, `design_manifest.json`, 설계 명세 `_spec_*.json`
+- 결과물은 바로 **Designer QA**(`stairs-designer-qa`)가 검사합니다. 보고서: `output/qa_out/designer_qa.md`
 - 내보내는 형식은 Designer 도구가 만드는 그대로입니다. 형식 맞춤은 Publisher가 맡습니다.
 
 ## 작업 방법
@@ -43,6 +44,7 @@ AGENTS = [
 1. 에셋마다 따로 Claude에 설계를 요청합니다(스프라이트 시트 6종 각각, 이미지 1건, 사운드 1건). 한 번에 요청하면 응답이 64000 토큰을 넘어 잘립니다.
 2. 스프라이트·이미지 명세(JSON)는 `render.py`가 PNG로 그리고, 사운드 명세는 `synth.py`가 WAV로 합성합니다.
 3. `contract.py`로 ASSET_LIST의 ID, 변형, 애니메이션 이름이 모두 있는지 검사합니다.
+4. 컨셉 아트 참고: `concept.py`가 `data/concept/regions.json`의 영역을 뽑아(`output/concept_refs/`) 시트별 설계 요청에 참고 격자와 컨셉 주요 색을 붙입니다. 직접 그릴 때는 스킬 `.claude/skills/concept-sprite-extraction/SKILL.md`를 따릅니다.
 
 ## 실행
 
@@ -57,7 +59,40 @@ python -m stairs_agents designer --replay replay  # 저장된 응답으로 실�
 - 변형 이름과 애니메이션 이름은 `docs/ASSET_LIST.md`와 정확히 같아야 합니다(Developer와 Publisher가 같은 이름을 씁니다).
 """,
         "prompts": ["prompts/designer_sprites.md", "prompts/designer_sound.md"],
-        "sources": ["stairs_agents/designer.py", "stairs_agents/render.py", "stairs_agents/synth.py"],
+        "sources": ["stairs_agents/designer.py", "stairs_agents/render.py", "stairs_agents/synth.py",
+                    "stairs_agents/concept.py"],
+    },
+    {
+        "file": "stairs-designer-qa.md",
+        "name": "stairs-designer-qa",
+        "description": "승급의 계단 Designer QA 에이전트. Designer 결과물(스프라이트·이미지·사운드)이 에셋 계약, 03 팔레트, 2배 밀도, 컨셉 아트(data/concept)와 맞는지 규칙 검사와 Claude 시각 검토로 확인하고 고칠 점을 보고한다. 스프라이트나 배경을 만든 뒤 품질을 확인하거나 컨셉과 비교할 때 사용한다.",
+        "tools": "Read, Grep, Glob, Bash",
+        "body": """# Designer QA 에이전트
+
+Designer 바로 뒤에 도는 품질 확인 에이전트입니다. 결과물을 고치지 않고, Designer가 고칠 수 있는 지시를 보고합니다.
+
+## 입력과 출력
+
+- 입력: `output/design_out/`(PNG, WAV, `design_manifest.json`), `docs/ASSET_LIST.md`, 03 팔레트, `data/concept/`
+- 출력: `output/qa_out/designer_qa.md`·`designer_qa.json`(판정, 문제와 고칠 점), `designer_contact.png`(왼쪽 컨셉에서 뽑은 참고, 오른쪽 만든 프레임)
+
+## 확인 방법
+
+1. 규칙 검사(LLM 없음): 에셋 계약, 빈 프레임, 캐릭터·소품 배경 투명, 2배 밀도(프레임 크기 짝수, 이미지 640x360), 시트별 색 수(48 이하), 03 팔레트 근접도, 컨셉 대조(색 거리 90 이하, 실루엣 겹침 0.4 이상, title_bg·bg_zone1과 컨셉 화면의 색·밝기), 사운드 길이·클리핑.
+2. Claude 검토: 규칙 결과와 대조표·컨셉 원본 이미지를 보내 실루엣, 읽힘, 팔레트, 애니메이션을 검토받습니다(`prompts/qa_designer.md`). 재생 모드에 `qa_designer_review.txt`가 없으면 건너뛰고 보고서에 적습니다.
+3. 판정: 규칙 high → fail, mid 또는 Claude revise → revise, 그 밖 pass. `--strict-qa`면 fail일 때 Publisher 전에 멈춥니다.
+
+직접 검토할 때는 대조표를 Read로 보고, 컨셉 영역을 더 뽑아야 하면 스킬 `.claude/skills/concept-sprite-extraction/SKILL.md`를 따릅니다.
+
+## 실행
+
+```bash
+python -m stairs_agents qa-designer --replay replay
+python -m stairs_agents qa-designer --replay replay_api --out output_api
+```
+""",
+        "prompts": ["prompts/qa_designer.md"],
+        "sources": ["stairs_agents/qa_designer.py", "stairs_agents/qa.py", "stairs_agents/concept.py"],
     },
     {
         "file": "stairs-developer.md",
@@ -98,6 +133,36 @@ python -m stairs_agents developer --replay replay
 """,
         "prompts": ["prompts/developer.md"],
         "sources": ["stairs_agents/developer.py"],
+    },
+    {
+        "file": "stairs-developer-qa.md",
+        "name": "stairs-developer-qa",
+        "description": "승급의 계단 Developer QA 에이전트. Developer 결과물(index.html, game.js, sprite_definition.json)이 기획서 04 수치, Mechanics 명세, 조작·화면 규칙, 스프라이트 정의 계약, PoC 제약을 지키는지 정적 검사와 Claude 코드 검토로 확인하고 고칠 점을 보고한다. 게임 코드를 쓴 뒤 품질을 확인할 때 사용한다.",
+        "tools": "Read, Grep, Glob, Bash",
+        "body": """# Developer QA 에이전트
+
+Developer 바로 뒤에 도는 품질 확인 에이전트입니다. 코드를 고치지 않고, Developer가 고칠 수 있는 지시를 보고합니다. 실제로 띄워 보는 동작 확인(9개 항목)은 Publisher가 맡습니다.
+
+## 입력과 출력
+
+- 입력: `output/dev_out/`, `docs/ASSET_LIST.md`, `output/mech_out/mechanics.json`(있으면), `prompts/developer.md`
+- 출력: `output/qa_out/developer_qa.md`·`developer_qa.json`
+
+## 확인 방법
+
+1. 규칙 검사(LLM 없음): 필수 파일, `sprite_definition.js`를 `game.js`보다 먼저 불러오는지, `node --check` 문법, `CONFIG` 객체와 기획서 04 수치(mechanics.json에서 출처가 04인 값), "기획서 미정" 표시, 조작 키(← → Q E ESC Enter), 화면 5종, 시험 훅 `window.__stairs`, 정의에 ASSET_LIST 에셋·이름 모두, 수용 형식, 정의한 에셋 사용 여부, `pixel_scale` 사용, 외부 주소·`fetch`·`eval` 없음.
+2. Claude 검토: 규칙 결과, Developer 규칙, `game.js`를 보내 판정 규칙·진행·화면 흐름·버그 위험을 검토받습니다(`prompts/qa_developer.md`). 재생 모드에 `qa_developer_review.txt`가 없으면 건너뜁니다.
+3. 판정은 Designer QA와 같습니다.
+
+## 실행
+
+```bash
+python -m stairs_agents qa-developer --replay replay
+python -m stairs_agents qa --replay replay      # Designer QA와 함께
+```
+""",
+        "prompts": ["prompts/qa_developer.md"],
+        "sources": ["stairs_agents/qa_developer.py", "stairs_agents/qa.py"],
     },
     {
         "file": "stairs-publisher.md",
@@ -143,7 +208,7 @@ python -m stairs_agents publisher
         "tools": "Read, Grep, Glob, Bash, Edit, Write",
         "body": """# 파이프라인 (조율과 공통 계층)
 
-에이전트 맵의 실행 순서입니다. **Mechanics**로 규칙과 수치를 먼저 확정하고, **Designer와 Developer를 동시에** 돌린 뒤, 둘 다 끝나면 **Publisher**를 돌립니다. 재생 폴더에 Mechanics 응답이 없으면(예: `replay_api`) Mechanics는 건너뜁니다.
+에이전트 맵의 실행 순서입니다. **Mechanics**로 규칙과 수치를 먼저 확정하고, **Designer → Designer QA**와 **Developer → Developer QA**를 동시에 돌린 뒤, 둘 다 끝나면 **Publisher**를 돌립니다. QA 보고서는 `output/qa_out/`과 배포 폴더 `output/dist/qa/`에 남습니다. 재생 폴더에 Mechanics 응답이 없으면(예: `replay_api`) Mechanics는 건너뜁니다.
 
 ## 구성
 
@@ -161,10 +226,11 @@ python -m stairs_agents publisher
 python -m stairs_agents run                    # Claude API (ANTHROPIC_API_KEY 필요)
 python -m stairs_agents run --record           # 응답을 replay/ 에 저장
 python -m stairs_agents run --replay replay    # API 키 없이 실행, 마지막에 "동작 확인 통과"
-python -m unittest discover tests              # Mechanics 검사기 시험
+python -m stairs_agents qa --replay replay     # 이미 만든 결과물에 QA만
+python -m unittest discover tests              # Mechanics 검사기, QA 시험
 ```
 
-선택 사항: `--model`(기본 claude-sonnet-5-5), `--max-tokens`(기본 64000), `--no-resource-db`.
+선택 사항: `--model`(기본 claude-sonnet-5-5), `--max-tokens`(기본 64000), `--no-resource-db`, `--no-qa`, `--strict-qa`(QA fail이면 Publisher 전에 멈춤).
 
 API 키는 환경 변수 `ANTHROPIC_API_KEY`로만 넘기고, 파일에 적거나 저장소에 올리지 않습니다.
 """,

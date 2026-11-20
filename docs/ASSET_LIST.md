@@ -3,6 +3,8 @@
 Designer와 Developer가 같은 에셋 ID, 변형(variant) 이름, 애니메이션 이름을 쓰기 위한 목록이다. 근거는 docs/GDD.md의 해당 항목이다.
 프레임 크기와 프레임 배치는 Designer가 정해 design_manifest.json에 기록하고, Publisher가 이를 Developer의 sprite_definition.json에 연결한다.
 게임 논리 해상도는 320x180 픽셀이며 화면에서는 정수배로 확대한다.
+에셋은 논리 해상도의 2배 밀도(이미지 640x360 기준, 스프라이트도 2배 프레임)로 그리고, 게임은 절반 크기로 그린다 (sprite_definition.pixel_scale = 2).
+외형 기준은 컨셉 이미지 data/concept/05-1_title.png(타이틀), data/concept/05-3_play.png(플레이 화면)이다.
 
 ## 스프라이트 맵 (sheet)
 한 장의 이미지에 프레임을 격자로 배치한다. 행(row)은 변형, 열(column)은 프레임이다.
@@ -13,10 +15,11 @@ Designer와 Developer가 같은 에셋 ID, 변형(variant) 이름, 애니메이�
 | rival | default | walk, attack, leave | 경쟁 사원 (04 레벨 구성, 05-3 요소 5) |
 | projectiles | default | document, clipboard, phone | 서류, 결재판, 전화기 (04 레벨 구성) |
 | warning | default | blink | 공격 예고 "!" (05-3 요소 4) |
-| stairs | zone1, zone2, zone3, zone4, zone5 | tile | 계단 칸, 구간별 5종 (03 배경 레벨 무드) |
-| hud_icons | default | heart, heart_empty, calendar, arrow_left, arrow_right, shield_q, shield_e, badge | HUD 아이콘 (03 UI 톤, 05-2 요소 3, 05-3 요소 2와 4) |
+| stairs | zone1, zone2, zone3, zone4, zone5 | tile, riser | 계단 칸(디딤판)과 그 아래 계단 몸체, 구간별 5종 (03 배경 레벨 무드) |
+| hud_icons | default | heart, heart_empty, calendar, arrow_left, arrow_right, shield_q, shield_e, badge, gear | HUD 아이콘 (03 UI 톤, 05-2 요소 3, 05-3 요소 2와 4). gear는 타이틀 오른쪽 위 설정 버튼 (05-1 요소 2) |
+| props | default | cooler, boxes, plant, cabinet | 층 바닥 위 사무실 소품: 정수기, 서류 상자, 화분, 서류함 (05-3 컨셉) |
 
-## 단일 이미지 (image), 크기 320x180 (logo 제외)
+## 단일 이미지 (image), 크기 640x360 (2배 밀도, logo 제외)
 
 | 에셋 ID | 내용과 기획서 근거 |
 |---|---|

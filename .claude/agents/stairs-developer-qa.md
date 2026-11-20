@@ -1,0 +1,351 @@
+---
+name: stairs-developer-qa
+description: 승급의 계단 Developer QA 에이전트. Developer 결과물(index.html, game.js, sprite_definition.json)이 기획서 04 수치, Mechanics 명세, 조작·화면 규칙, 스프라이트 정의 계약, PoC 제약을 지키는지 정적 검사와 Claude 코드 검토로 확인하고 고칠 점을 보고한다. 게임 코드를 쓴 뒤 품질을 확인할 때 사용한다.
+tools: Read, Grep, Glob, Bash
+---
+
+# Developer QA 에이전트
+
+Developer 바로 뒤에 도는 품질 확인 에이전트입니다. 코드를 고치지 않고, Developer가 고칠 수 있는 지시를 보고합니다. 실제로 띄워 보는 동작 확인(9개 항목)은 Publisher가 맡습니다.
+
+## 입력과 출력
+
+- 입력: `output/dev_out/`, `docs/ASSET_LIST.md`, `output/mech_out/mechanics.json`(있으면), `prompts/developer.md`
+- 출력: `output/qa_out/developer_qa.md`·`developer_qa.json`
+
+## 확인 방법
+
+1. 규칙 검사(LLM 없음): 필수 파일, `sprite_definition.js`를 `game.js`보다 먼저 불러오는지, `node --check` 문법, `CONFIG` 객체와 기획서 04 수치(mechanics.json에서 출처가 04인 값), "기획서 미정" 표시, 조작 키(← → Q E ESC Enter), 화면 5종, 시험 훅 `window.__stairs`, 정의에 ASSET_LIST 에셋·이름 모두, 수용 형식, 정의한 에셋 사용 여부, `pixel_scale` 사용, 외부 주소·`fetch`·`eval` 없음.
+2. Claude 검토: 규칙 결과, Developer 규칙, `game.js`를 보내 판정 규칙·진행·화면 흐름·버그 위험을 검토받습니다(`prompts/qa_developer.md`). 재생 모드에 `qa_developer_review.txt`가 없으면 건너뜁니다.
+3. 판정은 Designer QA와 같습니다.
+
+## 실행
+
+```bash
+python -m stairs_agents qa-developer --replay replay
+python -m stairs_agents qa --replay replay      # Designer QA와 함께
+```
+
+> 아래 지시문과 코드는 저장소의 원본 파일을 그대로 옮긴 사본입니다. 실제로 실행되는 것은 원본 파일이므로, 고칠 때는 원본을 고치고 이 문서도 함께 갱신합니다.
+
+## Claude에 주는 지시문 (prompts/)
+
+### `prompts/qa_developer.md`
+
+```markdown
+너는 게임 "승급의 계단"의 Developer QA 에이전트다. Developer가 쓴 game.js가 기획서와 Developer 규칙을 지키는지 코드를 읽고 검토하고, Developer가 바로 고칠 수 있는 지시를 돌려준다. 실제로 띄워 보는 동작 확인(Playwright 9개 항목)은 Publisher가 따로 하므로, 너는 코드에서만 보이는 문제를 찾는다.
+
+## 받는 것
+- 규칙 검사 결과 JSON (코드로 잰 항목: 필수 파일, 스크립트 순서, JS 문법, CONFIG 수치, 조작 키, 화면 5종, 시험 훅, 스프라이트 정의 계약, pixel_scale, 외부 요청)
+- Developer 규칙 (prompts/developer.md)
+- game.js 전체
+
+## 볼 것
+1. 판정 규칙 (04): 남은 일수가 계속 줄고 계단 이동(+1일)과 패링 성공(+1.5일)으로 늘어나는가. 방향 실수와 막지 못한 공격은 하트 -1인가. 남은 일수 0 또는 하트 0이면 구조조정인가. 패링 판정 창(도착 직전 0.20초)과 예고(1.0초 전)가 코드대로인가.
+2. 진행: 20층 도달 시 승급 결과, 승급 시 하트 1 회복, 새 층마다 하트 1 회복(최대 3), 11층부터 경쟁 사원이 공격의 약 40%이고 Q/E로 막히는가.
+3. 화면 흐름: 타이틀 → 로비 → 플레이 → 일시정지(ESC, 남은 일수 멈춤) → 결과. 타이틀의 톱니 → 설정 → 조작법.
+4. 버그 위험: 프레임 시간(dt)에 따라 판정이 바뀌는 곳, 키 반복 처리, 일시정지 중 시간이 흐르는 곳, 배열을 돌며 지우는 곳, 화면 밖 좌표, 탭 전환 시 멈춤.
+5. 상수: 기획서 수치가 코드 곳곳에 숫자로 흩어져 있지 않고 CONFIG에 모여 있는가.
+6. 규칙 검사에서 문제로 나온 항목이 실제로 문제인지 판단해 설명한다.
+
+## 하지 말 것
+- 기획서에 없는 기능을 요구하지 않는다. 스타일 취향만으로 high를 주지 않는다.
+- high는 규칙이 틀리거나 게임이 멈추거나 진행이 막히는 경우에만 쓴다.
+
+## 출력 형식
+<json> 와 </json> 사이에 아래 JSON만 넣는다.
+{
+  "verdict": "pass" 또는 "revise",
+  "summary": "두세 문장 총평",
+  "issues": [
+    { "asset": "함수나 위치 (예: game.js update() 패링 판정)", "severity": "high" | "mid" | "low",
+      "problem": "무엇이 틀렸고 어떤 상황에서 드러나는가", "fix": "고칠 코드 방향" }
+  ]
+}
+```
+
+## 에이전트 코드 (stairs_agents/)
+
+### `stairs_agents/qa_developer.py`
+
+```python
+"""Developer QA 에이전트.
+
+역할: Developer 결과물(output/dev_out)이 기획서 04 수치, Mechanics 명세, 조작·화면 규칙, 스프라이트 정의 계약,
+      PoC 제약(파일로 직접 열기, 외부 요청 없음)을 지키는지 정적으로 확인하고 고칠 점을 정리한다.
+      실제로 띄워 보는 동작 확인은 Publisher가 맡는다.
+입력: output/dev_out/ (index.html, game.js, sprite_definition.json), docs/ASSET_LIST.md,
+      output/mech_out/mechanics.json (있으면), prompts/developer.md (규칙 목록)
+출력: output/qa_out/developer_qa.json, developer_qa.md
+"""
+from __future__ import annotations
+
+import json
+import re
+import shutil
+import subprocess
+import time
+
+from .contract import load_contract
+from .qa import QAReport, ask_review, save
+from .util import Paths, read
+
+# 기획서 04 주요 수치 (mechanics.json이 없을 때 쓰는 기본 목록)
+GDD_VALUES = {"하트": 3, "남은 일수 최대": 30, "1일 길이(초)": 0.33, "패링 성공 +일": 1.5, "패링 판정(초)": 0.2,
+              "공격 예고(초)": 1.0, "승급 층": 20}
+KEYS = {"←": "ArrowLeft", "→": "ArrowRight", "Q 패링": "KeyQ", "E 패링": "KeyE", "ESC 일시정지": "Escape", "Enter 결정": "Enter"}
+SCREENS = ["title", "lobby", "play", "pause", "result"]
+
+
+def config_block(js: str) -> str:
+    """game.js의 CONFIG = { ... } 블록 (중괄호 짝 맞춤)."""
+    m = re.search(r"CONFIG\s*=\s*\{", js)
+    if not m:
+        return ""
+    depth, i = 0, m.end() - 1
+    for j in range(i, len(js)):
+        depth += {"{": 1, "}": -1}.get(js[j], 0)
+        if depth == 0:
+            return js[i: j + 1]
+    return js[i:]
+
+
+def numbers(block: str) -> set[float]:
+    code = re.sub(r"//[^\n]*|/\*.*?\*/", "", block, flags=re.S)
+    return {float(n) for n in re.findall(r"(?<![\w.])(\d+(?:\.\d+)?)(?![\w.])", code)}
+
+
+class DeveloperQAAgent:
+    name = "qa_developer"
+
+    def __init__(self, llm, paths: Paths):
+        self.llm = llm
+        self.paths = paths
+
+    def _required_values(self) -> dict:
+        mech = self.paths.mech_out / "mechanics.json"
+        if not mech.exists():
+            return dict(GDD_VALUES)
+        cfg = json.loads(read(mech)).get("config", {})
+        out = {}
+        for k, v in cfg.items():
+            val = v.get("value") if isinstance(v, dict) else v
+            src = (v.get("source", "") if isinstance(v, dict) else "")
+            if "04" in src and isinstance(val, (int, float)) and not isinstance(val, bool):
+                out[k] = val
+        return out or dict(GDD_VALUES)
+
+    def run(self) -> dict:
+        t0 = time.time()
+        p = self.paths
+        d = p.dev_out
+        rep = QAReport("developer")
+        missing = [f for f in ("index.html", "game.js", "sprite_definition.json") if not (d / f).exists()]
+        if not rep.check("필수 파일", not missing, "없음: " + ", ".join(missing) if missing else "3개 모두 있음", "high",
+                         fix="Developer를 다시 실행해 빠진 파일을 만든다"):
+            return save(p, rep, "Developer QA 보고서", t0)
+        html, js = read(d / "index.html"), read(d / "game.js")
+        try:
+            sd = json.loads(read(d / "sprite_definition.json"))
+            rep.check("스프라이트 정의 JSON", True, "읽음")
+        except json.JSONDecodeError as e:
+            rep.check("스프라이트 정의 JSON", False, f"JSON 오류: {e}", "high", "sprite_definition.json")
+            return save(p, rep, "Developer QA 보고서", t0)
+
+        # ---- 불러오는 순서와 문법
+        i_def, i_js = html.find("sprite_definition.js"), html.find("game.js")
+        order_ok = 0 <= i_def < i_js
+        rep.check("스크립트 순서", order_ok, "sprite_definition.js → game.js 순서" + ("" if order_ok else "가 아님"), "high",
+                  "index.html", "<script src=\"assets/sprite_definition.js\">를 game.js 앞에 둔다")
+        node = shutil.which("node")
+        if node:
+            r = subprocess.run([node, "--check", str(d / "game.js")], capture_output=True, text=True, encoding="utf-8")
+            rep.check("JS 문법 (node --check)", r.returncode == 0, (r.stderr or "통과").strip()[:300], "high", "game.js",
+                      "문법 오류를 고친다")
+        else:
+            rep.check("JS 문법 (node --check)", True, "node 없음, 건너뜀", "low")
+
+        # ---- CONFIG와 수치
+        block = config_block(js)
+        if rep.check("CONFIG 객체", bool(block), "game.js에 CONFIG = { ... } 가 있어야 함", "high", "game.js",
+                     "기획서 04 수치를 game.js 맨 위 CONFIG에 모은다"):
+            nums = numbers(block)
+            req = self._required_values()
+            miss = [f"{k}={v}" for k, v in req.items() if float(v) not in nums]
+            rep.metrics["확인한 수치"] = ", ".join(f"{k}={v}" for k, v in req.items())
+            rep.check("기획서 04 수치", not miss, "CONFIG에 없는 값: " + (", ".join(miss) or "없음"), "mid", "CONFIG",
+                      "빠진 값을 CONFIG에 넣는다 (기획서 초안 값 그대로)")
+            rep.check("기획서 미정 표시", "기획서 미정" in block, "'기획서 미정' 주석 " + ("있음" if "기획서 미정" in block else "없음"), "low",
+                      "CONFIG", "기획서에 없는 값마다 '기획서 미정' 주석을 단다")
+
+        # ---- 조작과 화면
+        lost = [n for n, code in KEYS.items() if code not in js]
+        rep.check("조작 키", not lost, "처리하지 않는 키: " + (", ".join(lost) or "없음"), "high", "입력",
+                  "기획서 04 조작(← → Q E, ESC, Enter)을 모두 처리한다")
+        gone = [s for s in SCREENS if not re.search(rf"['\"]{s}['\"]", js)]
+        rep.check("화면 5종", not gone, "없는 화면: " + (", ".join(gone) or "없음"), "high", "화면",
+                  "05-1~05-5 화면을 모두 만든다")
+        rep.check("시험 훅", "__stairs" in js, "window.__stairs " + ("있음" if "__stairs" in js else "없음 (Publisher 동작 확인용)"), "high", "game.js",
+                  "window.__stairs에 ready, screen, floor, log를 노출한다")
+
+        # ---- 스프라이트 정의 계약
+        contract = load_contract(p.docs / "ASSET_LIST.md")
+        absent = [f"{g}.{a}" for g, ids in (("sprites", contract["sheets"]), ("images", contract["images"]),
+                                              ("sounds", contract["sounds"])) for a in ids if a not in sd.get(g, {})]
+        rep.check("정의에 에셋 모두", not absent, "없음: " + (", ".join(absent) or "없음"), "high", "sprite_definition.json",
+                  "ASSET_LIST의 모든 ID를 정의에 넣는다")
+        bad_names = []
+        for aid, c in contract["sheets"].items():
+            s = sd.get("sprites", {}).get(aid, {})
+            bad_names += [f"{aid}.{v}" for v in c["variants"] if s and v not in s.get("variants", [])]
+            bad_names += [f"{aid}.{a}" for a in c["animations"] if s and a not in s.get("animations", [])]
+        rep.check("변형·애니메이션 이름", not bad_names, ", ".join(bad_names[:10]) or "ASSET_LIST와 같음", "high",
+                  "sprite_definition.json", "ASSET_LIST와 같은 이름을 쓴다")
+        fmt = sd.get("accepted_formats", {})
+        rep.check("수용 형식", "png" in fmt.get("image", []) and {"mp3", "ogg"} & set(fmt.get("audio", [])),
+                  f"{fmt}", "mid", "sprite_definition.json", "이미지 png, 사운드 mp3/ogg를 받는다")
+
+        def used(aid: str) -> bool:
+            stem = re.sub(r"\d+$", "", aid)
+            return bool(re.search(rf"['\"]{re.escape(aid)}['\"]", js) or
+                        (stem != aid and re.search(rf"['\"]{re.escape(stem)}['\"]", js)))
+        unused = [f"{g}.{a}" for g in ("sprites", "images", "sounds") for a in sd.get(g, {}) if not used(a)]
+        rep.check("정의한 에셋 사용", not unused, "game.js에서 쓰지 않음: " + (", ".join(unused) or "없음"), "low",
+                  "game.js", "정의한 에셋을 화면에 쓰거나 정의에서 뺀다")
+        ps = sd.get("pixel_scale")
+        if ps:
+            rep.check("pixel_scale 사용", "pixel_scale" in js, f"정의 pixel_scale={ps}인데 game.js가 읽지 않음", "mid",
+                      "game.js", "DEF.pixel_scale로 스프라이트를 1/pixel_scale 크기로 그린다")
+
+        # ---- PoC 제약
+        ext = sorted(set(re.findall(r"https?://[^\s'\"`)]+", js + html)))
+        rep.check("외부 요청 없음", not ext, "외부 주소: " + (", ".join(ext[:5]) or "없음"), "mid", "game.js",
+                  "모든 에셋을 assets/에서 불러온다 (오프라인, file:// 실행)")
+        rep.check("fetch 없음", "fetch(" not in js, "fetch는 file://에서 막힌다", "mid", "game.js",
+                  "sprite_definition.js(전역 변수)와 Image/Audio 요소로 불러온다")
+        rep.check("eval 없음", not re.search(r"\beval\(|new Function\(", js), "eval/new Function 사용", "mid", "game.js")
+        rep.metrics["game.js"] = f"{len(js.splitlines())}줄, {len(js)}자"
+
+        rules = read(p.prompts / "developer.md")
+        user = ("# Developer 규칙 검사 결과\n" + json.dumps(rep.to_dict(), ensure_ascii=False, indent=1) +
+                "\n\n# Developer가 지켜야 할 규칙 (prompts/developer.md)\n" + rules +
+                "\n\n# game.js\n" + js + "\n\n위 출력 형식으로 검토하라.")
+        ask_review(self.llm, p, rep, self.name, user)
+        return save(p, rep, "Developer QA 보고서", t0)
+```
+
+### `stairs_agents/qa.py`
+
+```python
+"""품질 확인(QA) 에이전트 공통 부분: 문제 기록, Claude 검토 요청, 보고서 쓰기.
+
+QA 에이전트는 두 단계로 확인한다.
+1. 규칙 검사: 코드로 재는 항목 (LLM 없이 항상 돈다)
+2. Claude 검토: 규칙 검사 결과와 결과물(이미지 또는 코드)을 Claude에 보내 기획서·컨셉과 맞는지 묻는다.
+   재생 모드에서 응답 파일(replay/qa_<대상>_review.txt)이 없으면 이 단계는 건너뛰고 그 사실을 보고서에 적는다.
+
+판정: 규칙 검사에 high 문제가 하나라도 있으면 fail, high는 없고 mid가 있거나 Claude가 revise라고 하면 revise, 아니면 pass.
+"""
+from __future__ import annotations
+
+import time
+from dataclasses import dataclass, field
+
+from .llm import LLMError
+from .util import Paths, extract_json, load_prompt, log, write_json
+
+SEVERITIES = ("high", "mid", "low")
+
+
+@dataclass
+class QAReport:
+    target: str                          # "designer" 또는 "developer"
+    checks: list = field(default_factory=list)   # {"id","ok","detail"}
+    issues: list = field(default_factory=list)   # {"source","asset","severity","problem","fix"}
+    metrics: dict = field(default_factory=dict)
+    review: dict | None = None
+    review_note: str = ""
+
+    def check(self, cid: str, ok: bool, detail: str = "", severity: str = "mid", asset: str = "", fix: str = ""):
+        self.checks.append({"id": cid, "ok": bool(ok), "detail": detail})
+        if not ok:
+            self.issues.append({"source": "규칙", "asset": asset or cid, "severity": severity,
+                                "problem": detail or cid, "fix": fix})
+        return ok
+
+    @property
+    def verdict(self) -> str:
+        rule = [i for i in self.issues if i["source"] == "규칙"]
+        if any(i["severity"] == "high" for i in rule):
+            return "fail"
+        if any(i["severity"] == "high" for i in self.issues if i["source"] == "Claude"):
+            return "revise"
+        if any(i["severity"] == "mid" for i in self.issues) or (self.review or {}).get("verdict") == "revise":
+            return "revise"
+        return "pass"
+
+    def to_dict(self) -> dict:
+        return {"target": self.target, "verdict": self.verdict, "checks": self.checks, "issues": self.issues,
+                "metrics": self.metrics, "review": self.review, "review_note": self.review_note}
+
+    def markdown(self, title: str) -> str:
+        ok = sum(c["ok"] for c in self.checks)
+        lines = [f"# {title}", "", f"판정: **{self.verdict}** · 규칙 검사 {ok}/{len(self.checks)} 통과", ""]
+        if self.review_note:
+            lines += [f"Claude 검토: {self.review_note}", ""]
+        elif self.review:
+            lines += ["Claude 검토 요약: " + str(self.review.get("summary", "")), ""]
+        lines += ["## 문제와 고칠 점", ""]
+        if not self.issues:
+            lines.append("없음")
+        else:
+            lines += ["| 심각도 | 출처 | 대상 | 문제 | 고칠 점 |", "|---|---|---|---|---|"]
+            order = {s: i for i, s in enumerate(SEVERITIES)}
+            for i in sorted(self.issues, key=lambda x: order.get(x["severity"], 9)):
+                cells = [i["severity"], i["source"], i["asset"], i["problem"], i.get("fix", "")]
+                lines.append("| " + " | ".join(str(c).replace("|", "/").replace("\n", " ") for c in cells) + " |")
+        lines += ["", "## 규칙 검사", "", "| 항목 | 결과 | 내용 |", "|---|---|---|"]
+        for c in self.checks:
+            lines.append(f"| {c['id']} | {'통과' if c['ok'] else '문제'} | {c['detail']} |")
+        if self.metrics:
+            lines += ["", "## 수치", ""]
+            for k, v in self.metrics.items():
+                lines.append(f"- {k}: {v}")
+        return "\n".join(lines) + "\n"
+
+
+def ask_review(llm, paths: Paths, report: QAReport, agent: str, user: str, images=None) -> None:
+    """Claude에 검토를 요청하고 응답의 issues를 report에 더한다. 응답이 없으면 건너뛴 이유를 적는다."""
+    if llm is None:
+        report.review_note = "건너뜀 (LLM 없이 실행)"
+        return
+    try:
+        text = llm.complete(agent, "review", load_prompt(paths, agent), user, images=images)
+    except LLMError as e:
+        report.review_note = f"건너뜀 ({e})"
+        log.info("[%s] Claude 검토 건너뜀: %s", agent, e)
+        return
+    try:
+        rv = extract_json(text)
+    except ValueError as e:
+        report.review_note = f"응답을 읽지 못함 ({e})"
+        return
+    report.review = rv
+    for i in rv.get("issues", []):
+        sev = i.get("severity", "low")
+        report.issues.append({"source": "Claude", "asset": i.get("asset", ""),
+                              "severity": sev if sev in SEVERITIES else "low",
+                              "problem": i.get("problem", ""), "fix": i.get("fix", "")})
+
+
+def save(paths: Paths, report: QAReport, title: str, t0: float) -> dict:
+    out = paths.out / "qa_out"
+    out.mkdir(parents=True, exist_ok=True)
+    d = report.to_dict()
+    write_json(out / f"{report.target}_qa.json", d)
+    (out / f"{report.target}_qa.md").write_text(report.markdown(title), encoding="utf-8")
+    high = sum(i["severity"] == "high" for i in report.issues)
+    log.info("[%s QA] 판정 %s: 문제 %d개 (high %d), 규칙 %d/%d 통과 (%.1f초)", report.target.capitalize(), report.verdict,
+             len(report.issues), high, sum(c["ok"] for c in report.checks), len(report.checks), time.time() - t0)
+    return d
+```

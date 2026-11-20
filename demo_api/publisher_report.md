@@ -10,6 +10,7 @@
 | warning | image | warning.png | warning.png | 일치, 복사 |
 | stairs | image | stairs.png | stairs.png | 일치, 복사 |
 | hud_icons | image | hud_icons.png | hud_icons.png | 일치, 복사 |
+| props | image | props.png | props.png | 일치, 복사 |
 | bg_zone1 | image | bg_zone1.png | bg_zone1.png | 일치, 복사 |
 | bg_zone2 | image | bg_zone2.png | bg_zone2.png | 일치, 복사 |
 | bg_zone3 | image | bg_zone3.png | bg_zone3.png | 일치, 복사 |
@@ -40,8 +41,8 @@
 | 타이틀 화면 | 통과 | title |
 | 타이틀 -> 로비 이동 | 통과 |  |
 | 로비 -> 플레이 이동 | 통과 |  |
-| 일시정지 (ESC)와 남은 일수 정지 | 통과 | 29.84 -> 29.84 |
-| 20층 도달과 승급 판정 | 통과 | 층 20, 직급 대리, 점수 7370, 최고 배수 x3 |
+| 일시정지 (ESC)와 남은 일수 정지 | 통과 | 29.74 -> 29.74 |
+| 20층 도달과 승급 판정 | 통과 | 층 20, 직급 대리, 점수 7340, 최고 배수 x3 |
 | 입력 없음 -> 구조조정 (게임 오버) | 통과 | 9.0초 뒤, 하트 0, 남은 일수 5.8 |
 | 파일로 직접 열기 (file://) | 통과 |  |
 | 브라우저 오류 없음 | 통과 |  |
@@ -49,5 +50,5 @@
 ## 4. 내보내기
 
 - 파일: 승급의계단_PoC_web.zip
-- 포함 파일 수: 37
+- 포함 파일 수: 38
 - 동작 확인 전체 통과: 예

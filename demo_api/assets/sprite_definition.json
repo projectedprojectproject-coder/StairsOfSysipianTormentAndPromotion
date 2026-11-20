@@ -17,11 +17,13 @@
     320,
     180
   ],
+  "pixel_scale": 2,
+  "pixel_note": "에셋은 논리 해상도(320x180)의 2배(640x360 기준)로 그린다. 게임은 1/pixel_scale 크기로 그린다.",
   "sprites": {
     "player": {
       "file": "player.png",
-      "frame_w": 16,
-      "frame_h": 24,
+      "frame_w": 32,
+      "frame_h": 48,
       "variants": {
         "사원": 0,
         "대리": 1,
@@ -39,51 +41,47 @@
         },
         "step": {
           "frames": [
-            2,
-            3
+            2
           ],
-          "fps": 10
+          "fps": 8
         },
         "parry_left": {
           "frames": [
-            4,
-            5
+            3
           ],
-          "fps": 12
+          "fps": 1
         },
         "parry_right": {
+          "frames": [
+            4
+          ],
+          "fps": 1
+        },
+        "hit": {
+          "frames": [
+            5
+          ],
+          "fps": 1
+        },
+        "box_exit": {
           "frames": [
             6,
             7
           ],
-          "fps": 12
-        },
-        "hit": {
-          "frames": [
-            8
-          ],
-          "fps": 8
-        },
-        "box_exit": {
-          "frames": [
-            9,
-            10
-          ],
-          "fps": 4
+          "fps": 3
         },
         "proud": {
           "frames": [
-            11,
-            12
+            8
           ],
-          "fps": 4
+          "fps": 1
         }
       }
     },
     "rival": {
       "file": "rival.png",
-      "frame_w": 16,
-      "frame_h": 24,
+      "frame_w": 32,
+      "frame_h": 48,
       "variants": {
         "default": 0
       },
@@ -95,28 +93,30 @@
             2,
             3
           ],
-          "fps": 6
+          "fps": 8
         },
         "attack": {
           "frames": [
             4,
             5
           ],
-          "fps": 8
+          "fps": 6
         },
         "leave": {
           "frames": [
             6,
-            7
+            7,
+            8,
+            9
           ],
-          "fps": 5
+          "fps": 8
         }
       }
     },
     "projectiles": {
       "file": "projectiles.png",
-      "frame_w": 12,
-      "frame_h": 12,
+      "frame_w": 24,
+      "frame_h": 24,
       "variants": {
         "default": 0
       },
@@ -140,14 +140,14 @@
             4,
             5
           ],
-          "fps": 8
+          "fps": 6
         }
       }
     },
     "warning": {
       "file": "warning.png",
-      "frame_w": 8,
-      "frame_h": 12,
+      "frame_w": 16,
+      "frame_h": 24,
       "variants": {
         "default": 0
       },
@@ -157,14 +157,14 @@
             0,
             1
           ],
-          "fps": 4
+          "fps": 6
         }
       }
     },
     "stairs": {
       "file": "stairs.png",
-      "frame_w": 32,
-      "frame_h": 8,
+      "frame_w": 88,
+      "frame_h": 24,
       "variants": {
         "zone1": 0,
         "zone2": 1,
@@ -178,13 +178,19 @@
             0
           ],
           "fps": 1
+        },
+        "riser": {
+          "frames": [
+            1
+          ],
+          "fps": 1
         }
       }
     },
     "hud_icons": {
       "file": "hud_icons.png",
-      "frame_w": 12,
-      "frame_h": 12,
+      "frame_w": 24,
+      "frame_h": 24,
       "variants": {
         "default": 0
       },
@@ -209,35 +215,71 @@
         },
         "arrow_left": {
           "frames": [
-            3,
-            4
+            3
           ],
           "fps": 1
         },
         "arrow_right": {
           "frames": [
-            5,
-            6
+            4
           ],
           "fps": 1
         },
         "shield_q": {
           "frames": [
-            7,
-            8
+            5
           ],
           "fps": 1
         },
         "shield_e": {
           "frames": [
-            9,
-            10
+            6
           ],
           "fps": 1
         },
         "badge": {
           "frames": [
-            11
+            7
+          ],
+          "fps": 1
+        },
+        "gear": {
+          "frames": [
+            8
+          ],
+          "fps": 1
+        }
+      }
+    },
+    "props": {
+      "file": "props.png",
+      "frame_w": 32,
+      "frame_h": 48,
+      "variants": {
+        "default": 0
+      },
+      "animations": {
+        "cooler": {
+          "frames": [
+            0
+          ],
+          "fps": 1
+        },
+        "boxes": {
+          "frames": [
+            1
+          ],
+          "fps": 1
+        },
+        "plant": {
+          "frames": [
+            2
+          ],
+          "fps": 1
+        },
+        "cabinet": {
+          "frames": [
+            3
           ],
           "fps": 1
         }
@@ -247,38 +289,38 @@
   "images": {
     "bg_zone1": {
       "file": "bg_zone1.png",
-      "w": 320,
-      "h": 180
+      "w": 640,
+      "h": 360
     },
     "bg_zone2": {
       "file": "bg_zone2.png",
-      "w": 320,
-      "h": 180
+      "w": 640,
+      "h": 360
     },
     "bg_zone3": {
       "file": "bg_zone3.png",
-      "w": 320,
-      "h": 180
+      "w": 640,
+      "h": 360
     },
     "bg_zone4": {
       "file": "bg_zone4.png",
-      "w": 320,
-      "h": 180
+      "w": 640,
+      "h": 360
     },
     "bg_zone5": {
       "file": "bg_zone5.png",
-      "w": 320,
-      "h": 180
+      "w": 640,
+      "h": 360
     },
     "title_bg": {
       "file": "title_bg.png",
-      "w": 320,
-      "h": 180
+      "w": 640,
+      "h": 360
     },
     "logo": {
       "file": "logo.png",
-      "w": 148,
-      "h": 56
+      "w": 299,
+      "h": 79
     }
   },
   "sounds": {
