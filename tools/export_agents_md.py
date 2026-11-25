@@ -21,7 +21,7 @@ AGENTS = [
         "file": "stairs-mechanics.md",
         "keep_body": True,
         "prompts": ["prompts/mechanics.md"],
-        "sources": ["stairs_agents/mechanics.py", "tests/test_mechanics.py"],
+        "sources": ["stairs_agents/mechanics.py", "stairs_agents/sim.py", "tests/test_mechanics.py"],
     },
     {
         "file": "stairs-designer.md",
@@ -247,7 +247,9 @@ API 키는 환경 변수 `ANTHROPIC_API_KEY`로만 넘기고, 파일에 적거�
 """,
         "prompts": [],
         "sources": ["stairs_agents/pipeline.py", "stairs_agents/llm.py", "stairs_agents/util.py",
-                    "stairs_agents/contract.py", "stairs_agents/__main__.py", "stairs_agents/__init__.py"],
+                    "stairs_agents/contract.py", "stairs_agents/__main__.py", "stairs_agents/__init__.py",
+                    "stairs_agents/harness/__init__.py", "stairs_agents/harness/core.py",
+                    "stairs_agents/harness/roles.py", "stairs_agents/harness/orchestrator.py"],
     },
 ]
 
