@@ -220,7 +220,7 @@ const DEF = window.SPRITE_DEF || null;
 if (!DEF) assetErrors.push('SPRITE_DEF:missing');
 const D = DEF || { sprites: {}, images: {}, sounds: {} };
 const ASSET_DIR = (D.assets_dir || 'assets').replace(/\/$/, '');
-const SPRITE_IDS = ['player', 'rival', 'projectiles', 'warning', 'stairs', 'hud_icons', 'props', 'commuter', 'sticky'];
+const SPRITE_IDS = ['player', 'rival', 'projectiles', 'warning', 'stairs', 'hud_icons', 'props', 'commuter', 'sticky', 'staff'];
 const IMAGE_IDS = ['bg_zone1', 'bg_zone2', 'bg_zone3', 'bg_zone4', 'bg_zone5', 'title_bg', 'logo', 'bg_lobby', 'bg_result', 'bg_practice'];
 const SOUND_IDS = ['bgm_loop', 'bgm_loop_tense', 'amb_office', 'sfx_step', 'sfx_parry', 'sfx_parry_perfect', 'sfx_hit', 'sfx_warning', 'sfx_promote', 'sfx_gameover', 'sfx_click', 'sfx_phone_ring', 'sfx_cue_clipboard', 'sfx_cue_rival', 'sfx_cue_paper', 'sfx_monitor_shatter', 'sfx_light_flicker', 'sfx_cue_coffee', 'sfx_stair_crack', 'sfx_camera_flash', 'sfx_cue_suitcase', 'bgm_stage1', 'bgm_stage2', 'bgm_stage3', 'bgm_stage4', 'bgm_stage5', 'sfx_electric',
                    'sfx_cue_stapler', 'sfx_cue_sticky', 'sfx_cue_airplane', 'sfx_gaze_warn', 'sfx_gaze_laser', 'sfx_vanish', 'sfx_escalator',
@@ -1212,9 +1212,26 @@ function drawIdCard(x, y, rIdx) {
     rect(x + 4, yy + 8, 66, 1, '#9AA0A8', 0.6);
   });
 }
+// 로비 사원: 왼쪽 끝 ↔ 오른쪽 끝을 걷고, 끝에서 pause초 머문다 (커피를 마시다 서 있기)
+function lobbyWalker(t, x0, x1, speed, pause) {
+  const walk = (x1 - x0) / speed, P = 2 * (walk + pause), ph = ((t % P) + P) % P;
+  if (ph < walk) return { x: x0 + speed * ph, dir: 1, anim: 'walk', at: ph };
+  if (ph < walk + pause) return { x: x1, dir: -1, anim: ph - walk < pause * 0.6 ? 'coffee' : 'idle', at: ph - walk };
+  if (ph < 2 * walk + pause) { const q = ph - walk - pause; return { x: x1 - speed * q, dir: -1, anim: 'walk', at: q }; }
+  return { x: x0, dir: 1, anim: 'idle', at: ph - 2 * walk - pause };
+}
+function drawLobbyStaff() {
+  const o = { fw: 16, fh: 24, nofb: true };
+  drawSprite('staff', 'b', 'type', time, 172, 129, o);                                       // 의자에 앉아 타자 (위몸만)
+  drawSprite('staff', 'c', 'phone', time, 229, 132, o);                                      // 서류함 옆에서 전화
+  drawSprite('staff', 'd', time % 6 < 3.5 ? 'coffee' : 'idle', time, 113, 132, Object.assign({ flip: false }, o));   // 화분 옆에서 커피
+  const w = lobbyWalker(time + 2, 96, 236, 14, 3);                                           // 바닥을 오가는 사원
+  drawSprite('staff', 'a', w.anim, w.at, Math.round(w.x), 148, Object.assign({ flip: w.dir < 0 }, o));
+}
 function drawLobby() {
   // 컨셉 05-2: 형광등 천장의 파티션 사무실(배경 bg_lobby) 위에 층 표시, D-30, 사원증, 화이트보드 기록, 업무 시작
   if (!drawImg('bg_lobby', 0, 0, W, H, null)) { drawImg('bg_zone1', 0, 0, W, H, PAL.bg); rect(0, 0, W, H, PAL.bg, 0.5); }
+  drawLobbyStaff();                                                                         // 사무실 사원들 (움직이는 로비)
   const rIdx = CONFIG.promoteFloors.filter(function (f) { return save.floor >= f; }).length;
   rect(124, 3, 72, 13, PAL.bg, 0.92); frameRect(124, 3, 72, 13, '#9AA0A8');                 // 1 층·직급
   txt('1F', 148, 9.5, { align: 'center', base: 'middle', size: 8, bold: true });
