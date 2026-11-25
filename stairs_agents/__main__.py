@@ -7,6 +7,8 @@
   python -m stairs_agents qa --replay replay        # 이미 만든 결과물에 Designer QA, Developer QA만 실행
   python -m stairs_agents qa-designer|qa-developer  # QA 하나만
   python -m stairs_agents qa-screens --replay replay # Publisher가 찍은 화면을 컨셉 화면과 대조
+  python -m stairs_agents harness --replay replay    # 루프 하네스: 역할마다 만들기→평가→되먹임, 바깥 루프에서 owner로 되돌림
+  python -m stairs_agents harness --roles mechanics  # 한 역할만 하네스로 (예: 메카니즘 밸런스 조정)
 """
 from __future__ import annotations
 
@@ -36,7 +38,7 @@ def make_llm(args):
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="stairs_agents", description="승급의 계단 에이전트 PoC")
-    ap.add_argument("command", choices=["run", "mechanics", "designer", "developer", "publisher", "qa", "qa-designer", "qa-developer", "qa-screens"])
+    ap.add_argument("command", choices=["run", "harness", "mechanics", "designer", "developer", "publisher", "qa", "qa-designer", "qa-developer", "qa-screens"])
     ap.add_argument("--model", default=DEFAULT_MODEL, help=f"Claude 모델 (기본 {DEFAULT_MODEL})")
     ap.add_argument("--max-tokens", type=int, default=64000)
     ap.add_argument("--replay", help="저장된 응답 폴더로 실행 (API 호출 없음)")
@@ -47,6 +49,10 @@ def main(argv=None) -> int:
     ap.add_argument("--no-qa", action="store_true", help="QA 에이전트를 돌리지 않음")
     ap.add_argument("--strict-qa", action="store_true", help="QA 판정이 fail이면 Publisher 전에 멈춤")
     ap.add_argument("--qa-rounds", type=int, default=11, help="QA 고침 반복 최대 횟수 (1~11, 기본 11)")
+    ap.add_argument("--roles", help="harness: 돌릴 역할 (쉼표 구분, 기본 mechanics,designer,developer,publisher)")
+    ap.add_argument("--rounds", type=int, default=12, help="harness: 역할마다 안쪽 루프 최대 차례 (기본 12)")
+    ap.add_argument("--outer-rounds", type=int, default=3, help="harness: 바깥 루프 최대 차례 (기본 3)")
+    ap.add_argument("--max-llm-calls", type=int, default=12, help="harness: 역할마다 LLM 호출 상한 (기본 12)")
     args = ap.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%H:%M:%S")
@@ -60,6 +66,13 @@ def main(argv=None) -> int:
     except LLMError as e:
         print(f"오류: {e}\nAPI 키 없이 시험하려면 --replay replay 를 붙여 실행하세요.", file=sys.stderr)
         return 2
+    if args.command == "harness":
+        from .harness import Budget, run_harness
+        roles = args.roles.split(",") if args.roles else None
+        res = run_harness(llm, paths, roles=roles, outer_rounds=args.outer_rounds,
+                          budget=Budget(max_rounds=args.rounds, max_llm_calls=args.max_llm_calls),
+                          use_resource_db=not args.no_resource_db)
+        return 0 if all(v["verdict"] != "fail" for v in res["roles"].values()) else 1
     if args.command == "mechanics":
         result = MechanicsAgent(llm, paths).run()
         return 1 if result["problems"] and not result["skipped"] else 0

@@ -39,6 +39,17 @@ python tools/export_agents_md.py --check   # md가 원본과 같은지 검사 (�
 4. 사운드 변환용 ffmpeg (libvorbis, libmp3lame 포함). Windows는 ffmpeg.exe가 PATH에 있어야 합니다.
 5. Claude API 키: 환경 변수 `ANTHROPIC_API_KEY`
 
+## 루프 하네스 (v5, 2026-11-25)
+
+역할(mechanics, designer, developer, publisher)마다 "만들기 → 평가 → 되먹임"을 반복하고, 남은 문제를 책임 역할(owner)로 되돌리는 실행 방식입니다. 설계와 확인 결과는 [docs/AGENT_HARNESS.md](docs/AGENT_HARNESS.md).
+
+```
+python -m stairs_agents harness --replay replay --roles mechanics   # API 없이 메카니즘 밸런스 루프
+python -m stairs_agents harness --replay replay                     # 4역할 전부
+```
+
+결과: `output/harness/summary.md`, `ledger.jsonl`(차례마다 한 줄). 메카니즘 검사 기준은 `docs/mechanics_rules.json` 하나에 모았고, 플레이 동기(기획서 01-1)도 검사합니다. 아래 `run`(한 방향 파이프라인)은 그대로 남아 있습니다.
+
 ## 실행
 
 ```
