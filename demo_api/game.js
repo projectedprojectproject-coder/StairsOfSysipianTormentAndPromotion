@@ -1547,10 +1547,13 @@ function plate(x, y, w, h) {   // 05-3 컨셉의 이중 테두리 명판
 }
 function drawKeyCap(x, y, idx, iconName, label) {
   const lit = time < padUntil[idx] || (idx >= 2 && !demo && screen === 'play' && run && run.held[idx - 2]);   // 누르고 있는 막기 키도 켠다
-  rect(x, y, 18, 18, lit ? PAL.green : PAL.bg, lit ? 1 : 0.85);
-  frameRect(x, y, 18, 18, lit ? PAL.text : '#9AA0A8');
+  rect(x - 1, y - 1, 20, 20, '#121317', 0.92);                          // 컨셉 키 아이콘: 짙은 바깥 테두리
+  rect(x, y, 18, 18, lit ? PAL.green : '#2B2E35');
+  frameRect(x + 1, y + 1, 16, 16, lit ? PAL.text : '#C9CCD1');          // 밝은 안쪽 테두리
   const ok = drawSprite('hud_icons', 'default', iconName, time, x + 3, y + 3, { anchor: 'tl', dw: 12, dh: 12, nofb: true });
-  if (!ok) txt(label, x + 11, y + 11, { align: 'center', base: 'middle', size: 10, bold: true, color: lit ? PAL.bg : PAL.text, shadow: false });
+  if (!ok) txt(label, x + 9, y + 9, { align: 'center', base: 'middle', size: 9, bold: true, color: lit ? PAL.bg : PAL.text, shadow: false });
+  rect(x + 12, y + 12, 9, 8, '#121317'); rect(x + 13, y + 13, 7, 6, '#C24A64');   // 오른쪽 아래 빨간 딱지: 키 이름
+  txt(label, x + 16.5, y + 16, { align: 'center', base: 'middle', size: 5, bold: true, color: '#FFFFFF', shadow: false });
 }
 function drawHud() {
   const r = run;
