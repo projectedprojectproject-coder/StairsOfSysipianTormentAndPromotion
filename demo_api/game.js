@@ -145,7 +145,7 @@ const STICKY_COLORS = ['white', 'white', 'yellow', 'green', 'blue', 'pink'];   /
 const RANK_COLORS = [PAL.gray, PAL.green, PAL.red, PAL.text, PAL.text];
 const W = 320, H = 180;
 const STEP = 1 / 60;
-const ONCE = new Set(['step', 'climb_r', 'climb_l', 'down', 'parry_left', 'parry_right', 'hit', 'box_exit', 'proud', 'attack', 'leave']);
+const ONCE = new Set(['step', 'climb_r', 'climb_l', 'down', 'parry_hit_left', 'parry_hit_right', 'parry_left', 'parry_right', 'hit', 'box_exit', 'proud', 'attack', 'leave']);
 
 const params = new URLSearchParams(location.search);
 const BOT = params.get('bot') === '1';
@@ -455,7 +455,7 @@ function makeRun(seed, mode) {
     nextAttack: CONFIG.firstAttackDelay, lastImpact: -9,
     projs: [], sparks: [], texts: [], leavers: [],
     parryStart: [-9, -9], parryEnd: [-9, -9], parryCd: [0, 0],
-    hitTimer: 0, stepTimer: 0, lastStepT: -9, downT: -9, shake: 0, flash: 0,   // lastStepT: 마지막으로 오른 때 (그리기용)
+    hitTimer: 0, stepTimer: 0, lastStepT: -9, downT: -9, parryHitT: -9, parryHitSide: 0, shake: 0, flash: 0,   // lastStepT: 마지막으로 오른 때 (그리기용)
     pvx: 0, pvy: 0, camX: 0, camY: 0,
     facing: dirAt(0), animState: '', animStart: 0,
     botT: 0, ended: null, endTimer: 0, rivalIdx: 8,
@@ -879,6 +879,7 @@ function updatePlay(dt) {
 }
 // 막기에 성공했을 때 (점수·콤보·일수·불꽃·글자). 종이비행기 편대는 다 막은 뒤 한 번
 function gainParry(r, p) {
+  r.parryHitT = r.time; r.parryHitSide = p.side;   // 막기 성공 프레임 (그리기용)
   r.parries++; r.combo++;
   r.mult = Math.min(CONFIG.maxMult, 1 + Math.floor(r.combo / CONFIG.comboPerMult));   // 3연속마다 ×1, 최대 ×10
   r.maxMult = Math.max(r.maxMult, r.mult);
@@ -1193,10 +1194,13 @@ function runFx(a, run, dir, h) {
   const sy = 1 + 0.05 * s - (a > 0.75 && a < 1 ? 0.06 * Math.sin((a - 0.75) / 0.25 * Math.PI) : 0);
   return { dy: -s * 2.5 + (1 - sy) * h / 2, sx: 1 + (1 - sy) * 0.8, sy: sy, rot: dir * (0.07 + 0.08 * run) * Math.max(run, s) };
 }
+// 위협 위 표시(!, ×, ↺, 꾹!, …)를 보일지: 10층까지만. 연습 모드와 장애물 보기에서는 늘 보인다 (결정 2026-11-25)
+function showMarks() { return !!demo || run.mode === 'practice' || run.floor <= 10; }
 function playerAnim(r) {
   let s = 'idle';
   if (r.ended) s = r.ended.kind === 'promote' ? 'proud' : 'hit';
   else if (r.hitTimer > 0) s = 'hit';
+  else if (r.time - r.parryHitT < 0.17) s = r.parryHitSide < 0 ? 'parry_hit_left' : 'parry_hit_right';   // 막기 성공: 손이 번쩍 → 몸이 밀림
   else if (r.time >= r.parryStart[0] && r.time < r.parryEnd[0]) s = 'parry_left';
   else if (r.time >= r.parryStart[1] && r.time < r.parryEnd[1]) s = 'parry_right';
   else if (r.time - r.downT < 0.3) s = 'down';                          // 밀려 내려가기·떨어지기: 웅크려 내려 딛기
@@ -1403,8 +1407,8 @@ function drawPlayWorld() {
         y -= Math.abs(Math.sin(at * 16)) * 2; ro.rot = (x > px ? -1 : 1) * 0.1; at *= 1.6;
       }
       drawSprite('rival', 'default', anim, at, x, y, ro);
-      if (p.waiting) txt('…', x + 10, y - 36, { align: 'center', base: 'middle', size: 9, bold: true, color: '#E3B65C' });   // 계단 장애물 앞에서 기다리는 중
-      if (r.time >= p.spawnT) {
+      if (p.waiting && showMarks()) txt('…', x + 10, y - 36, { align: 'center', base: 'middle', size: 9, bold: true, color: '#E3B65C' });   // 계단 장애물 앞에서 기다리는 중
+      if (r.time >= p.spawnT && showMarks()) {
         const wk = drawSprite('warning', 'default', 'blink', r.time - p.spawnT, x, y - 35, { anchor: 'c', fw: 8, fh: 12, nofb: true });
         if (!wk && Math.floor(time * 8) % 2 === 0) { rect(x - 5, y - 42, 10, 14, PAL.red); txt('!', x, y - 35, { align: 'center', base: 'middle', size: 10, bold: true, shadow: false }); }
       }
@@ -1460,7 +1464,8 @@ function drawPlayWorld() {
     else if (p.type === 'sticky') drawSprite('sticky', STICKY_COLORS[p.hp], 'fly', at, x, y, so);   // 색 = 남은 횟수
     else drawSprite('projectiles', 'default', p.type === 'paper' ? 'document' : p.type, at, x, y, so);
     const wx = clamp(x, 8, W - 8), wy = y - 16;
-    if (p.type === 'coffee') { txt('×', wx, wy, { align: 'center', base: 'middle', size: 11, bold: true, color: PAL.red }); return; }   // 막지 말라는 표시
+    if (p.type === 'coffee') { if (showMarks()) txt('×', wx, wy, { align: 'center', base: 'middle', size: 11, bold: true, color: PAL.red }); return; }   // 막지 말라는 표시
+    if (!showMarks()) return;                                // 10층 위: 위협 위 표시 없음
     const wk = drawSprite('warning', 'default', 'blink', r.time - p.spawnT, wx, wy, { anchor: 'c', fw: 8, fh: 12, nofb: true });
     if (!wk && Math.floor(time * 8) % 2 === 0) {
       rect(wx - 5, wy - 7, 10, 14, PAL.red);
@@ -1528,7 +1533,7 @@ function drawAirplanes(p, px) {   // 종이비행기 편대: 비행기마다 air
     const u = clamp((r.time - t0) / dur, 0, 1);
     drawPlane(lerp(x0, tx, u), ty - 6 + (k % 2) * 3 - Math.sin(u * Math.PI) * 10, p.side);
   }
-  if (r.time >= p.spawnT) {
+  if (r.time >= p.spawnT && showMarks()) {
     const u = clamp((r.time - p.spawnT) / dur, 0, 1), wx = clamp(lerp(x0, tx, u), 8, W - 8), wy = ty - 26;
     const wk = drawSprite('warning', 'default', 'blink', r.time - p.spawnT, wx, wy, { anchor: 'c', fw: 8, fh: 12, nofb: true });
     if (!wk && Math.floor(time * 8) % 2 === 0) { rect(wx - 5, wy - 7, 10, 14, PAL.red); txt('!', wx, wy, { align: 'center', base: 'middle', size: 10, bold: true, shadow: false }); }

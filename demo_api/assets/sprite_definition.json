@@ -96,6 +96,22 @@
             12
           ],
           "fps": 8
+        },
+        "parry_hit_left": {
+          "frames": [
+            13,
+            14,
+            3
+          ],
+          "fps": 18
+        },
+        "parry_hit_right": {
+          "frames": [
+            15,
+            16,
+            4
+          ],
+          "fps": 18
         }
       }
     },
