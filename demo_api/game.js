@@ -1116,7 +1116,8 @@ function drawCommuters() {
   for (let i = 0; i < CONFIG.commuters; i++) {
     const dir = i % 3 === 1 ? -1 : 1, v = 9 + ((i * 7) % 5) * 1.6, span = W + 28;
     const x = (((20 + i * 64 + (i % 2) * 17 + dir * v * time) % span) + span) % span - 14;
-    drawSprite('commuter', 'default', 'walk', time * (v / 11) + i * 0.37, x, 179, { fw: 10, fh: 20, nofb: true, flip: dir < 0 });
+    const at = time * (v / 11) + i * 0.37;
+    drawSprite('commuter', 'default', 'walk', at, x, 179 - Math.abs(Math.sin(at * 7)) * 1.5, { fw: 10, fh: 20, nofb: true, flip: dir < 0 });   // 걸으며 들썩
   }
 }
 function drawTitle() {
@@ -1183,6 +1184,14 @@ function drawLobby() {
 /* ---------------------------------------------------------------------
  * 05-3 플레이
  * ------------------------------------------------------------------- */
+// 한 칸 오르기의 몸짓 (a = 0 → 1, 0.14초): 뛰어오르는 호, 도약할 때 늘어나고 착지할 때 눌림, 오르는 쪽으로 기울기.
+// sx·sy는 그림 가운데 기준이라 발이 칸에 붙어 있게 dy에서 보정한다 (h = 그림 높이)
+function hopFx(a, dir, h) {
+  if (!(a > 0 && a < 1)) return null;
+  const s = Math.sin(a * Math.PI);
+  const sy = a < 0.65 ? 1 + 0.16 * Math.sin(a / 0.65 * Math.PI) : 1 - 0.18 * Math.sin((a - 0.65) / 0.35 * Math.PI);
+  return { dy: -s * 7 + (1 - sy) * h / 2, sx: 1 + (1 - sy) * 0.9, sy: sy, rot: dir * 0.14 * s };
+}
 function playerAnim(r) {
   let s = 'idle';
   if (r.ended) s = r.ended.kind === 'promote' ? 'proud' : 'hit';
@@ -1332,15 +1341,17 @@ function drawPlayWorld() {
     const sx = 160 + (stairX(r.rivalIdx) - r.camX);
     const sy = PLAYER_Y + (-r.rivalIdx * CONFIG.stepH - r.camY);
     ctx.globalAlpha = 0.75;
-    drawSprite('rival', 'default', 'walk', time, sx, sy + 1, { fw: 14, fh: 26, color: PAL.red, flip: dirAt(r.rivalIdx) < 0 });
+    drawSprite('rival', 'default', 'walk', time, sx, sy + 1 - Math.abs(Math.sin(time * 7)) * 1.5, { fw: 14, fh: 26, color: PAL.red, flip: dirAt(r.rivalIdx) < 0 });   // 걸으며 들썩
     ctx.globalAlpha = 1;
   }
   // 플레이어
   const px = playerScreenX();
   const anim = playerAnim(r);
   const rc = RANK_COLORS[r.rankIdx];
-  drawSprite('player', CONFIG.rankNames[r.rankIdx], anim, r.time - r.animStart, px, PLAYER_Y + 2,
-    { fw: 16, fh: 28, color: rc, flip: r.facing < 0 && anim !== 'parry_left' && anim !== 'parry_right' });
+  const po = { fw: 16, fh: 28, color: rc, flip: r.facing < 0 && anim !== 'parry_left' && anim !== 'parry_right' };
+  const hop = anim === 'step' ? hopFx(1 - r.stepTimer / 0.14, dirAt(Math.max(0, r.steps - 1)), 28) : null;   // 한 칸 오르는 몸짓
+  if (hop) { po.sx = hop.sx; po.sy = hop.sy; po.rot = hop.rot; }
+  drawSprite('player', CONFIG.rankNames[r.rankIdx], anim, r.time - r.animStart, px, PLAYER_Y + 2 + (hop ? hop.dy : 0), po);
   // 투척물 + 예고
   // 월드 좌표 -> 화면 좌표 (경쟁 사원 발 위치)
   const sx = function (wx) { return 160 + (wx - r.camX); };
@@ -1374,7 +1385,14 @@ function drawPlayWorld() {
         const k = 1 - left / CONFIG.rivalLeap;
         x = lerp(x, px + p.side * 12, k); y = lerp(y, PLAYER_Y + 1, k) - Math.sin(k * Math.PI) * 8; anim = 'attack';
       }
-      drawSprite('rival', 'default', anim, at, x, y, { fw: 14, fh: 26, color: PAL.red, flip: x > px });
+      const ro = { fw: 14, fh: 26, color: PAL.red, flip: x > px };
+      if (anim === 'walk' && p.phase === 'climb' && !p.waiting && p.ri < r.steps - 1 - 1e-6) {   // 계단을 오를 때: 칸마다 뛰어오른다
+        const f = p.ri - Math.floor(p.ri), s = Math.sin(f * Math.PI);
+        y -= s * 5; ro.rot = dirAt(Math.floor(p.ri)) * 0.16 * s; ro.sy = 1 + 0.12 * s; ro.sx = 1 - 0.1 * s; y -= 0.12 * s * 13;
+      } else if (anim === 'walk' && p.phase === 'walk') {                       // 층 바닥을 걸을 때: 들썩이며 앞으로 기운다
+        y -= Math.abs(Math.sin(at * 14)) * 2; ro.rot = (x > px ? -1 : 1) * 0.08;
+      }
+      drawSprite('rival', 'default', anim, at, x, y, ro);
       if (p.waiting) txt('…', x + 10, y - 36, { align: 'center', base: 'middle', size: 9, bold: true, color: '#E3B65C' });   // 계단 장애물 앞에서 기다리는 중
       if (r.time >= p.spawnT) {
         const wk = drawSprite('warning', 'default', 'blink', r.time - p.spawnT, x, y - 35, { anchor: 'c', fw: 8, fh: 12, nofb: true });
