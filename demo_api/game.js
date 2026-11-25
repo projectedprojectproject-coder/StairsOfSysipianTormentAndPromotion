@@ -1496,7 +1496,7 @@ function drawPlayWorld() {
       }
       return;
     }
-    const ax = 160 + (p.ax - r.camX), ay = PLAYER_Y + (p.ay - r.camY);   // 이 투척물이 향하는 정해진 자리 (화면 좌표)
+    const ax = px, ay = PLAYER_Y;   // 투척물은 플레이어를 향한다 (의자만 생길 때의 계단 줄을 따라 정해진 길로)
     if (p.type === 'airplane') { drawAirplanes(p, ax, ay); return; }
     if (p.type === 'envelope') { drawEnvelopes(p, ax, ay); return; }
     if (p.type === 'chair') { drawRollingChair(p, px); return; }
