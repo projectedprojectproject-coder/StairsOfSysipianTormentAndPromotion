@@ -1,7 +1,0 @@
-{
-  "name": "Stairs.Editor",
-  "rootNamespace": "Stairs.EditorTools",
-  "references": ["Stairs.Core", "Stairs.Game"],
-  "includePlatforms": ["Editor"],
-  "autoReferenced": false
-}
