@@ -1,37 +1,32 @@
-# Unity 이식 (1단계: 핵심 루프, 2단계: 경쟁 사원·uGUI·저장)
+# Unity 이식 기록 (1단계: 핵심 루프 → 2단계: 경쟁 사원·저장 → 웹과 똑같이)
 
-2026-11-25 시작. 에이전트 맵 v4(Unity 계획)의 첫 단계로, 웹 PoC의 규칙을 그대로 옮긴 Unity 프로젝트를 `unity/StairsOfPromotion/`에 두었다.
-그림과 소리는 새로 만들지 않고, 에이전트 파이프라인이 만든 웹 빌드 에셋(`output/build/assets`)을 가져와 쓴다.
+2026-11-25. 웹 PoC(`demo_api/game.js`)를 Unity로 옮긴 기록이다. 처음에는 웹 저장소의 `unity/StairsOfPromotion/`에서 시작했고,
+지금은 이 폴더만 따로 [StairsofSisipiantormentandpromotionunityport](https://github.com/projectedprojectproject-coder/StairsofSisipiantormentandpromotionunityport) 저장소로 낸다.
+그림과 소리는 새로 만들지 않고 웹 판의 것(`WebReference/assets`, 웹 저장소에서는 `demo_api/assets`)을 가져와 쓴다.
 
 ## 여는 방법
 
-1. Unity Hub → Add → `unity/StairsOfPromotion` 폴더. **Unity 6.6 (6000.6.10f1)** 로 열어 확인했다 (처음 만든 기준은 6000.0이었고, 6.6이 패키지를 올렸다).
-2. Active Input Handling은 저장소의 ProjectSettings에 **Input System Package** 로 들어 있다 (예전에는 손으로 바꿔야 했고, 기본값 Old면 키가 하나도 먹지 않는다).
-3. 웹 에셋: 저장소에 든 `demo_api/assets`를 그대로 쓴다. 파이프라인을 다시 돌렸다면(`python -m stairs_agents run --replay replay`) `output/build/assets`를 먼저 찾는다.
-4. 메뉴 **Stairs > Import Web Build Assets**: PNG 시트를 픽셀 아트 설정(Point, 압축 없음, PPU 32)으로 가져와 프레임별로 자르고, ogg를 가져와 `Assets/Imported/SpriteCatalog.asset`을 만든다.
-5. 메뉴 **Stairs > Create Game Scene** → `Assets/Scenes/Game.unity` → Play.
-   - 한글 글꼴: 씬의 `Stairs Game` 오브젝트 → `GameController` → **Ui Font** 칸에 TTF를 넣는다. 권장은 픽셀 글꼴
-     **NeoDunggeunmo(네오둥근모, SIL OFL 1.1)** `NeoDunggeunmo.ttf` 또는 **Galmuri11**, 깔끔한 쪽은 **Noto Sans KR**(OFL)이다.
-     `Assets/Fonts/`에 TTF를 두고 Import Settings에서 Character = Dynamic으로 둔다. 저장소에는 글꼴을 넣지 않았다(내려받지 않음).
-     비워 두면 OS 글꼴(맑은 고딕 → Apple SD Gothic Neo → Noto Sans CJK KR) 순서로 찾고, 그것도 없으면 Unity 기본 `LegacyRuntime.ttf`라 한글이 □로 나올 수 있다.
-   - HUD는 uGUI `Text`(레거시)로 만든다. TextMeshPro를 쓰려면 Window > TextMeshPro > Font Asset Creator로 위 TTF에서
-     한글 2,350자(KS X 1001) 아틀라스를 만들어야 해서, PoC에서는 동적 글꼴로 두었다.
-6. Window > General > Test Runner > EditMode 에서 `ParityTests`를 돌려 웹과 같은지 확인한다.
+1. Unity Hub → Add → 이 폴더. **Unity 6.6 (6000.6.10f1)** 로 확인했다.
+2. Active Input Handling은 ProjectSettings에 **Input System Package**로 들어 있다 (기본값 Old면 키가 하나도 먹지 않는다).
+3. 메뉴 **Stairs > Import Web Build Assets**: `WebReference/assets`(없으면 웹 저장소의 `output/build/assets` → `demo_api/assets`)의
+   PNG 시트를 픽셀 아트 설정(Point, 압축 없음, 크기 늘리지 않음)으로 가져와 프레임별로 자르고, ogg를 가져와 `Assets/Imported/SpriteCatalog.asset`을 만든다.
+4. 메뉴 **Stairs > Create Game Scene** → `Assets/Scenes/Game.unity` → Play.
+5. 글꼴: 웹 `txt()`의 `"Noto Sans KR"`과 같은 글꼴을 `Assets/Resources/Fonts`에 넣었다 (보통 400, 굵게 700, 가족 이름 "Stairs Noto Sans KR", SIL OFL, `OFL.txt`).
+6. Window > General > Test Runner > EditMode 에서 `ParityTests`(16개)를 돌린다.
 
-조작은 웹과 같다: ← → 오르기, Q E 막기, Esc 일시정지, Enter 결정(메뉴는 방향키로 고르고 마우스로 눌러도 된다). `GameController`의 `bot`을 켜면 웹의 `?bot=1`처럼 혼자 오른다.
+조작과 명령줄은 웹과 같다: ← → 오르기, Q E 막기, Esc 일시정지, Enter·Space 결정, 방향키·Tab·마우스로 고르기. `-seed N`, `-bot`, `-mute` (웹 `?seed=`, `?bot=1`, `?mute=1`).
 
 ## 구조
 
 | 폴더 | 내용 | 웹 PoC에서 |
 |---|---|---|
-| `Assets/Scripts/Core` (Stairs.Core, UnityEngine 없음) | `StairsConfig` 수치, `Mulberry32` 난수, `StairLayout` 계단·금 간 계단·젖은 계단·감전 주기, `RunSimulation` 한 판의 규칙(오르기, 패링, 콤보·배수, 일수, 하트, 승급, 위협 8종, 경쟁 사원 쫓아오기, 카메라 플래시, 봇) | `CONFIG`, `mulberry32`, `ensureStairs`, `isCracked`, `isWet`, `shockState`, `doStep`, `doParry`, `updatePlay`, `spawnAttack`, `updateRival`, `rivalPos`, `botTick` |
-| `Assets/Scripts/Game` (Stairs.Game) | `GameController` 화면 전환·입력·월드 그리기(계단, 플레이어, 경쟁 사원, 위협, 불꽃, 플래시), `GameUi`+`UiKit` uGUI HUD·메뉴(코드로 만듦), `SaveData` PlayerPrefs 기록, `AudioDirector` 20층마다 단계 음악과 효과음, `SpriteCatalog`·`GameConfigAsset` ScriptableObject | `screen`, `drawPlayWorld`, `drawHud`, `drawTitle`, `drawLobby`, `drawPause`, `drawHelp`, `drawResult`, `save`, `syncAudio` |
-| `Assets/Editor` | `StairsAssetImporter`(웹 에셋 가져오기, 씬 만들기), `MiniJson` | Publisher의 연결 단계 |
-| `Assets/Tests/EditMode` | `ParityTests`: 난수, 계단 방향, 금 간·젖은 칸 목록이 웹과 같은지(node로 뽑은 기대값), 젖은 칸 감전, 봇이 100층 CEO까지 오르는지, 경쟁 사원의 잠금 쪽·잠금 시각·늦게 따라잡을 때 미뤄지는 공격·패링 소리 순서 | Publisher 동작 확인 |
-| `Tools~` (Unity가 가져오지 않음) | `rival_expect.js`: 웹 `game.js`를 node에서 돌려 경쟁 사원 테스트 기대값을 다시 뽑는다. `cs_core.js`: C# Core를 한 줄씩 옮긴 JS. `playtest.js`: 웹과 `cs_core.js`를 같은 seed로 돌려 사건 기록을 맞대어 본다 (아래 "플레이테스트") | |
-
-규칙은 Core에만 있고 화면을 모르기 때문에 웹과 같은 seed면 같은 계단, 같은 금 간·젖은 칸이 나온다.
-수치는 `Assets/Settings/GameConfig.asset` 인스펙터에서 고친다 (기본값은 demo_api의 CONFIG, 한 층 6칸).
+| `Assets/Scripts/Core` (Stairs.Core, UnityEngine 없음) | `StairsConfig` 수치, `Mulberry32` 난수, `StairLayout` 계단·금 간 계단·젖은 계단·감전 주기, `RunSimulation` 한 판의 규칙(오르기, 패링, 콤보·배수, 일수, 하트, 승급, 위협 8종, 경쟁 사원 쫓아오기, 카메라 플래시, 떠오르는 글자·불꽃, 봇). 상태는 double | `CONFIG`, `mulberry32`, `ensureStairs`, `isCracked`, `isWet`, `shockState`, `startRun`, `doStep`, `doParry`, `updatePlay`, `spawnAttack`, `updateRival`, `rivalPos`, `addText`, `botTick` |
+| `Assets/Scripts/Game` (Stairs.Game) | `GameController` 화면·버튼·입력·소리·그리기 전부, `WebCanvas` 웹 2D 캔버스 흉내(GL), `AudioDirector`, `SaveData`, `SpriteCatalog`, `PlaytestDriver` | `screen`, `getButtons`, `keydown`/`mousedown`, `syncAudio`, `drawTitle`~`drawResult`, `shareResult`, `save` |
+| `Assets/Resources` | `StairsCanvas.shader`(그림·글자·회색 필터), `Fonts/` Noto Sans KR 보통·굵게 | 캔버스, CSS filter, 글꼴 |
+| `Assets/Editor` | `StairsAssetImporter`(에셋 가져오기, 씬 만들기, 명령줄 빌드), `MiniJson` | Publisher의 연결 단계 |
+| `Assets/Tests/EditMode` | `ParityTests` 16개 | Publisher 동작 확인 |
+| `WebReference/` | 비교 기준인 웹 판 사본(`index.html`, `game.js`, `assets/`). Unity는 가져오지 않는다 | 웹 판 그대로 |
+| `Tools~` (Unity가 가져오지 않음) | `cs_core.js`(C# Core를 옮긴 JS)·`playtest.js`(웹과 사건 기록 비교), `rival_expect.js`(테스트 기대값), `web_shots.py`(웹 화면을 PlaytestDriver와 같은 순서로 찍기) | |
 
 ## 2단계에서 바뀐 것 (2026-11-25)
 
@@ -112,14 +107,41 @@ Unity.exe -batchmode -projectPath unity/StairsOfPromotion -executeMethod Stairs.
   - 로비의 모드 설명 글이 사원증 오른쪽 끝과 겹쳤다.
 - 글꼴은 비워 둔 채로 OS 글꼴(맑은 고딕)로 한글이 잘 나왔다. 픽셀 글꼴을 쓰려면 여전히 `uiFont`에 TTF를 넣는다.
 
-## 아직 웹과 다른 점 (다음 단계)
+## 웹과 똑같이 (2026-11-25)
 
-- 사람이 직접 키보드로 해 본 플레이는 아직이다 (자동 플레이와 스크린샷으로만 확인). 소리는 켜져 있었지만 귀로 확인하지 않았다.
-  처음 열 때 콘솔 오류나 테스트 실패가 나오면 그 내용을 알려 주면 고친다. 특히 확인할 것: `using static Stairs.Game.UiKit` 이름 충돌,
-  Input System의 `InputSystemUIInputModule`(ugui 패키지가 있어야 켜짐), 레거시 `Text`의 한글 표시.
-- 위협의 비행 경로(서류가방이 터지며 쏟아지는 것, 모니터 유리 조각, 커피 × 표시, 포스트잇 색별 튕김 궤적)가 웹보다 단순하다. `Threat.debris`·`wob`·`ph`는 Core에 있지만 아직 안 그린다.
-- 타이틀의 출근하는 사원들(commuter), 설정 화면(볼륨 단계, 전체 화면), 기록 공유(결과 이미지 저장)는 아직 없다. 결과의 "기록 공유" 자리에는 "로비로"를 두었다.
-- 픽셀이 딱 맞는 화면(Pixel Perfect Camera) 설정, WebGL 빌드, 터치 입력은 아직이다.
+uGUI로 비슷하게 그리던 화면을 버리고, 웹 `game.js`의 그리기·메뉴·입력·소리를 **한 줄씩** 옮겼다.
+
+- `WebCanvas`: 웹 캔버스의 `rect`(반올림, `globalAlpha`를 1로 되돌리는 것까지), `frameRect`, `txt`(정렬·기준선·그림자),
+  `drawSprite`(기준점 bc/c/tc, 에셋 밀도 PX로 1/PX 반올림, 뒤집기, 회전·눌림, 없는 그림이면 색 사각형), `drawImg`,
+  `save/restore/translate/rotate/scale`, CSS `grayscale(1) brightness(0.85) contrast(0.85)`를 GL 즉시 그리기로 옮겼다.
+  화면 배율은 웹 `resize()`와 같이 PX의 정수배, 가운데 정렬, 바깥은 `#1E1F22`.
+- `GameController`: `drawTitle`(출근하는 사원들, 로고, 톱니바퀴), `drawLobby`/`drawIdCard`, `drawPlayWorld`(층 바닥·소품·계단 받침·디딤판·
+  층 번호·난간, 젖은 칸 번개, 금 간 칸 흔들림, 경쟁 사원 장식·물러남·덤벼듦, 위협 8종의 비행 경로·회전·서류가방 폭발, "!"·커피 ×,
+  불꽃, "+1.5"·"커피!"·층 문구, 모니터 형광등 깜박임, 맞을 때 붉은 번쩍임, 카메라 플래시), `drawHud`, `drawPause`, `drawSettings`(소리·볼륨·전체화면),
+  `drawHelp`, `drawResult`(도장·잉크·표·NEW·TIP·토스트), `shareResult`(결과 카드 PNG 저장 → 사진 폴더), `getButtons`, 키보드·마우스(가리키면 포커스),
+  `syncAudio`(구간 음악, 일시정지 때 0.4배, 멈췄다 이어 틀기), 기록(`stairs_best_*`).
+- Core에 웹의 `texts`(떠오르는 글자)와 화면 좌표 불꽃을 더했다. 웹과 같은 decor 난수 순서를 지킨다.
+- 웹처럼 다른 창을 눌러도 계속 돌고(`runInBackground`), 창을 내렸을 때만 일시정지한다 (`visibilitychange`).
+- 확인: `PlaytestDriver`(`-stairsPlaytest`)와 `Tools~/web_shots.py`가 같은 seed·같은 계단 수에서 17장씩 찍어 맞대어 봤다.
+  가만히 있는 화면(타이틀·로비·조작법·결과·연습)은 픽셀의 0.6~3.4%만 다르다 (글자 가장자리, 찍은 순간이 몇 프레임 다른 걷는 사원).
+
+맞대어 보며 찾아 고친 것:
+- **캐릭터가 뚱뚱하고 애니메이션이 흔들림**: Unity가 시트 칸을 Tight 메시로 자르면 `Sprite.textureRect`가 투명한 가장자리를 뺀 사각형
+  (플레이어 32px 칸 중 19.85px)이 된다. 그것을 칸 크기로 그려 플레이어·경쟁 사원·출근하는 사원이 1.6배쯤 넓어지고, 프레임마다 잘린 폭이
+  달라 흔들렸다. 이제 칸 전체(`sprite.rect`)를 그리고, 가져올 때 `SpriteMeshType.FullRect`로 자른다.
+- **글자가 가늘고 작은 글자가 깨짐**: 설치된 Noto Sans KR은 가변 글꼴(기본 굵기 100)이라 Unity가 굵기를 못 고른다. fontTools로 400·700 굵기를
+  고정한 파일을 넣었고, 이름이 "Noto Sans KR"이면 Unity가 깔린 시스템 글꼴을 대신 쓰므로 가족 이름을 "Stairs Noto Sans KR"로 바꿨다 (OFL 허용).
+- **빠짐없이 가져오기**: 가져오기 끝에 정의의 시트 9·이미지 10·소리 26, 모든 칸, 모든 동작의 프레임이 들어왔는지 확인하고 빠진 것을 오류로 알린다.
+  (소리는 웹이 먼저 쓰는 .ogg를 가져온다. 같은 소리의 .mp3는 웹에서 ogg를 못 틀 때만 쓰는 대체 파일이다.)
+- **소리**: 빌드에서 실제 출력 크기를 재어 봤다 (`-stairsAudioCheck`): 타이틀에서 bgm_loop·amb_office, 플레이에서 bgm_stage1이 울리고
+  출력 RMS 약 0.13 (처음 0.5초는 장치 지연으로 무음). 플레이테스트 기록에 효과음별로 튼 횟수를 남긴다. `-mute`로 켜면 웹 `?mute=1`처럼 소리가 없다.
+
+## 아직 웹과 다른 점
+
+- 웹은 첫 키·클릭 전에는 소리를 내지 않는다(브라우저 자동 재생 제한). Unity 판은 처음부터 소리가 난다.
+- 기록 공유는 웹처럼 내려받기 대신 `사진\stairs_result.png`(없으면 persistentDataPath)에 저장한다.
+- 글자는 같은 글꼴·같은 크기지만 브라우저와 Unity의 글자 그리기(안티에일리어싱, 힌팅)가 달라 픽셀 단위로는 조금 다르다.
+- 사람이 직접 키보드로 해 본 플레이, 소리를 귀로 확인하는 것은 아직이다.
 
 ## 에이전트 파이프라인과의 관계 (맵 v4)
 
