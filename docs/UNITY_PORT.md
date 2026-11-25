@@ -5,9 +5,9 @@
 
 ## 여는 방법
 
-1. Unity Hub → Add → `unity/StairsOfPromotion` 폴더. Unity 6(6000.0 LTS)을 기준으로 했다. 2022.3 LTS도 될 것이다.
-2. Edit > Project Settings > Player > Active Input Handling 을 **Input System Package** 또는 **Both** 로 둔다 (키 입력에 Input System을 쓴다).
-3. 웹 에셋 만들기(이미 있으면 건너뜀): 저장소 루트에서 `python -m stairs_agents run --replay replay`
+1. Unity Hub → Add → `unity/StairsOfPromotion` 폴더. **Unity 6.6 (6000.6.10f1)** 로 열어 확인했다 (처음 만든 기준은 6000.0이었고, 6.6이 패키지를 올렸다).
+2. Active Input Handling은 저장소의 ProjectSettings에 **Input System Package** 로 들어 있다 (예전에는 손으로 바꿔야 했고, 기본값 Old면 키가 하나도 먹지 않는다).
+3. 웹 에셋: 저장소에 든 `demo_api/assets`를 그대로 쓴다. 파이프라인을 다시 돌렸다면(`python -m stairs_agents run --replay replay`) `output/build/assets`를 먼저 찾는다.
 4. 메뉴 **Stairs > Import Web Build Assets**: PNG 시트를 픽셀 아트 설정(Point, 압축 없음, PPU 32)으로 가져와 프레임별로 자르고, ogg를 가져와 `Assets/Imported/SpriteCatalog.asset`을 만든다.
 5. 메뉴 **Stairs > Create Game Scene** → `Assets/Scenes/Game.unity` → Play.
    - 한글 글꼴: 씬의 `Stairs Game` 오브젝트 → `GameController` → **Ui Font** 칸에 TTF를 넣는다. 권장은 픽셀 글꼴
@@ -88,11 +88,33 @@ Unity를 설치하지 못해(샌드박스가 Program Files에 쓰지 못함) Uni
    - 카메라 플래시가 사라지지 않고 같은 밝기였다 → 웹처럼 줄어든다. 맞았을 때 붉은 번쩍임을 웹 세기(0.35)로, 금 간 계단은 흔들림과 함께 붉어진다.
    - 비활성 패널에서 `GetComponentsInChildren`이 테두리를 못 찾던 것(`includeInactive`).
 
+## Unity 6.6에서 실제로 확인 (2026-11-25)
+
+Unity 6.6을 설치한 뒤 명령줄로 컴파일·테스트·빌드·자동 플레이까지 돌렸다.
+
+```
+Unity.exe -batchmode -nographics -projectPath unity/StairsOfPromotion -runTests -testPlatform EditMode -testResults results.xml
+Unity.exe -batchmode -projectPath unity/StairsOfPromotion -executeMethod Stairs.EditorTools.StairsAssetImporter.BuildPlaytestPlayer -stairsBuild <폴더> -quit
+<폴더>/Stairs.exe -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -stairsPlaytest <스크린샷 폴더>
+```
+
+- **컴파일**: Stairs.Core / Stairs.Game / Stairs.Editor / Stairs.Tests.EditMode 모두 오류·경고 없음.
+- **EditMode 테스트 16개 모두 통과** (한 판 전체를 웹과 비교하는 4개, 경쟁 사원 5개 포함).
+- **자동 플레이** (`PlaytestDriver`, `-stairsPlaytest`가 있을 때만 켜짐): 타이틀 → 로비 → 보통 모드 봇 100층(승급, 110,160점: 웹과 같음)
+  → 일시정지 → 결과 → 가만히 있는 판(하트 소진, 구조조정) → 연습 → 무한 → 기록이 남은 로비까지 13장을 찍고, 오류·예외 0개.
+- 이렇게 찾아 고친 것:
+  - **시트 그림이 하나도 안 나옴**: 가져오기가 시트를 자르기 전에 잰 크기가 Unity 기본 설정 때문에 2의 거듭제곱으로 늘어난 크기
+    (hud_icons 216x24 → 256x32)라, 자른 칸이 그림 밖으로 나가 버려졌다. 한 줄짜리 시트(경쟁 사원, 투척물, HUD 아이콘, 소품)는 전부,
+    나머지는 한 줄씩 빠져 계단·플레이어가 그려지지 않았다. PNG 머리에서 실제 크기를 읽고 `npotScale = None`, 못 자른 칸은 오류로 알린다.
+  - **키 입력이 안 먹을 설정**: ProjectSettings의 Active Input Handling이 Old(0)였다 → Input System(1).
+  - 가져오기가 `output/build/assets`만 찾아 이 저장소에서는 폴더 고르기 창이 떴다 → `demo_api/assets`도 찾는다 (명령줄에서는 창 대신 오류).
+  - `ScreenCapture` 모듈이 없어 추가 (`com.unity.modules.screencapture`).
+  - 로비의 모드 설명 글이 사원증 오른쪽 끝과 겹쳤다.
+- 글꼴은 비워 둔 채로 OS 글꼴(맑은 고딕)로 한글이 잘 나왔다. 픽셀 글꼴을 쓰려면 여전히 `uiFont`에 TTF를 넣는다.
+
 ## 아직 웹과 다른 점 (다음 단계)
 
-- **컴파일 확인 못 함**: 이 환경에 Unity와 .NET(최신 csc)이 없어 C#을 한 번도 컴파일하지 못했고 EditMode 테스트도 돌리지 못했다.
-  규칙은 위 node 플레이테스트로 웹과 같음을 확인했지만, 그것은 C#을 옮긴 JS로 확인한 것이라 C# 자체의 컴파일·실행과는 다르다.
-  화면(배치, 글꼴, 스프라이트 위치)도 눈으로 보지 못했다.
+- 사람이 직접 키보드로 해 본 플레이는 아직이다 (자동 플레이와 스크린샷으로만 확인). 소리는 켜져 있었지만 귀로 확인하지 않았다.
   처음 열 때 콘솔 오류나 테스트 실패가 나오면 그 내용을 알려 주면 고친다. 특히 확인할 것: `using static Stairs.Game.UiKit` 이름 충돌,
   Input System의 `InputSystemUIInputModule`(ugui 패키지가 있어야 켜짐), 레거시 `Text`의 한글 표시.
 - 위협의 비행 경로(서류가방이 터지며 쏟아지는 것, 모니터 유리 조각, 커피 × 표시, 포스트잇 색별 튕김 궤적)가 웹보다 단순하다. `Threat.debris`·`wob`·`ph`는 Core에 있지만 아직 안 그린다.
