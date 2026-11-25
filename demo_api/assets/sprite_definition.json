@@ -599,6 +599,48 @@
         "mp3": "sfx_electric.mp3",
         "ogg": "sfx_electric.ogg"
       }
+    },
+    "sfx_cue_stapler": {
+      "files": {
+        "mp3": "sfx_cue_stapler.mp3",
+        "ogg": "sfx_cue_stapler.ogg"
+      }
+    },
+    "sfx_cue_sticky": {
+      "files": {
+        "mp3": "sfx_cue_sticky.mp3",
+        "ogg": "sfx_cue_sticky.ogg"
+      }
+    },
+    "sfx_cue_airplane": {
+      "files": {
+        "mp3": "sfx_cue_airplane.mp3",
+        "ogg": "sfx_cue_airplane.ogg"
+      }
+    },
+    "sfx_gaze_warn": {
+      "files": {
+        "mp3": "sfx_gaze_warn.mp3",
+        "ogg": "sfx_gaze_warn.ogg"
+      }
+    },
+    "sfx_gaze_laser": {
+      "files": {
+        "mp3": "sfx_gaze_laser.mp3",
+        "ogg": "sfx_gaze_laser.ogg"
+      }
+    },
+    "sfx_vanish": {
+      "files": {
+        "mp3": "sfx_vanish.mp3",
+        "ogg": "sfx_vanish.ogg"
+      }
+    },
+    "sfx_escalator": {
+      "files": {
+        "mp3": "sfx_escalator.mp3",
+        "ogg": "sfx_escalator.ogg"
+      }
     }
   }
 }
