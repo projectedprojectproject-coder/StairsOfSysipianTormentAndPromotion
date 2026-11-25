@@ -86,8 +86,8 @@
     RANKS: ["사원", "대리", "과장", "간부", "CEO"],
     // 기획서 미정 (PoC 가정값)
     STEPS_PER_FLOOR: 5,       // 기획서 미정: 한 층을 오르는 계단 칸 수
-    COMBO_PER_MULT: 5,        // 기획서 미정: 배수가 한 단계 오르는 연속 패링 횟수
-    MAX_MULT: 3,
+    COMBO_PER_MULT: 3,        // 기획서 미정: 점수 배수가 한 단계 오르는 연속 패링 횟수 (결정 2026-11-20: COMBO는 연속 패링 횟수)
+    MAX_MULT: 10,             // 결정(2026-11-20): 점수 배수 최대 ×10
     STEP_SCORE: 10,           // 기획서 미정: 계단 한 칸 점수
     PARRY_SCORE: 50,          // 기획서 미정: 패링 한 번 점수
     DRAIN_RAMP: 0.5,          // 기획서 미정: 구간 끝에서 일수 감소 속도 +50%
@@ -99,6 +99,20 @@
   };
   const PAL = { main: "#5A5F66", sub: "#8A9A5B", accent: "#A13D3D", bg: "#1E1F22", text: "#E8E6DF", dark: "#141518", warm: "#E3B65C" };
   const LW = 320, LH = 180;
+  // 구조조정 결과 화면의 팁: 마지막으로 하트를 잃은 원인(장애물 종류, 발판, 금 간 계단, 일수)에 맞춰 하나를 보여 준다
+  const TIPS = {
+    clipboard: "결재판은 \"딱… 딱!\"의 두 번째 딱에 맞춰 막으세요",
+    rival: "경쟁 사원이 계단을 쫓아오면 내가 올라온 쪽(뒤쪽) 키로 막으세요",
+    coffee: "커피(× 표시)는 막지 마세요. 그냥 두면 지나갑니다",
+    monitor: "형광등이 깜박이면 모니터! 유리 깨지는 소리 1초 뒤에 떨어집니다",
+    phone: "전화기는 두 번째 벨이 울리는 순간에 막으세요",
+    paper: "서류는 머리 위로 넘어가 반대쪽에서 맞습니다. 맞는 쪽 키로!",
+    sticky: "포스트잇 색은 남은 횟수: 분홍5 파랑4 초록3 노랑2 흰색1",
+    suitcase: "서류가방은 \"펑!\" 하고 터지는 순간에 막으세요",
+    wrong: "다음 계단이 어느 쪽인지 먼저 보고 누르세요. 틀리면 하트 -1",
+    cracked: "금 간 계단에서는 멈추지 마세요. 1.5초면 무너집니다",
+    days: "오르고 막을수록 남은 일수가 늘어납니다. 쉬지 말고 오르세요",
+  };
   const STICKY_COLORS = ["white", "white", "yellow", "green", "blue", "pink"];   // 포스트잇 남은 횟수 -> 색 (sticky 시트 변형)
   const FONT = '"Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
 
@@ -273,6 +287,7 @@
   }
 
   // ------------------------------------------------------------------ 게임 상태
+  let resultAt = 0, stampLanded = false;   // 결과 화면이 열린 시각, 도장이 찍혔는지
   let screen = "title", prevScreen = "title", settingsOpen = false, helpOpen = false, clock = 0;
   let G = null;
   const keysDown = {}, keyGlow = { ArrowLeft: 0, ArrowRight: 0, KeyQ: 0, KeyE: 0 };
@@ -286,7 +301,7 @@
       dirs.push(d);
     }
     G = {
-      dirs, step: 0, hearts: CONFIG.HEARTS, days: CONFIG.DAYS_MAX, score: 0, combo: 0, mult: 1, maxMult: 1,
+      dirs, step: 0, hearts: CONFIG.HEARTS, days: CONFIG.DAYS_MAX, score: 0, combo: 0, mult: 1, maxMult: 1, maxCombo: 0, lastKind: null,
       rankIdx: 0, t: 0, nextAttack: 1.5, attacks: [], facing: 1, pose: "idle", poseT: 0,
       camX: 0, camY: 0, result: null, botCool: 0, flash: 0, popups: [], banner: null,
       crackT: 0, fell: false, nextFlash: CONFIG.FLASH_GAP, camFlash: null,
@@ -340,7 +355,7 @@
         { label: "메인으로", x: 120, y: 124, w: 80, h: 14, on: () => go("title") },
       ]);
     } else if (next === "result") {
-      setAmb(false); setBgm(null);
+      setAmb(false); setBgm(null); resultAt = clock; stampLanded = false;
       setButtons([
         { label: "다시 하기", x: 96, y: 155, w: 62, h: 16, tone: "red", on: () => go("lobby") },     // 05-5 요소 5
         { label: "기록 공유", x: 166, y: 155, w: 62, h: 16, tone: "gray", on: shareResult },        // 요소 2
@@ -410,7 +425,7 @@
       if (f > floorOf(G.step - 1) && CONFIG.PROMO_FLOORS.includes(f)) promote(f);
       if (G.mode === "normal" && f >= CONFIG.FINAL_FLOOR && screen === "play") { play("sfx_promote", 0.6); T.log.push("finish:" + f); endRun("promote"); }   // 90층: PoC 마무리
     } else {
-      hurt("wrong-step");
+      G.lastKind = "wrong"; hurt("wrong-step");
     }
   }
   function tryParry(side) { // side: -1 왼쪽(Q), +1 오른쪽(E)
@@ -422,13 +437,14 @@
     if (!a) return; // 판정 시간 밖의 패링은 효과 없음
     if (a.kind === "coffee") {
       a.done = true; a.parried = true; a.fade = 0.25; T.log.push("coffee:parried");
-      popup("커피!", side, 0, PAL.accent); hurt("coffee"); return;
+      popup("커피!", side, 0, PAL.accent); G.lastKind = "coffee"; hurt("coffee"); return;
     }
     if (a.kind === "sticky" && a.hp > 1) {     // 포스트잇: 튕겨 나갔다가 같은 쪽으로 돌아온다. 남은 횟수(색)가 하나 준다
       a.hp -= 1; a.spawn = G.t; a.hitAt = G.t + CONFIG.TELEGRAPH; a.bounce = true; a.cued = false; T.log.push("sticky:bounce:" + a.hp);
     } else { a.done = true; a.parried = true; a.fade = 0.25; }
     G.combo += 1; G.parries += 1;
-    G.mult = Math.min(CONFIG.MAX_MULT, 1 + Math.floor(G.combo / CONFIG.COMBO_PER_MULT));
+    G.mult = Math.min(CONFIG.MAX_MULT, 1 + Math.floor(G.combo / CONFIG.COMBO_PER_MULT));   // 3연속마다 ×1, 최대 ×10
+    G.maxCombo = Math.max(G.maxCombo, G.combo);
     G.maxMult = Math.max(G.maxMult, G.mult);
     G.days = Math.min(CONFIG.DAYS_MAX, G.days + CONFIG.PARRY_DAYS);
     G.score += CONFIG.PARRY_SCORE * G.mult;
@@ -523,7 +539,7 @@
       if (!a.done && G.t > a.hitAt) {
         a.done = true; a.fade = 0.2;
         if (a.kind === "coffee") { a.passed = true; T.log.push("coffee:dodged"); }   // 커피는 막지 않고 지나가게 두면 된다
-        else { hurt("attack"); if (screen !== "play") return; }
+        else { G.lastKind = a.kind; hurt("attack"); if (screen !== "play") return; }
       }
       if (a.fade !== undefined) a.fade -= dt;
     }
@@ -838,7 +854,10 @@
       for (let i = 0; i < CONFIG.HEARTS; i++) icon(i < G.hearts ? "heart" : "heart_empty", LW - 47 + i * 13, 27);
     }
     // 콤보 (가운데 위)
-    if (G.mult > 1) text(`×${G.mult} COMBO`, LW / 2, 10, 10, PAL.warm, "center");
+    if (G.combo > 0) {   // COMBO = 연속으로 막은 횟수, 그 아래 점수 배수 (3연속마다 ×1, 최대 ×10)
+      text(`${G.combo} COMBO`, LW / 2, 7, 10, PAL.warm, "center");
+      text(`점수 ×${G.mult}`, LW / 2, 20, 6, G.mult >= CONFIG.MAX_MULT ? PAL.accent : PAL.text, "center", 700);
+    }
     if (G.banner) { panel(LW / 2 - 70, 44, 140, 22, PAL.sub, PAL.text); text(G.banner.text, LW / 2, 50, 10, PAL.bg, "center"); }
     // 요소 4: 조작 키 (아래 가운데)
     const keys = [["ArrowLeft", "arrow_left"], ["ArrowRight", "arrow_right"], ["KeyQ", "shield_q"], ["KeyE", "shield_e"]];
@@ -870,22 +889,44 @@
     // 요소 1: 상자를 들고 걸어 나가는 큰 모습 (구조조정은 회색 실루엣, 승급은 제 색으로 뿌듯한 자세)
     sprite("player", promo ? "proud" : "box_exit", rankName(), clock, 62, 176,
            { scale: 4.6, flip: !promo, filter: promo ? undefined : "grayscale(1) brightness(0.85) contrast(0.85)" });
-    // 요소 3: 위 가운데 판정 판
-    panel(64, 0, 192, 22, promo ? PAL.sub : PAL.accent, PAL.text);
-    ctx.strokeStyle = promo ? "#4E5733" : "#6E2626"; ctx.strokeRect(66.5, 2.5, 187, 17);
-    text(promo ? "승급" : "구조조정 대상", 160, 4, 13, PAL.text, "center");
+    // 요소 3: 위 가운데 판정 판. 구조조정은 도장처럼 크게 떨어져 쾅 찍힌다 (화면 흔들림, 잉크 튐)
+    const rt = clock - resultAt, k = promo ? 1 : Math.max(0, Math.min(1, (rt - 0.15) / 0.22));
+    if (!promo && k >= 1 && !stampLanded) { stampLanded = true; play("sfx_hit", 0.8); }
+    const shake = !promo && rt > 0.37 && rt < 0.62 ? Math.sin(rt * 90) * (0.62 - rt) * 10 : 0;
+    if (k > 0) {
+      ctx.save(); ctx.translate(160 + shake, 11); const s = 1 + (1 - k) * (1 - k) * 1.8; ctx.scale(s, s); ctx.rotate((1 - k) * -0.12); ctx.translate(-160, -11);
+      ctx.globalAlpha = k;
+      panel(64, 0, 192, 22, promo ? PAL.sub : PAL.accent, PAL.text);
+      ctx.strokeStyle = promo ? "#4E5733" : "#6E2626"; ctx.strokeRect(66.5, 2.5, 187, 17);
+      text(promo ? "승급" : "구조조정 대상", 160, 4, 13, PAL.text, "center");
+      ctx.restore(); ctx.globalAlpha = 1;
+    }
+    if (!promo && rt > 0.37 && rt < 1.1) {   // 잉크 튐
+      const f = 1 - (rt - 0.37) / 0.73;
+      ctx.fillStyle = `rgba(161,61,61,${0.8 * f})`;
+      [[58, 6], [262, 14], [70, 24], [250, 2], [150, 26], [184, 25]].forEach(([x, y], i) => ctx.fillRect(x + (i % 2 ? 1 : -1) * (1 - f) * 6, y, 2, 2));
+    }
     text(promo ? `${CONFIG.RANKS[G.rankIdx - 1]} → ${rankName()} · ${floorOf(G.step)}층 도달 (PoC 종료)` : (G.mode === "endless" ? `무한 모드 · ${floorOf(G.step)}F 도달 (최고 ${best.endless || 0}F)` : "") + (G.fell ? " 금 간 계단이 무너졌습니다" : G.mode === "endless" ? "" : "짐을 챙겨 주십시오"),
          160, 25, 6, "#9AA0A8", "center", 400);
     // 요소 4: 인사 평가 결과 표 (칸마다 테두리, 값은 올리브 글자, 최고 콤보는 흰 테두리)
-    panel(112, 34, 140, 114, "rgba(24,25,28,0.95)", "#9AA0A8"); ctx.strokeStyle = PAL.main; ctx.strokeRect(114.5, 36.5, 135, 109);
+    panel(112, 34, 140, 100, "rgba(24,25,28,0.95)", "#9AA0A8"); ctx.strokeStyle = PAL.main; ctx.strokeRect(114.5, 36.5, 135, 95);
     panel(120, 41, 124, 12, "#141518", "#9AA0A8"); text("인사 평가 결과", 182, 43, 7, PAL.text, "center");
     const rows = [["도달 층수", `${floorOf(G.step)}F`], ["직급", promo ? `${CONFIG.RANKS[G.rankIdx - 1]}→${rankName()}` : rankName()],
-                  ["점수", G.score.toLocaleString()], ["최고 콤보", `×${G.maxMult}`, true], ["전체 랭킹", "서버 미구현"]];
+                  ["점수", G.score.toLocaleString()], ["최고 콤보", `${G.maxCombo}회 ×${G.maxMult}`, true], ["전체 랭킹", "서버 미구현"]];
     rows.forEach(([k, v, hi], i) => {
-      const y = 59 + i * 17;
+      const y = 57 + i * 15;
       panel(120, y, 76, 12, "#141518", "#6E737A"); text(k, 124, y + 2.5, 6, "#C9CCD1", "left", 400);
       panel(200, y, 44, 12, "#141518", hi ? PAL.text : PAL.sub); text(v, 222, y + 2.5, 6, hi ? PAL.text : "#A9B57C", "center");
     });
+    // 구조조정 팁: 도장이 찍힌 뒤 떠오른다
+    if (!promo && G.mode !== "practice") {
+      const key = G.fell ? "cracked" : G.days <= 0 ? "days" : (G.lastKind || "clipboard"), a = Math.max(0, Math.min(1, (rt - 0.5) / 0.3));
+      ctx.globalAlpha = a;
+      panel(40, 137, 240, 14, "rgba(20,21,24,0.94)", PAL.warm);
+      text("TIP", 50, 140, 6, PAL.warm, "center");
+      text(TIPS[key] || TIPS.clipboard, 164, 140, 6, PAL.text, "center", 400);
+      ctx.globalAlpha = 1;
+    }
     drawButtons();                                                                       // 요소 2, 5
   }
   function drawSettings() {

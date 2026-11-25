@@ -30,7 +30,9 @@ Proof of Concept(PoC)입니다. 에이전트는 Python으로 작성되었고, �
  data/원본리소스_DB.json   Designer만 읽는 원본 리소스 데이터베이스
  replay/               재생 모드용 응답 (API 키 없이 데모할 때 사용)
  replay_api/           실제 Claude API로 실행했을 때 저장된 응답
- agent_map/            에이전트 맵 문서(docx), 그림(svg, png). Figma "에이전트 맵" 페이지와 같은 내용
+ agent_map/            에이전트 맵 v3 문서(docx), 그림(svg, png). Figma "에이전트 맵" 페이지(v1, 3개 에이전트)에
+                       Mechanics, 실행 순서, 공통 에셋 목록, 플레이테스트 순환(v2)과 QA 에이전트 3단계·고침 반복,
+                       컨셉 아트와 스프라이트 뽑기(v3)를 더한 개정판
  README.md             개발자용 상세 설명
  HOWTOPLAY.txt         게임 방법 (조작, 규칙, 점수, 공략 팁)
  docs/PLAYTEST_REPORT.md   플레이테스트 결과와 수정 내역
@@ -143,10 +145,12 @@ Proof of Concept(PoC)입니다. 에이전트는 Python으로 작성되었고, �
 6. 발표용 시연 순서 예시 (약 5분)
 --------------------------------------------------------------
 
- 1) Figma "에이전트 맵" 페이지 또는 agent_map/ 의 그림으로 세 에이전트의
-    역할과 흐름을 설명합니다.
- 2) 터미널에서 데모 A 명령을 실행하고, Designer와 Developer가 동시에
-    시작한 뒤 Publisher가 1~4단계를 차례로 진행하는 기록을 보여 줍니다.
+ 1) agent_map/ 의 그림(v3)으로 네 에이전트(Mechanics, Designer, Developer,
+    Publisher)와 QA 에이전트(Designer QA, Developer QA, 화면 대조 QA)의 역할과
+    흐름, 고침 반복(최대 11번), 플레이테스트 순환을 설명합니다.
+ 2) 터미널에서 데모 A 명령을 실행하고, Mechanics가 먼저 명세를 확정한 뒤
+    Designer와 Developer가 동시에 시작하고, Publisher가 1~4단계를 차례로
+    진행하는 기록을 보여 줍니다.
  3) output/dist/publisher_report.md 에서
     - Designer가 낸 WAV를 정의된 MP3, OGG로 변환한 표 (1. 확장자 확인과 변환)
     - 동작 확인 9개 항목 결과 (3. 동작 확인)

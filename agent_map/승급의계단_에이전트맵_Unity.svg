@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1170" viewBox="0 0 1600 1170"
+     font-family="'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif">
+  <title>승급의 계단 에이전트 맵 v4 (Unity 엔진 계획)</title>
+  <defs>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5A5F66"/>
+    </marker>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#A13D3D"/>
+    </marker>
+    <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6E7A49"/>
+    </marker>
+    <style>
+      .t1 { font-size: 16px; font-weight: 700; fill: #1E1F22; }
+      .t2 { font-size: 13px; fill: #1E1F22; }
+      .t3 { font-size: 11px; fill: #5A5F66; }
+      .lt { fill: #E8E6DF; }
+      .lab { font-size: 12px; fill: #5A5F66; }
+      .labr { font-size: 12px; fill: #A13D3D; font-weight: 700; }
+      .labo { font-size: 12px; fill: #4E5733; font-weight: 700; }
+      .e { stroke: #5A5F66; stroke-width: 1.8; fill: none; marker-end: url(#ag); }
+      .ed { stroke: #5A5F66; stroke-width: 1.6; fill: none; stroke-dasharray: 6 5; marker-end: url(#ag); }
+      .er { stroke: #A13D3D; stroke-width: 2; fill: none; stroke-dasharray: 7 5; marker-end: url(#ar); }
+      .eo { stroke: #6E7A49; stroke-width: 2.4; fill: none; marker-end: url(#ao); }
+      .agent { fill: #E8E6DF; stroke: #5A5F66; stroke-width: 2.5; }
+      .qa { fill: #F4F3EE; stroke: #6E7A49; stroke-width: 2.5; }
+      .paper { fill: #FFFFFF; stroke: #5A5F66; stroke-width: 1.5; }
+      .pill { font-size: 11px; font-weight: 700; fill: #FFFFFF; }
+    </style>
+  </defs>
+  <rect width="1600" height="1170" fill="#FFFFFF"/>
+
+  <!-- 제목 -->
+  <text x="40" y="44" font-size="24" font-weight="700" fill="#1E1F22">승급의 계단 에이전트 맵 <tspan fill="#3E6A8E">· Unity 엔진 계획</tspan></text>
+  <text x="40" y="68" font-size="13" fill="#5A5F66">v4 · 2026-11-25 · 게임 엔진을 웹(Canvas)에서 Unity로 옮기는 계획안. 에이전트 구성과 QA 고침 반복(최대 11번)은 그대로, 파란 Unity 표시가 바뀌는 부분</text>
+
+  <!-- ===== 1줄: 입력 ===== -->
+  <!-- 원본 리소스 DB -->
+  <path d="M40,108 A145,14 0 0 1 330,108 V178 A145,14 0 0 1 40,178 Z" class="paper"/>
+  <path d="M40,108 A145,14 0 0 0 330,108" fill="none" stroke="#5A5F66" stroke-width="1.5"/>
+  <text x="185" y="140" text-anchor="middle" class="t1" font-size="14">원본 리소스 데이터베이스</text>
+  <text x="185" y="159" text-anchor="middle" class="t2" font-size="12">data/원본리소스_DB.json</text>
+  <text x="185" y="176" text-anchor="middle" class="t3">스타일 · 배경 · 사운드 (Designer 전용)</text>
+
+  <!-- 기획서 -->
+  <rect x="560" y="92" width="480" height="92" rx="16" fill="#1E1F22"/>
+  <text x="800" y="124" text-anchor="middle" font-size="16" font-weight="700" class="lt">프로토 기획서 (Figma → docs/GDD.md)</text>
+  <text x="800" y="148" text-anchor="middle" font-size="13" class="lt">00 비전 캔버스 · 01 게임 컨셉 · 02 게임 스토리</text>
+  <text x="800" y="168" text-anchor="middle" font-size="13" class="lt">03 디자인 컨셉 · 04 게임 메카니즘 · 05 화면 설계서</text>
+
+  <!-- 컨셉 아트 -->
+  <path d="M1180,92 H1540 L1560,112 V184 H1180 Z" class="paper"/>
+  <path d="M1540,92 V112 H1560" fill="none" stroke="#5A5F66" stroke-width="1.5"/>
+  <text x="1370" y="120" text-anchor="middle" class="t1" font-size="15">컨셉 아트 <tspan fill="#6E7A49" font-size="12">v3 추가</tspan></text>
+  <text x="1370" y="142" text-anchor="middle" class="t2" font-size="12">data/concept/ 05-1 타이틀 · 05-2 로비 · 05-3 플레이 · 05-5 결과</text>
+  <text x="1370" y="162" text-anchor="middle" class="t3">regions.json: 뽑을 영역 · 화면별 번호 요소</text>
+  <text x="1370" y="177" text-anchor="middle" class="t3">(Figma 컨셉 이미지를 내보낸 것)</text>
+
+  <!-- ===== 2줄: Mechanics, 컨셉 스프라이트 뽑기 ===== -->
+  <rect x="580" y="214" width="440" height="104" rx="14" fill="#E8E6DF" stroke="#8A9A5B" stroke-width="3.5"/>
+  <rect x="594" y="226" width="104" height="22" rx="11" fill="#6E7A49"/>
+  <text x="646" y="241" text-anchor="middle" class="pill">① 먼저 실행</text>
+  <text x="800" y="248" text-anchor="middle" class="t1">Mechanics</text>
+  <text x="800" y="271" text-anchor="middle" class="t2">기획서 04로 1~100층 규칙과 수치를 확정 (코드는 쓰지 않음)</text>
+  <text x="800" y="291" text-anchor="middle" class="t2">검사기 validate() 통과 못 하면 최대 2회 다시 요청</text>
+  <text x="800" y="310" text-anchor="middle" class="t3">stairs_agents/mechanics.py · prompts/mechanics.md</text>
+
+  <rect x="1180" y="214" width="380" height="96" rx="12" fill="#FFFFFF" stroke="#6E7A49" stroke-width="2"/>
+  <text x="1370" y="240" text-anchor="middle" class="t1" font-size="14">컨셉 스프라이트 뽑기 <tspan fill="#6E7A49" font-size="12">v3 추가</tspan></text>
+  <text x="1370" y="260" text-anchor="middle" class="t2" font-size="12">영역 자르기 → 배경 지우기 → 프레임 크기 → 색 줄이기</text>
+  <text x="1370" y="278" text-anchor="middle" class="t2" font-size="12">→ Designer 명세와 같은 글자 격자와 참고 PNG</text>
+  <text x="1370" y="298" text-anchor="middle" class="t3">concept.py · 스킬 .claude/skills/concept-sprite-extraction</text>
+
+  <!-- ===== 3줄: 생산 에이전트와 공통 문서 ===== -->
+  <!-- Designer -->
+  <rect x="40" y="352" width="430" height="112" rx="14" class="agent"/>
+  <rect x="54" y="364" width="92" height="22" rx="11" fill="#5A5F66"/>
+  <text x="100" y="379" text-anchor="middle" class="pill">② 동시 실행</text>
+  <text x="255" y="388" text-anchor="middle" class="t1">Designer</text>
+  <text x="255" y="411" text-anchor="middle" class="t2">스프라이트 · 배경 · 사운드를 에셋별로 설계 (2배 밀도)</text>
+  <text x="255" y="431" text-anchor="middle" class="t2">명세(JSON) → PNG 스프라이트 시트 · WAV (Unity가 그대로 가져감)</text>
+  <text x="255" y="452" text-anchor="middle" class="t3">designer.py · render.py · synth.py · prompts/designer_*.md</text>
+
+  <!-- Developer -->
+  <rect x="1130" y="352" width="430" height="112" rx="14" class="agent"/>
+  <rect x="1144" y="364" width="92" height="22" rx="11" fill="#5A5F66"/>
+  <text x="1190" y="379" text-anchor="middle" class="pill">② 동시 실행</text>
+  <text x="1345" y="388" text-anchor="middle" class="t1">Developer <tspan fill="#3E6A8E" font-size="12">Unity</tspan></text>
+  <text x="1345" y="411" text-anchor="middle" class="t2">C# 스크립트 · 씬 5종 · 프리팹 (보통 · 무한 · 연습 모드)</text>
+  <text x="1345" y="431" text-anchor="middle" class="t2">수치는 GameConfig, 스프라이트 정의는 SpriteCatalog(ScriptableObject)</text>
+  <text x="1345" y="452" text-anchor="middle" class="t3">Assets/Scripts · Assets/Scenes · developer.py · prompts/developer.md</text>
+
+  <!-- mechanics.json -->
+  <path d="M640,348 H940 L960,368 V404 H640 Z" class="paper"/>
+  <path d="M940,348 V368 H960" fill="none" stroke="#5A5F66" stroke-width="1.5"/>
+  <text x="800" y="374" text-anchor="middle" class="t1" style="font-size:14px">mechanics.json → GameConfig.asset</text>
+  <text x="800" y="394" text-anchor="middle" class="t3">Unity에서 ScriptableObject로 가져와 수치를 한곳에 둔다</text>
+
+  <!-- 공통 에셋 목록 -->
+  <path d="M640,424 H940 L960,444 V484 H640 Z" class="paper"/>
+  <path d="M940,424 V444 H960" fill="none" stroke="#5A5F66" stroke-width="1.5"/>
+  <text x="800" y="450" text-anchor="middle" class="t1" font-size="15">공통 에셋 목록</text>
+  <text x="800" y="470" text-anchor="middle" class="t3">docs/ASSET_LIST.md · 에셋 ID · 변형 · 애니메이션 이름</text>
+  <text x="800" y="502" text-anchor="middle" class="t3">모든 에이전트와 QA가 같은 이름으로 검사 (contract.py)</text>
+
+  <!-- ===== 4줄: QA 에이전트 ===== -->
+  <rect x="40" y="516" width="430" height="100" rx="14" class="qa"/>
+  <rect x="54" y="528" width="70" height="22" rx="11" fill="#6E7A49"/>
+  <text x="89" y="543" text-anchor="middle" class="pill">QA</text>
+  <text x="255" y="548" text-anchor="middle" class="t1">Designer QA <tspan fill="#6E7A49" font-size="12">v3 추가</tspan></text>
+  <text x="255" y="570" text-anchor="middle" class="t2" font-size="12">에셋 계약 · 빈 프레임 · 2배 밀도 · 팔레트 · 컨셉 대조(색 거리 · 실루엣)</text>
+  <text x="255" y="588" text-anchor="middle" class="t2" font-size="12">+ Claude 시각 검토 (컨셉 | 만든 프레임 대조표) · 가져오기 설정 확인</text>
+  <text x="255" y="606" text-anchor="middle" class="t3">qa_designer.py · prompts/qa_designer.md → qa_out/designer_qa.md</text>
+
+  <rect x="1130" y="516" width="430" height="100" rx="14" class="qa"/>
+  <rect x="1144" y="528" width="70" height="22" rx="11" fill="#6E7A49"/>
+  <text x="1179" y="543" text-anchor="middle" class="pill">QA</text>
+  <text x="1345" y="548" text-anchor="middle" class="t1">Developer QA <tspan fill="#3E6A8E" font-size="12">Unity</tspan></text>
+  <text x="1345" y="570" text-anchor="middle" class="t2" style="font-size:12px">C# 컴파일 · EditMode 테스트 · GameConfig 수치 · 입력 · 씬 5종</text>
+  <text x="1345" y="588" text-anchor="middle" class="t2" style="font-size:12px">SpriteCatalog 계약 + Claude 코드 검토 (판정 규칙 · 버그 위험)</text>
+  <text x="1345" y="606" text-anchor="middle" class="t3">qa_developer.py · prompts/qa_developer.md → qa_out/developer_qa.md</text>
+
+  <!-- ===== 5줄: 산출물 ===== -->
+  <path d="M110,660 L140,646 H170 L184,660 H400 V708 H110 Z" class="paper"/>
+  <text x="255" y="682" text-anchor="middle" class="t1" font-size="15">디자인 파일</text>
+  <text x="255" y="700" text-anchor="middle" class="t2" font-size="12">PNG 스프라이트 맵 · 이미지 · WAV</text>
+
+  <path d="M1150,660 L1180,646 H1210 L1224,660 H1340 V708 H1150 Z" class="paper"/>
+  <text x="1245" y="682" text-anchor="middle" class="t1" font-size="15">C# · 씬</text>
+  <text x="1245" y="700" text-anchor="middle" class="t2" font-size="11">Assets/Scripts · Scenes</text>
+  <path d="M1360,646 H1540 L1560,666 V708 H1360 Z" class="paper"/>
+  <path d="M1540,646 V666 H1560" fill="none" stroke="#5A5F66" stroke-width="1.5"/>
+  <text x="1460" y="672" text-anchor="middle" class="t1" font-size="14">SpriteCatalog.asset</text>
+  <text x="1460" y="690" text-anchor="middle" class="t3">시트 · 프레임 · 애니메이션</text>
+  <text x="1460" y="703" text-anchor="middle" class="t3">오디오: WAV · OGG</text>
+
+  <!-- ===== 6줄: Publisher ===== -->
+  <rect x="300" y="742" width="780" height="104" rx="14" fill="#E8E6DF" stroke="#A13D3D" stroke-width="3.5"/>
+  <rect x="314" y="754" width="104" height="22" rx="11" fill="#A13D3D"/>
+  <text x="366" y="769" text-anchor="middle" class="pill">③ 마지막 실행</text>
+  <text x="690" y="774" text-anchor="middle" class="t1">Publisher <tspan fill="#3E6A8E" font-size="12">Unity</tspan></text>
+  <text x="690" y="796" text-anchor="middle" class="t2" font-size="12">1. Unity로 가져오기 (TextureImporter: Point · 무압축 · Sprite Atlas, AudioImporter)   2. SpriteCatalog로 연결</text>
+  <text x="690" y="815" text-anchor="middle" class="t2" font-size="12">3. Unity Test Runner PlayMode 9개 항목 (100층 승급 · 게임 오버 · 일시정지 · 모드 전환 등)</text>
+  <text x="690" y="834" text-anchor="middle" class="t2" font-size="12">4. Unity CLI 빌드 (-batchmode -buildTarget WebGL · Windows) · zip · 보고서 · 화면 캡처</text>
+
+  <!-- ===== 7줄: 게임, 화면 대조 QA ===== -->
+  <rect x="380" y="884" width="620" height="78" rx="16" fill="#1E1F22"/>
+  <text x="690" y="914" text-anchor="middle" font-size="16" font-weight="700" class="lt">Unity 빌드 (1~100층 · 무한 모드 · 연습 모드)</text>
+  <text x="690" y="940" text-anchor="middle" font-size="13" class="lt">WebGL(브라우저) · Windows(PC) · Builds/승급의계단_*.zip</text>
+
+  <rect x="1130" y="872" width="430" height="100" rx="14" class="qa"/>
+  <rect x="1144" y="884" width="70" height="22" rx="11" fill="#6E7A49"/>
+  <text x="1179" y="899" text-anchor="middle" class="pill">QA</text>
+  <text x="1345" y="904" text-anchor="middle" class="t1">화면 대조 QA <tspan fill="#6E7A49" font-size="12">Developer QA 2단계</tspan></text>
+  <text x="1345" y="926" text-anchor="middle" class="t2" font-size="12">PlayMode ScreenCapture ↔ 컨셉 05-1 · 05-2 · 05-3 · 05-5</text>
+  <text x="1345" y="944" text-anchor="middle" class="t2" font-size="12">구도 · 강조색 자리 · 색 · 밝기 + Claude 시각 검토</text>
+  <text x="1345" y="962" text-anchor="middle" class="t3">qa_screens.py · prompts/qa_screens.md → qa_out/screens_qa.md</text>
+
+  <!-- ===== 8줄: 플레이테스트, LLM 계층, 범례 ===== -->
+  <rect x="1130" y="1012" width="430" height="92" rx="14" fill="#FFFFFF" stroke="#A13D3D" stroke-width="2.5"/>
+  <rect x="1144" y="1024" width="70" height="22" rx="11" fill="#A13D3D"/>
+  <text x="1179" y="1039" text-anchor="middle" class="pill">④ 검증</text>
+  <text x="1345" y="1044" text-anchor="middle" class="t1">플레이테스트 <tspan fill="#3E6A8E" font-size="12">Unity</tspan></text>
+  <text x="1345" y="1066" text-anchor="middle" class="t2" font-size="12">Input System 테스트로 유형별 자동 입력 · tools/sim_spec.py</text>
+  <text x="1345" y="1086" text-anchor="middle" class="t2" font-size="12">빌드 직접 플레이 → docs/PLAYTEST_REPORT.md</text>
+
+  <rect x="620" y="1012" width="460" height="92" rx="12" fill="#FFFFFF" stroke="#5A5F66" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <text x="850" y="1038" text-anchor="middle" class="t1" font-size="14">LLM 호출 계층 (llm.py)</text>
+  <text x="850" y="1058" text-anchor="middle" class="t2" font-size="12">Claude API · 재생(replay/, replay_api/) · 기록(--record)</text>
+  <text x="850" y="1076" text-anchor="middle" class="t2" font-size="12">QA는 이미지도 함께 보내 시각 검토를 받는다</text>
+  <text x="850" y="1094" text-anchor="middle" class="t3">재생 모드는 응답이 같으므로 QA 고침 반복을 1번만 돈다</text>
+
+  <rect x="40" y="992" width="540" height="152" rx="12" fill="#FFFFFF" stroke="#C9CCD1" stroke-width="1.5"/>
+  <path d="M60,1018 H130" class="e"/>  <text x="146" y="1022" class="t2" font-size="12">산출물 전달 · 입력</text>
+  <path d="M60,1044 H130" class="ed"/> <text x="146" y="1048" class="t2" font-size="12">참조 (원본 리소스 · 공통 에셋 목록 · 컨셉 참고)</text>
+  <path d="M60,1070 H130" class="eo"/> <text x="146" y="1074" class="t2" font-size="12">QA 고침 반복: pass가 아니면 고칠 점을 돌려줘 다시 (최대 11번)</text>
+  <path d="M60,1096 H130" class="er"/> <text x="146" y="1100" class="t2" font-size="12">플레이테스트 피드백 (수치 → Mechanics, 화면·문구 → Developer)</text>
+  <text x="60" y="1126" class="t3">실행 순서: ① Mechanics → ② (Designer → Designer QA) ∥ (Developer → Developer QA)</text>
+  <text x="60" y="1140" class="t3">→ ③ Publisher(Unity 가져오기·테스트·빌드) → 화면 대조 QA → ④ 검증</text>
+
+  <!-- ===== 화살표 ===== -->
+  <!-- 기획서에서 -->
+  <path d="M800,184 V210" class="e"/>
+  <text x="810" y="203" class="lab">04</text>
+  <path d="M560,140 H360 V200 H255 V348" class="e"/>
+  <text x="372" y="134" class="lab">03 디자인 컨셉</text>
+  <path d="M1040,140 H1100 V320 H1345 V348" class="e"/>
+  <text x="1048" y="134" class="lab">01 · 04 · 05</text>
+  <!-- 원본 리소스 → Designer -->
+  <path d="M185,192 V348" class="ed"/>
+  <text x="104" y="250" class="lab">필요하면 참조</text>
+  <!-- 컨셉 아트 → 뽑기 -->
+  <path d="M1370,184 V210" class="e"/>
+  <!-- 뽑기 → Designer (참고 격자), → Designer QA (비교 기준) -->
+  <path d="M1180,300 H1060 V332 H300 V348" class="ed"/>
+  <text x="320" y="347" class="lab">참고 격자 · 컨셉 주요 색 (컨셉 스프라이트 뽑기 → Designer)</text>
+  <!-- Mechanics → mechanics.json → Developer -->
+  <path d="M800,318 V344" class="e"/>
+  <path d="M960,386 L1126,404" class="e"/>
+  <text x="996" y="384" class="lab">규칙 · 수치</text>
+  <!-- 공통 에셋 목록 → 두 에이전트 -->
+  <path d="M640,452 L474,440" class="ed"/>
+  <path d="M960,452 L1126,440" class="ed"/>
+  <!-- 생산 → QA -->
+  <path d="M255,464 V512" class="e"/>
+  <path d="M1345,464 V512" class="e"/>
+  <!-- QA 고침 반복 -->
+  <path d="M470,566 H500 V408 H474" class="eo"/>
+  <text x="508" y="480" class="labo">고칠 점 → 다시</text>
+  <text x="508" y="496" class="labo">(최대 11번)</text>
+  <path d="M1130,566 H1100 V408 H1126" class="eo"/>
+  <text x="1092" y="530" text-anchor="end" class="labo">고칠 점 → 다시</text>
+  <text x="1092" y="546" text-anchor="end" class="labo">(최대 11번)</text>
+  <!-- QA 통과 → 산출물 -->
+  <path d="M255,616 V644" class="e"/>
+  <text x="264" y="636" class="lab">pass</text>
+  <path d="M1250,616 V644" class="e"/>
+  <path d="M1460,616 V644" class="e"/>
+  <text x="1258" y="636" class="lab">pass</text>
+  <!-- 산출물 → Publisher -->
+  <path d="M255,708 L420,738" class="e"/>
+  <path d="M1245,708 L1000,738" class="e"/>
+  <path d="M1460,708 L1060,754" class="e"/>
+  <text x="1300" y="736" class="lab">가져오기 설정</text>
+  <!-- Publisher → 게임, → 화면 대조 -->
+  <path d="M690,846 V880" class="e"/>
+  <path d="M1080,810 L1170,868" class="e"/>
+  <text x="1112" y="826" class="lab">ScreenCapture</text>
+  <!-- 화면 대조 고침 반복 → Developer -->
+  <path d="M1560,922 H1584 V408 H1564" class="eo"/>
+  <text x="1577" y="850" text-anchor="start" class="labo" transform="rotate(-90 1577 850)">화면 고칠 점 → Developer → Publisher 다시 (최대 11번)</text>
+  <!-- 게임 → 플레이테스트 -->
+  <path d="M1000,940 L1126,1030" class="e"/>
+  <!-- 플레이테스트 피드백 → Mechanics -->
+  <path d="M1345,1104 V1124 H1596 V200 H990 V210" class="er"/>
+  <text x="1110" y="195" class="labr">플레이테스트 피드백 → Mechanics</text>
+</svg>
