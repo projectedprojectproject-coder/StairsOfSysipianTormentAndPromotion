@@ -15,6 +15,7 @@ const CONFIG = {
   stepDays: 1,             // 계단 1칸 +1일
   parryDays: 1.5,          // 패링 성공 +1.5일
   parryWindow: 0.20,       // 패링 판정 0.20초
+  parryPerfect: 0.035,     // 결정(2026-11-25): 판정 창 한가운데에서 이만큼(초, 약 2프레임) 안에 막으면 '완벽' (새 막기 소리). 그 밖은 예전 막기 소리
   warnTime: 1.0,           // 공격 예고 1.0초 전 표시 (서류 비행 시간과 같음)
   promoteFloors: [20, 40, 60, 80], // 승급 심사 층. 20·40·60층은 승급 뒤 계속 오른다 (결정 2026-11-20: PoC 1~80층)
   practiceFloor: 11,       // 결정(2026-11-20): 연습 모드에서 서 있는 층 (층 바닥 위, 계단을 오르지 않는다)
@@ -209,7 +210,7 @@ const D = DEF || { sprites: {}, images: {}, sounds: {} };
 const ASSET_DIR = (D.assets_dir || 'assets').replace(/\/$/, '');
 const SPRITE_IDS = ['player', 'rival', 'projectiles', 'warning', 'stairs', 'hud_icons', 'props', 'commuter', 'sticky'];
 const IMAGE_IDS = ['bg_zone1', 'bg_zone2', 'bg_zone3', 'bg_zone4', 'bg_zone5', 'title_bg', 'logo', 'bg_lobby', 'bg_result', 'bg_practice'];
-const SOUND_IDS = ['bgm_loop', 'bgm_loop_tense', 'amb_office', 'sfx_step', 'sfx_parry', 'sfx_hit', 'sfx_warning', 'sfx_promote', 'sfx_gameover', 'sfx_click', 'sfx_phone_ring', 'sfx_cue_clipboard', 'sfx_cue_rival', 'sfx_cue_paper', 'sfx_monitor_shatter', 'sfx_light_flicker', 'sfx_cue_coffee', 'sfx_stair_crack', 'sfx_camera_flash', 'sfx_cue_suitcase', 'bgm_stage1', 'bgm_stage2', 'bgm_stage3', 'bgm_stage4', 'bgm_stage5', 'sfx_electric',
+const SOUND_IDS = ['bgm_loop', 'bgm_loop_tense', 'amb_office', 'sfx_step', 'sfx_parry', 'sfx_parry_perfect', 'sfx_hit', 'sfx_warning', 'sfx_promote', 'sfx_gameover', 'sfx_click', 'sfx_phone_ring', 'sfx_cue_clipboard', 'sfx_cue_rival', 'sfx_cue_paper', 'sfx_monitor_shatter', 'sfx_light_flicker', 'sfx_cue_coffee', 'sfx_stair_crack', 'sfx_camera_flash', 'sfx_cue_suitcase', 'bgm_stage1', 'bgm_stage2', 'bgm_stage3', 'bgm_stage4', 'bgm_stage5', 'sfx_electric',
                    'sfx_cue_stapler', 'sfx_cue_sticky', 'sfx_cue_airplane', 'sfx_gaze_warn', 'sfx_gaze_laser', 'sfx_vanish', 'sfx_escalator'];   // 새 장애물마다 다른 소리 (2026-11-25)
 const A = { sprites: {}, images: {} };
 let pending = 0;
@@ -886,7 +887,8 @@ function gainParry(r, p) {
   r.maxCombo = Math.max(r.maxCombo, r.combo);
   r.days = Math.min(CONFIG.maxDays, r.days + CONFIG.parryDays);
   r.score += CONFIG.parryPoints * r.mult;
-  sfx('sfx_parry');
+  const s = p.side < 0 ? 0 : 1, perfect = p.type === 'airplane' || Math.abs(p.impactT - r.parryStart[s] - CONFIG.parryWindow / 2) <= CONFIG.parryPerfect;
+  sfx(perfect ? 'sfx_parry_perfect' : 'sfx_parry');   // 완벽하게 막으면 더 짜릿한 소리
   const px = playerScreenX() + p.side * 10;
   for (let k = 0; k < 8; k++) {
     const a = r.decor() * Math.PI * 2;

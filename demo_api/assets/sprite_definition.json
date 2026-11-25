@@ -694,6 +694,12 @@
         "mp3": "sfx_escalator.mp3",
         "ogg": "sfx_escalator.ogg"
       }
+    },
+    "sfx_parry_perfect": {
+      "files": {
+        "mp3": "sfx_parry_perfect.mp3",
+        "ogg": "sfx_parry_perfect.ogg"
+      }
     }
   }
 }
