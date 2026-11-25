@@ -145,7 +145,7 @@ const STICKY_COLORS = ['white', 'white', 'yellow', 'green', 'blue', 'pink'];   /
 const RANK_COLORS = [PAL.gray, PAL.green, PAL.red, PAL.text, PAL.text];
 const W = 320, H = 180;
 const STEP = 1 / 60;
-const ONCE = new Set(['step', 'parry_left', 'parry_right', 'hit', 'box_exit', 'proud', 'attack', 'leave']);
+const ONCE = new Set(['step', 'climb_r', 'climb_l', 'down', 'parry_left', 'parry_right', 'hit', 'box_exit', 'proud', 'attack', 'leave']);
 
 const params = new URLSearchParams(location.search);
 const BOT = params.get('bot') === '1';
