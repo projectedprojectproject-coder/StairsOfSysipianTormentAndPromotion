@@ -28,7 +28,7 @@
 | `Assets/Scripts/Game` (Stairs.Game) | `GameController` 화면 전환·입력·월드 그리기(계단, 플레이어, 경쟁 사원, 위협, 불꽃, 플래시), `GameUi`+`UiKit` uGUI HUD·메뉴(코드로 만듦), `SaveData` PlayerPrefs 기록, `AudioDirector` 20층마다 단계 음악과 효과음, `SpriteCatalog`·`GameConfigAsset` ScriptableObject | `screen`, `drawPlayWorld`, `drawHud`, `drawTitle`, `drawLobby`, `drawPause`, `drawHelp`, `drawResult`, `save`, `syncAudio` |
 | `Assets/Editor` | `StairsAssetImporter`(웹 에셋 가져오기, 씬 만들기), `MiniJson` | Publisher의 연결 단계 |
 | `Assets/Tests/EditMode` | `ParityTests`: 난수, 계단 방향, 금 간·젖은 칸 목록이 웹과 같은지(node로 뽑은 기대값), 젖은 칸 감전, 봇이 100층 CEO까지 오르는지, 경쟁 사원의 잠금 쪽·잠금 시각·늦게 따라잡을 때 미뤄지는 공격·패링 소리 순서 | Publisher 동작 확인 |
-| `Tools~` (Unity가 가져오지 않음) | `rival_expect.js`: 웹 `game.js`를 node에서 돌려 경쟁 사원 테스트 기대값을 다시 뽑는다 (`node unity/StairsOfPromotion/Tools~/rival_expect.js demo_api/game.js`) | |
+| `Tools~` (Unity가 가져오지 않음) | `rival_expect.js`: 웹 `game.js`를 node에서 돌려 경쟁 사원 테스트 기대값을 다시 뽑는다. `cs_core.js`: C# Core를 한 줄씩 옮긴 JS. `playtest.js`: 웹과 `cs_core.js`를 같은 seed로 돌려 사건 기록을 맞대어 본다 (아래 "플레이테스트") | |
 
 규칙은 Core에만 있고 화면을 모르기 때문에 웹과 같은 seed면 같은 계단, 같은 금 간·젖은 칸이 나온다.
 수치는 `Assets/Settings/GameConfig.asset` 인스펙터에서 고친다 (기본값은 demo_api의 CONFIG, 한 층 6칸).
@@ -58,11 +58,41 @@
 - **일시정지**: Esc 또는 창이 가려지면 멈춘다. 계속하기 · 조작법(웹 drawHelp 내용) · 소리 켜짐/꺼짐 · 메인으로.
 - **테스트**: 기존 6개는 그대로 두고(봇 테스트는 `Bot = true`로 웹과 같은 순서), 경쟁 사원 5개를 더했다. 기대값은 웹 `game.js`를 node로 돌려 뽑았고
   (`Tools~/rival_expect.js`), 웹 봇은 seed 1~4 모두 경쟁 사원과 함께 100층 CEO에 닿는 것을 node로 확인했다.
-  프레임 번호는 웹(double)과 Core(float)의 시간 누적 차이로 한 프레임 갈릴 수 있어 ±1~2를 허용했다.
+  (플레이테스트 뒤 Core를 double로 바꿔 지금은 프레임 번호까지 정확히 맞춘다.)
+
+## 플레이테스트와 고친 것 (2026-11-25, Unity 없이)
+
+Unity를 설치하지 못해(샌드박스가 Program Files에 쓰지 못함) Unity 없이 두 갈래로 확인했다.
+
+1. **규칙 플레이테스트 (node)**: `Tools~/cs_core.js`는 C# Core(`Mulberry32`, `StairLayout`, `RunSimulation`)를 한 줄씩 옮긴 JS다.
+   `node unity/StairsOfPromotion/Tools~/playtest.js demo_api/game.js` 가 웹 `game.js`와 이것을 같은 seed·모드로 1/60초씩 돌려
+   사건 기록(공격, 경쟁 사원 잠금, 패링, 하트, 층, 승급, 끝난 까닭)과 점수를 맞대어 본다.
+   - 봇: 보통 6판(모두 100층 CEO), 무한 3판(4분, 196층), 연습 2판 / 사람 흉내: 오르기만(하트 소진, 무한은 감전), 가만히(하트 소진), 틀린 쪽(하트 소진), 느리게.
+   - **처음 결과: 보통·무한 9판이 웹과 달랐다** (예: seed 1 점수 웹 110,160 / Unity 146,700). 규칙은 같았다:
+     `cs_core.js`를 double로 돌리면 11판이 모두 같았다. 원인은 C# `float`였다. 2분 동안 시간·봇 타이머가 쌓이며 오차가 커지고,
+     `0.33f`, `0.19f` 같은 수치가 웹의 0.33, 0.19와 조금씩 달라 한두 프레임씩 밀렸다. 그 결과 경쟁 사원 잠금이 0.15초 늦어지고
+     오르는 순간의 배수가 달라 점수가 갈렸다.
+   - **고침**: Core 상태를 모두 `double`로 바꾸고, 인스펙터의 float 수치는 `StairsConfig.D(v) = (double)(decimal)v`로 읽는다
+     (`(double)0.33f`는 0.32999998이지만 `(double)(decimal)0.33f`는 0.33). 이제 위 19판이 **모두 웹과 프레임 단위로 같다**.
+     `GameController`도 웹처럼 1/60초 고정 간격(`RunSimulation.Step60`, 한 번에 최대 0.1초)으로 `Tick`한다.
+   - `ParityTests`: 경쟁 사원 테스트의 ±1~2 허용을 없애고 웹 값과 정확히 비교한다. 한 판 전체(보통 seed 1·2, 무한 7, 연습 10)의
+     점수·패링 수·최고 콤보를 웹과 비교하는 `BotRun_MatchesWebFrameForFrame`, 수치 읽기 `ConfigValues_ReadAsWebDoubles`를 더했다.
+2. **코드 다시 읽기**로 찾아 고친 Unity 쪽 버그:
+   - 끝난 뒤 결과로 넘어가기 전 1초(endDelay)에 Esc를 누르면 일시정지가 열리고 "계속하기"가 끝난 판을 거부해 **일시정지 화면에 갇혔다**.
+     이제 그 1초에는 일시정지하지 않고, 계속하기도 끝난 판을 받아 결과로 넘어간다.
+   - 버튼을 마우스로 누른 뒤 Enter를 치면 EventSystem의 Submit과 키보드 처리가 겹쳐 **두 번 실행**됐다. 버튼의 방향키 이동을 끄고 누른 뒤 선택을 푼다.
+   - `SpriteCatalog.Get`에 음수 시간이 들어오면 **배열 밖 예외**가 났다 (경쟁 사원은 `minAttackGap` 때문에 등장 시각이 미뤄지면 생길 수 있다).
+     웹처럼 0으로 자르고, 한 번만 도는 동작(step, parry, hit, box_exit, proud, attack, leave)은 웹 `ONCE`처럼 마지막 프레임에 멈춘다 (결과 화면에서 상자 들고 나가는 동작이 되풀이되던 것).
+   - 연습 모드에 웹에는 없는 계단이 그려졌다 → 그리지 않는다. 층 바닥(콘크리트 슬래브)을 그려 경쟁 사원이 허공을 걷지 않게 했다.
+   - "!" 예고가 경쟁 사원에게만 있었다 → 모든 위협 위에 "!", 커피 위에는 "막지 말라"는 빨간 ×.
+   - 카메라 플래시가 사라지지 않고 같은 밝기였다 → 웹처럼 줄어든다. 맞았을 때 붉은 번쩍임을 웹 세기(0.35)로, 금 간 계단은 흔들림과 함께 붉어진다.
+   - 비활성 패널에서 `GetComponentsInChildren`이 테두리를 못 찾던 것(`includeInactive`).
 
 ## 아직 웹과 다른 점 (다음 단계)
 
 - **컴파일 확인 못 함**: 이 환경에 Unity와 .NET(최신 csc)이 없어 C#을 한 번도 컴파일하지 못했고 EditMode 테스트도 돌리지 못했다.
+  규칙은 위 node 플레이테스트로 웹과 같음을 확인했지만, 그것은 C#을 옮긴 JS로 확인한 것이라 C# 자체의 컴파일·실행과는 다르다.
+  화면(배치, 글꼴, 스프라이트 위치)도 눈으로 보지 못했다.
   처음 열 때 콘솔 오류나 테스트 실패가 나오면 그 내용을 알려 주면 고친다. 특히 확인할 것: `using static Stairs.Game.UiKit` 이름 충돌,
   Input System의 `InputSystemUIInputModule`(ugui 패키지가 있어야 켜짐), 레거시 `Text`의 한글 표시.
 - 위협의 비행 경로(서류가방이 터지며 쏟아지는 것, 모니터 유리 조각, 커피 × 표시, 포스트잇 색별 튕김 궤적)가 웹보다 단순하다. `Threat.debris`·`wob`·`ph`는 Core에 있지만 아직 안 그린다.
