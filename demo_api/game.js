@@ -430,6 +430,7 @@ let result = null;
 let resultLock = 0;
 let settingsOpen = false;
 let helpOpen = false; // 조작법 화면
+let QA_HOOK = null;   // QA: 그리기 자리를 알린다 (평소에는 null. tools/qa_physics.js가 쓴다)
 let demo = null;      // 장애물 보기 (조작법·결과 화면에서 연다)
 let runCount = 0;
 let toastText = '', toastUntil = 0;
@@ -872,22 +873,19 @@ function updatePlay(dt) {
     // 패링 타이밍 소리: 소리의 박이 패링하기 가장 좋은 순간(도착 0.1초 전)에 온다. 경쟁 사원은 막을 쪽이 정해진 뒤에만
     const cue = CONFIG.cues[p.type];
     if (cue && p.type !== 'chair' && !p.cued && !p.done && p.locked !== false && r.time >= p.impactT - cue[1]) { p.cued = true; sfx(cue[0]); log('cue ' + p.type); }
-    if (p.type === 'chair') {                  // 튀어 내려오는 의자: 두 칸씩 내려앉고, 내 칸에 내려앉을 때만 맞는다 (그 순간 막으면 막힌다)
+    if (p.type === 'chair') {                  // 튀어 내려오는 의자: 두 칸씩 튀며 내려오고, 플레이어 몸에 닿는 순간 맞는다 (그 순간 오는 쪽 막기가 켜져 있으면 막힌다)
       if (p.done) continue;
       if (p.fallT !== null) { if (r.time >= p.fallT + 0.6) p.done = true; continue; }   // 계단 밖으로 떨어지는 중
+      const c = chairPos(p, r.time);
+      if (c.phase === 'fall') { p.fallT = c.tPeak; log('chair off'); continue; }       // 앞에 칸이 없다
       const nh = chairHitT(r, p);
       if (nh && p.cueK !== nh.k && r.time >= nh.t - CONFIG.cues.chair[1]) { p.cueK = nh.k; sfx('sfx_cue_chair'); log('cue chair'); }
-      while (r.time >= p.spawnT + (p.k + 1) * CONFIG.chairHop) {
-        p.k++; const th = p.spawnT + p.k * CONFIG.chairHop, j = 6 - 2 * p.k;
-        if (j < -p.down) { p.fallT = th; log('chair off'); break; }                    // 앞에 칸이 없다
-        if (j <= p.up && p.s0 + j === r.steps) {                                         // 내 칸에 내려앉았다
-          const cs = p.side < 0 ? 0 : 1; p.done = true;
-          if (r.parryStart[cs] <= th && th <= r.parryEnd[cs]) gainParry(r, p, th);
-          else { r.lastKind = 'chair'; loseHeart('attack'); }
-          break;
-        }
+      if (c.phase !== 'pre' && chairTouches(r, c)) {                                    // 몸에 닿았다
+        const cs = p.side < 0 ? 0 : 1; p.done = true;
+        if (r.parryStart[cs] <= r.time && r.time <= r.parryEnd[cs]) gainParry(r, p, r.time);
+        else { r.lastKind = 'chair'; loseHeart('attack'); }
+        if (r.ended) break;
       }
-      if (r.ended) break;
       continue;
     }
     if (p.type === 'envelope') {               // 편지 3연발: 한 장씩 도착할 때 그 쪽 막기가 켜져 있어야 한다
@@ -942,12 +940,32 @@ function updatePlay(dt) {
 }
 // 막기에 성공했을 때 (점수·콤보·일수·불꽃·글자). 종이비행기 편대는 다 막은 뒤 한 번
 // 의자가 다음에 플레이어 칸에 내려앉는 때 {k, t} (내려앉지 않으면 null). 의자는 생길 때 칸(s0)에서 6, 4, 2, 0, -2 ... 칸에 내려앉는다
+// 의자 자리(world, 의자 가운데). 생길 때 칸(s0)의 계단 줄을 따라: 첫 실제 칸(j = 6, 4, 2, 0 중 up 이하로 가장 높은 칸)까지는 층참에서 떨어져 들어오고,
+// 두 칸씩 30px 아치로 튀며(칸 윗면에 내려앉는다), 앞에 칸이 없는 튀기는 꼭대기부터 그대로 떨어진다. phase: pre·drop·hop·fall
+const CHAIR_ARC = 30;
+function chairPos(p, T) {
+  const s = p.side, n0 = p.s0, hop = CONFIG.chairHop, dx = Math.abs(stairX(n0 + 1) - stairX(n0)) || CONFIG.stepW;
+  const L = function (j) { return [stairX(n0) + s * j * dx, -(n0 + j) * CONFIG.stepH - 7]; };
+  const kF = Math.max(0, Math.ceil((6 - p.up) / 2)), jF = 6 - 2 * kF, kOff = Math.floor((6 + p.down) / 2) + 1, tPeak = p.spawnT + (kOff - 0.5) * hop;
+  const t = T - p.spawnT;
+  if (T >= tPeak) { const a = L(8 - 2 * kOff), b = L(6 - 2 * kOff), e = T - tPeak; return { x: (a[0] + b[0]) / 2 + (b[0] - a[0]) / hop * e, y: (a[1] + b[1]) / 2 - CHAIR_ARC + 350 * e * e, phase: 'fall', e: e, tPeak: tPeak }; }
+  if (t < 0) { const q = L(6); return { x: q[0], y: q[1] - (p.up < 6 ? 40 : 0), phase: 'pre', tPeak: tPeak }; }
+  if (t < kF * hop) { const u = t / (kF * hop), a = L(6), b = L(jF); return { x: lerp(a[0], b[0], u), y: lerp(a[1] - 40, b[1], u * u), phase: 'drop', u: u, tPeak: tPeak }; }
+  const f = t / hop, k = Math.floor(f), u = f - k, a = L(6 - 2 * k), b = L(4 - 2 * k);
+  return { x: lerp(a[0], b[0], u), y: lerp(a[1], b[1], u) - Math.sin(u * Math.PI) * CHAIR_ARC, phase: 'hop', u: u, tPeak: tPeak };
+}
+// 의자 상자(가운데 ±7, ±8)가 플레이어 몸(발, 가로 ±6, 높이 26)에 닿는가. 플레이어 자리는 보이는 자리(pvx, pvy: 칸 사이를 미끄러지는 중이면 그 자리)
+function chairTouches(r, c) {
+  const fx = r.pvx, fy = r.pvy;
+  return Math.abs(c.x - fx) < 13 && c.y + 8 > fy - 26 && c.y - 8 < fy;
+}
+// 의자가 다음에 플레이어 몸에 닿을 때 {k, t} (1.5초 안에, 플레이어가 지금 자리에 그대로 있다면). 없으면 null
 function chairHitT(r, p) {
   if (p.fallT !== null) return null;
-  for (let k = p.k + 1; k <= p.k + 8; k++) {
-    const j = 6 - 2 * k;
-    if (j < -p.down) return null;
-    if (j <= p.up && p.s0 + j === r.steps) return { k: k, t: p.spawnT + k * CONFIG.chairHop };
+  for (let i = 1; i <= 90; i++) {
+    const T = r.time + i / 60, c = chairPos(p, T);
+    if (c.phase === 'fall') return null;
+    if (c.phase !== 'pre' && chairTouches(r, c)) return { k: Math.round(T * 60), t: T };
   }
   return null;
 }
@@ -1472,6 +1490,7 @@ function drawPlayWorld() {
     }
   }
   for (let dy = -30; dy <= 0; dy += 2) { const k = (dy + 15) / 17, w = Math.sqrt(Math.max(0, 1 - k * k)) * 13; rect(px - w, PLAYER_Y + dy, w * 2, 2, '#F2E6D0', 0.06); }   // 플레이어 뒤 은은한 빛
+  if (QA_HOOK) QA_HOOK('player', null, px, PLAYER_Y + 2 + pdy);
   drawSprite('player', CONFIG.rankNames[r.rankIdx], anim, r.time - r.animStart, px, PLAYER_Y + 2 + pdy, po);
   // 투척물 + 예고
   // 월드 좌표 -> 화면 좌표 (경쟁 사원 발 위치)
@@ -1515,6 +1534,7 @@ function drawPlayWorld() {
       } else if (anim === 'walk' && p.phase === 'walk') {                       // 층 바닥을 달려올 때: 들썩이며 앞으로 기운다
         y -= Math.abs(Math.sin(at * 16)) * 2; ro.rot = (x > px ? -1 : 1) * 0.1; at *= 1.6;
       }
+      if (QA_HOOK) QA_HOOK('rival', p, x, y);
       drawSprite('rival', 'default', anim, at, x, y, ro);
       if (p.waiting && showMarks()) txt('…', x + 10, y - 36, { align: 'center', base: 'middle', size: 9, bold: true, color: '#E3B65C' });   // 계단 장애물 앞에서 기다리는 중
       if (r.time >= p.spawnT && showMarks()) {
@@ -1554,6 +1574,7 @@ function drawPlayWorld() {
       const x0 = p.side < 0 ? -16 : W + 16;
       x = lerp(x0, tx, prog); y = ty - Math.sin(prog * Math.PI) * 6;
     }
+    if (QA_HOOK) QA_HOOK('proj', p, x, y);
     // 회전: 모니터·전화기는 불규칙하게 빙글빙글, 결재판은 납작한 판이 수평으로 도는 것처럼 폭이 줄었다 늘었다 한다
     const so = { anchor: 'c', fw: 12, fh: 9, color: PAL.text, flip: p.side > 0 };
     let at = r.time - p.spawnT;
@@ -1641,24 +1662,17 @@ function drawChair(x, y, rot, o) {   // 사무실 의자 (obstacles.png chair, �
   rect(-1, 0, 2, 4, '#9AA0A8'); rect(-5, 4, 10, 1, '#2A2C31'); rect(-5, 5, 2, 2, '#1E1F22'); rect(3, 5, 2, 2, '#1E1F22');
   ctx.restore();
 }
-function drawRollingChair(p, px) {   // 튀어 내려오는 의자: 정해진 계단 줄(생길 때 칸)을 따라 두 칸씩 아치를 그리며 내려앉는다.
-  // 위쪽에 칸이 없는 높이에서는 층참에서 날아 들어오고, 앞에 칸이 없으면 계단 밖으로 떨어진다. 내려앉을 때 눌리고, 공중에서는 아치를 따라 기운다
-  const r = run, s = p.side, n0 = p.s0;
-  const dx = Math.abs(stairX(n0 + 1) - stairX(n0)) || CONFIG.stepW;
-  const line = function (j) { return [160 + (stairX(n0) + s * j * dx - r.camX), PLAYER_Y + (-(n0 + j) * CONFIG.stepH - r.camY) - 7]; };
-  let x, y, rot, ground = false;
-  if (p.fallT !== null && r.time >= p.fallT) {                             // 계단 밖으로 떨어진다
-    const e = r.time - p.fallT, q = line(-p.down);
-    x = q[0] - s * dx * 5 * e; y = q[1] - 10 * e + 320 * e * e; rot = -s * e * 12;
-  } else if (r.time < p.spawnT) { const q = line(6); x = q[0]; y = q[1]; rot = -s * 0.3; ground = true; }
-  else {
-    const f = (r.time - p.spawnT) / CONFIG.chairHop, k = Math.floor(f), u = f - k;
-    const a = line(6 - 2 * k), b = line(4 - 2 * k);
-    x = lerp(a[0], b[0], u); y = lerp(a[1], b[1], u) - Math.sin(u * Math.PI) * 16;   // 두 칸을 건너는 아치
-    ground = u < 0.12 || u > 0.92; rot = -s * (0.3 + (u - 0.5) * 0.7);
-  }
+function drawRollingChair(p, px) {   // 튀어 내려오는 의자: 자리는 chairPos(규칙과 같다). 내려앉을 때 눌리고, 공중에서는 아치를 따라 기운다
+  const r = run, s = p.side;
+  const c = chairPos(p, r.time);                                           // 규칙과 같은 자리
+  const x = 160 + (c.x - r.camX), y = PLAYER_Y + (c.y - r.camY);
+  let rot = -s * 0.3, ground = false;
+  if (c.phase === 'fall') rot = -s * (0.3 + c.e * 10);
+  else if (c.phase === 'drop') rot = -s * (0.3 + c.u * 0.6);
+  else if (c.phase === 'hop') { ground = c.u < 0.1 || c.u > 0.94; rot = -s * (0.3 + (c.u - 0.5) * 0.7); }
+  if (QA_HOOK) QA_HOOK('chair', p, x, y, ground);
   drawChair(x, y, rot, { t: r.time - p.spawnT, flip: s > 0, sx: ground ? 1.16 : 0.95, sy: ground ? 0.82 : 1.06 });
-  if (showMarks() && p.fallT === null && chairHitT(r, p)) {               // 내 칸에 내려앉을 의자에만 "!"
+  if (showMarks() && p.fallT === null && chairHitT(r, p)) {               // 나에게 닿을 의자에만 "!"
     const wx = clamp(x, 8, W - 8), wy = y - 20;
     const wk = drawSprite('warning', 'default', 'blink', r.time - p.spawnT, wx, wy, { anchor: 'c', fw: 8, fh: 12, nofb: true });
     if (!wk && Math.floor(time * 8) % 2 === 0) { rect(wx - 5, wy - 7, 10, 14, PAL.red); txt('!', wx, wy, { align: 'center', base: 'middle', size: 10, bold: true, shadow: false }); }
@@ -1677,6 +1691,7 @@ function drawEnvelopes(p, px, py) {   // px, py: 정해진 자리   // 편지 3�
     const u = clamp((r.time - t0) / dur, 0, 1);
     const ex = lerp(x0, tx, u), ey = ty - Math.sin(u * Math.PI) * 14 + (k % 2) * 3, et = r.time - t0;
     for (let j = 1; j <= 3; j++) rect(ex + p.side * (4 + j * 4) - 1, ey - 1 + (j % 2) * 2, 4, 1, '#E8E6DF', 0.42 - j * 0.12);   // 뒤에 남는 바람 줄
+    if (QA_HOOK) QA_HOOK('envelope', p, ex, ey, k);
     if (!drawSprite('obstacles', 'envelope', 'fly', et + k * 0.13, ex, ey, { anchor: 'c', fw: 12, fh: 12, nofb: true, rot: Math.sin(et * 14 + k) * 0.22, flip: p.side > 0 }))
       drawEnvelope(ex, ey);                                                // 돌며 펄럭이고 흔들린다
   }
@@ -1699,7 +1714,9 @@ function drawAirplanes(p, px, py) {   // px, py: 정해진 자리   // 종이비
     const t0 = p.spawnT + k * CONFIG.airplaneGap;
     if (r.time < t0) continue;
     const u = clamp((r.time - t0) / dur, 0, 1);
-    drawPlane(lerp(x0, tx, u), ty - 6 + (k % 2) * 3 - Math.sin(u * Math.PI) * 10, p.side, r.time - t0 + k * 0.07);
+    const qx = lerp(x0, tx, u), qy = ty - 6 + (k % 2) * 3 - Math.sin(u * Math.PI) * 10;
+    if (QA_HOOK) QA_HOOK('plane', p, qx, qy, k);
+    drawPlane(qx, qy, p.side, r.time - t0 + k * 0.07);
   }
   if (r.time >= p.spawnT && showMarks()) {
     const u = clamp((r.time - p.spawnT) / dur, 0, 1), wx = clamp(lerp(x0, tx, u), 8, W - 8), wy = ty - 26;
