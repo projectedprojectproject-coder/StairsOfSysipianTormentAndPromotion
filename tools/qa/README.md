@@ -8,7 +8,7 @@
 | `run_all.py` | 모든 QA를 한 번에 (위 표의 셋, 단위 테스트, 파이프라인 QA 에이전트 4개). 하나라도 문제면 종료 코드 1 |
 | `edge_close.py` | 고치기: 프레임 테두리에 닿아 잘려 보이는 픽셀을 외곽선으로 닫는다 (`upgrade16.py` 다음에 돌린다) |
 
-**한 번에 모두**: `python tools/qa/run_all.py` — 아래 세 검사기 + `pytest tests/` + 파이프라인 QA 에이전트(Developer QA, Designer QA, Publisher Playwright 동작 확인, Screens QA)를 지금 게임(`demo_api`)에 돌린다. `--fast`는 Publisher·Screens QA를 뺀다.
+**한 번에 모두**: `python tools/qa/run_all.py` (Unity 판: `python Tools~/qa/run_all.py`, WebReference + Unity EditMode 테스트) — 아래 세 검사기 + `pytest tests/` + 파이프라인 QA 에이전트(Developer QA, Designer QA, Publisher Playwright 동작 확인, Screens QA)를 지금 게임(`demo_api`)에 돌린다. `--fast`는 Publisher·Screens QA를 뺀다.
 
 ```
 python tools/qa/run_all.py

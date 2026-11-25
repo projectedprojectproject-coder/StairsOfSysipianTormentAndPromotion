@@ -8,7 +8,9 @@
    Publisher 동작 확인(Playwright 9항목), Screens QA(컨셉 화면 대조)
    — 파이프라인 결과물 자리(output/dev_out, design_out)에 demo_api를 옮겨 놓고 돌린다 (소리는 ffmpeg로 WAV로 바꿔 둔다)
 
-사용: python tools/qa/run_all.py [게임 폴더=demo_api] [--fast]   (--fast: 5번의 Publisher·Screens QA 생략)
+6. (Unity 판에서) Unity EditMode 테스트 — UNITY_EXE 환경 변수로 Unity 경로를 바꿀 수 있다
+
+사용: python tools/qa/run_all.py [게임 폴더=demo_api, Unity 판은 WebReference] [--fast]   (--fast: Publisher·Screens QA·Unity 테스트 생략)
 문제가 하나라도 있으면 종료 코드 1."""
 import json, os, shutil, subprocess, sys, tempfile, time
 from pathlib import Path
@@ -17,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
 args = [a for a in sys.argv[1:] if not a.startswith('--')]
 FAST = '--fast' in sys.argv
-GAME = (ROOT / (args[0] if args else 'demo_api')).resolve()
+GAME = (ROOT / (args[0] if args else ('demo_api' if (ROOT / 'demo_api').exists() else 'WebReference'))).resolve()   # Unity 판에서는 WebReference
 ENV = dict(os.environ, PYTHONIOENCODING='utf-8', STAIRS_TEST_TIMEOUT='900')   # 봇이 100층까지 오르는 데 4분 넘게 걸린다
 results = []
 
@@ -63,6 +65,13 @@ if (ROOT / 'stairs_agents').exists():
         if run('Publisher 동작 확인 (Playwright)', q + ['publisher', '--out', str(out)]):
             run('Screens QA (컨셉 화면 대조)', q + ['qa-screens'] + common)
     print(f"    파이프라인 QA 보고서: {out / 'qa_out'}")
+
+UNITY = os.environ.get('UNITY_EXE', r'C:/Program Files/Unity/Hub/Editor/6000.6.10f1/Editor/Unity.exe')
+if (ROOT / 'Assets').exists() and Path(UNITY).exists() and not FAST:   # Unity 판: EditMode 테스트 (웹 판과 프레임 단위로 같은지)
+    xml = Path(tempfile.mkdtemp(prefix='stairs_unity_')) / 'editmode.xml'
+    run('Unity EditMode 테스트 (ParityTests)', [UNITY, '-batchmode', '-nographics', '-projectPath', str(ROOT), '-runTests', '-testPlatform', 'EditMode',
+                                              '-testResults', str(xml), '-logFile', str(xml.with_suffix('.log'))])
+    if xml.exists(): print('    ' + ' '.join(t for t in __import__('re').findall(r'(?:total|passed|failed)="\d+"', xml.read_text(encoding='utf-8'))[:3]))
 
 bad = [r for r in results if not r[1]]
 print(f"\n검사 {len(results)}개, 통과 {len(results) - len(bad)}개, 문제 {len(bad)}개")
