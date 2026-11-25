@@ -1106,8 +1106,9 @@ function getButtons() {
       ];
     case 'result':
       return [
-        Object.assign(btn('again', result && result.kind === 'promote' ? '1층부터 다시' : '다시 하기', 96, 155, 62, 16, function () { startRun(result ? result.mode : 'normal'); }, 8), { tone: 'red' }),   // 05-5 요소 5
-        btn('share', '기록 공유', 166, 155, 62, 16, shareResult, 8),                                                                                     // 요소 2
+        Object.assign(btn('again', result && result.kind === 'promote' ? '1층부터 다시' : '다시 하기', 63, 155, 62, 16, function () { startRun(result ? result.mode : 'normal'); }, 8), { tone: 'red' }),   // 05-5 요소 5
+        btn('share', '기록 공유', 129, 155, 62, 16, shareResult, 8),                                                                                     // 요소 2
+        btn('lobby', '로비로', 195, 155, 62, 16, function () { screen = 'lobby'; focus = 0; }, 8),                                                       // 로비로 돌아가기 (ESC와 같다)
         Object.assign(btn('settings', '', 298, 4, 18, 18, openSettings), { icon: 'gear' }),   // 설정 (장애물 보기도 여기서)
       ];
   }
@@ -2060,7 +2061,7 @@ function drawResult() {
   }
   // 2, 5 버튼
   drawButtons();
-  if (time < toastUntil) txt(toastText, 197, 174, { size: 6, align: 'center', color: PAL.green });
+  if (time < toastUntil) txt(toastText, 160, 174, { size: 6, align: 'center', color: PAL.green });
 }
 function shareResult() {
   if (!result) return;

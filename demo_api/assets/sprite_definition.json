@@ -17,13 +17,13 @@
     320,
     180
   ],
-  "pixel_scale": 2,
-  "pixel_note": "에셋은 논리 해상도(320x180)의 2배(640x360 기준)로 그린다. 게임은 1/pixel_scale 크기로 그린다.",
+  "pixel_scale": 4,
+  "pixel_note": "에셋은 논리 해상도(320x180)의 4배 밀도(32비트 시대 느낌). 게임은 PX = pixel_scale로 나눠 그린다. tools/sprites/upgrade32.py가 16비트(2배) 원본에서 만든다",
   "sprites": {
     "player": {
       "file": "player.png",
-      "frame_w": 32,
-      "frame_h": 48,
+      "frame_w": 64,
+      "frame_h": 96,
       "variants": {
         "사원": 0,
         "대리": 1,
@@ -173,8 +173,8 @@
     },
     "rival": {
       "file": "rival.png",
-      "frame_w": 32,
-      "frame_h": 48,
+      "frame_w": 64,
+      "frame_h": 96,
       "variants": {
         "default": 0
       },
@@ -231,8 +231,8 @@
     },
     "projectiles": {
       "file": "projectiles.png",
-      "frame_w": 24,
-      "frame_h": 24,
+      "frame_w": 48,
+      "frame_h": 48,
       "variants": {
         "default": 0
       },
@@ -289,8 +289,8 @@
     },
     "warning": {
       "file": "warning.png",
-      "frame_w": 16,
-      "frame_h": 24,
+      "frame_w": 32,
+      "frame_h": 48,
       "variants": {
         "default": 0
       },
@@ -306,8 +306,8 @@
     },
     "stairs": {
       "file": "stairs.png",
-      "frame_w": 88,
-      "frame_h": 24,
+      "frame_w": 176,
+      "frame_h": 48,
       "variants": {
         "zone1": 0,
         "zone2": 1,
@@ -344,8 +344,8 @@
     },
     "hud_icons": {
       "file": "hud_icons.png",
-      "frame_w": 24,
-      "frame_h": 24,
+      "frame_w": 48,
+      "frame_h": 48,
       "variants": {
         "default": 0
       },
@@ -408,8 +408,8 @@
     },
     "props": {
       "file": "props.png",
-      "frame_w": 32,
-      "frame_h": 48,
+      "frame_w": 64,
+      "frame_h": 96,
       "variants": {
         "default": 0
       },
@@ -442,8 +442,8 @@
     },
     "commuter": {
       "file": "commuter.png",
-      "frame_w": 20,
-      "frame_h": 40,
+      "frame_w": 40,
+      "frame_h": 80,
       "variants": {
         "default": 0
       },
@@ -461,8 +461,8 @@
     },
     "sticky": {
       "file": "sticky.png",
-      "frame_w": 24,
-      "frame_h": 24,
+      "frame_w": 48,
+      "frame_h": 48,
       "variants": {
         "pink": 0,
         "blue": 1,
@@ -482,8 +482,8 @@
     },
     "staff": {
       "file": "staff.png",
-      "frame_w": 32,
-      "frame_h": 48,
+      "frame_w": 64,
+      "frame_h": 96,
       "variants": {
         "a": 0,
         "b": 1,
@@ -532,8 +532,8 @@
     },
     "obstacles": {
       "file": "obstacles.png",
-      "frame_w": 32,
-      "frame_h": 32,
+      "frame_w": 64,
+      "frame_h": 64,
       "variants": {
         "chair": 0,
         "envelope": 1,
@@ -583,53 +583,53 @@
   "images": {
     "bg_zone1": {
       "file": "bg_zone1.png",
-      "w": 640,
-      "h": 360
+      "w": 1280,
+      "h": 720
     },
     "bg_zone2": {
       "file": "bg_zone2.png",
-      "w": 640,
-      "h": 360
+      "w": 1280,
+      "h": 720
     },
     "bg_zone3": {
       "file": "bg_zone3.png",
-      "w": 640,
-      "h": 360
+      "w": 1280,
+      "h": 720
     },
     "bg_zone4": {
       "file": "bg_zone4.png",
-      "w": 640,
-      "h": 360
+      "w": 1280,
+      "h": 720
     },
     "bg_zone5": {
       "file": "bg_zone5.png",
-      "w": 640,
-      "h": 360
+      "w": 1280,
+      "h": 720
     },
     "title_bg": {
       "file": "title_bg.png",
-      "w": 640,
-      "h": 360
+      "w": 1280,
+      "h": 720
     },
     "logo": {
       "file": "logo.png",
-      "w": 299,
-      "h": 79
+      "w": 598,
+      "h": 158
     },
     "bg_lobby": {
       "file": "bg_lobby.png",
-      "w": 640,
-      "h": 360
+      "w": 1280,
+      "h": 720
     },
     "bg_result": {
       "file": "bg_result.png",
-      "w": 640,
-      "h": 360
+      "w": 1280,
+      "h": 720
     },
     "bg_practice": {
       "file": "bg_practice.png",
-      "w": 640,
-      "h": 360
+      "w": 1280,
+      "h": 720
     }
   },
   "sounds": {
