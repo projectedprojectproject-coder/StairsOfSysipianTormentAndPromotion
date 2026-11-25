@@ -22,7 +22,7 @@ MAX_COLORS = 128                       # 시트 한 행의 색 상한 (16비트)
 PEOPLE = {'player', 'rival', 'staff', 'commuter'}
 HEIGHT_ANIMS = ('idle', 'walk', 'climb', 'climb_r', 'climb_l')
 ROWS_FOR = {'obstacles': {'roll': [0], 'fly': [1], 'snap': [2], 'flap': [3]}}
-GROUND_OBJ = {'props'}             # 바닥에 놓인 소품
+GROUND_OBJ = {'props', 'cs_hero', 'cs_hand'}   # 바닥에 놓인 소품, 컷신 사람(발)·손(소매는 화면 밖에서 들어온다)
 EDGE_OK = {'stairs', 'hud_icons'}      # 계단 타일은 이웃 타일과 이어지도록 가장자리까지 그린다
 
 

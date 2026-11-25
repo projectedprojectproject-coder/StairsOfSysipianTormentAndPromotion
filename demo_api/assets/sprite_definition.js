@@ -578,6 +578,367 @@ window.SPRITE_DEF = {
           "fps": 14
         }
       }
+    },
+    "cs_hero": {
+      "file": "cs_hero.png",
+      "frame_w": 128,
+      "frame_h": 192,
+      "variants": {
+        "default": 0
+      },
+      "animations": {
+        "f0": {
+          "frames": [
+            0
+          ],
+          "fps": 1
+        },
+        "f1": {
+          "frames": [
+            1
+          ],
+          "fps": 1
+        },
+        "f2": {
+          "frames": [
+            2
+          ],
+          "fps": 1
+        },
+        "f3": {
+          "frames": [
+            3
+          ],
+          "fps": 1
+        },
+        "f4": {
+          "frames": [
+            4
+          ],
+          "fps": 1
+        },
+        "f5": {
+          "frames": [
+            5
+          ],
+          "fps": 1
+        },
+        "f6": {
+          "frames": [
+            6
+          ],
+          "fps": 1
+        },
+        "f7": {
+          "frames": [
+            7
+          ],
+          "fps": 1
+        },
+        "f8": {
+          "frames": [
+            8
+          ],
+          "fps": 1
+        },
+        "f9": {
+          "frames": [
+            9
+          ],
+          "fps": 1
+        },
+        "f10": {
+          "frames": [
+            10
+          ],
+          "fps": 1
+        },
+        "f11": {
+          "frames": [
+            11
+          ],
+          "fps": 1
+        },
+        "f12": {
+          "frames": [
+            12
+          ],
+          "fps": 1
+        },
+        "f13": {
+          "frames": [
+            13
+          ],
+          "fps": 1
+        },
+        "f14": {
+          "frames": [
+            14
+          ],
+          "fps": 1
+        },
+        "f15": {
+          "frames": [
+            15
+          ],
+          "fps": 1
+        },
+        "f16": {
+          "frames": [
+            16
+          ],
+          "fps": 1
+        },
+        "f17": {
+          "frames": [
+            17
+          ],
+          "fps": 1
+        },
+        "f18": {
+          "frames": [
+            18
+          ],
+          "fps": 1
+        },
+        "f19": {
+          "frames": [
+            19
+          ],
+          "fps": 1
+        }
+      },
+      "density": 2,
+      "note": "컷신 (2배 밀도: 그릴 때 scale 2 → 논리 크기 = 프레임/2)"
+    },
+    "cs_paper": {
+      "file": "cs_paper.png",
+      "frame_w": 400,
+      "frame_h": 240,
+      "variants": {
+        "default": 0
+      },
+      "animations": {
+        "f0": {
+          "frames": [
+            0
+          ],
+          "fps": 1
+        },
+        "f1": {
+          "frames": [
+            1
+          ],
+          "fps": 1
+        }
+      },
+      "density": 2,
+      "note": "컷신 (2배 밀도: 그릴 때 scale 2 → 논리 크기 = 프레임/2)"
+    },
+    "cs_fx": {
+      "file": "cs_fx.png",
+      "frame_w": 64,
+      "frame_h": 64,
+      "variants": {
+        "default": 0
+      },
+      "animations": {
+        "f0": {
+          "frames": [
+            0
+          ],
+          "fps": 1
+        },
+        "f1": {
+          "frames": [
+            1
+          ],
+          "fps": 1
+        },
+        "f2": {
+          "frames": [
+            2
+          ],
+          "fps": 1
+        },
+        "f3": {
+          "frames": [
+            3
+          ],
+          "fps": 1
+        },
+        "f4": {
+          "frames": [
+            4
+          ],
+          "fps": 1
+        },
+        "f5": {
+          "frames": [
+            5
+          ],
+          "fps": 1
+        },
+        "f6": {
+          "frames": [
+            6
+          ],
+          "fps": 1
+        },
+        "f7": {
+          "frames": [
+            7
+          ],
+          "fps": 1
+        },
+        "f8": {
+          "frames": [
+            8
+          ],
+          "fps": 1
+        }
+      },
+      "density": 2,
+      "note": "컷신 (2배 밀도: 그릴 때 scale 2 → 논리 크기 = 프레임/2)"
+    },
+    "cs_boom": {
+      "file": "cs_boom.png",
+      "frame_w": 192,
+      "frame_h": 192,
+      "variants": {
+        "default": 0
+      },
+      "animations": {
+        "f0": {
+          "frames": [
+            0
+          ],
+          "fps": 1
+        },
+        "f1": {
+          "frames": [
+            1
+          ],
+          "fps": 1
+        },
+        "f2": {
+          "frames": [
+            2
+          ],
+          "fps": 1
+        },
+        "f3": {
+          "frames": [
+            3
+          ],
+          "fps": 1
+        },
+        "f4": {
+          "frames": [
+            4
+          ],
+          "fps": 1
+        },
+        "f5": {
+          "frames": [
+            5
+          ],
+          "fps": 1
+        },
+        "f6": {
+          "frames": [
+            6
+          ],
+          "fps": 1
+        },
+        "f7": {
+          "frames": [
+            7
+          ],
+          "fps": 1
+        },
+        "boom": {
+          "frames": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "fps": 14
+        }
+      },
+      "density": 2,
+      "note": "컷신 (2배 밀도: 그릴 때 scale 2 → 논리 크기 = 프레임/2)"
+    },
+    "cs_button": {
+      "file": "cs_button.png",
+      "frame_w": 96,
+      "frame_h": 80,
+      "variants": {
+        "default": 0
+      },
+      "animations": {
+        "f0": {
+          "frames": [
+            0
+          ],
+          "fps": 1
+        },
+        "f1": {
+          "frames": [
+            1
+          ],
+          "fps": 1
+        }
+      },
+      "density": 2,
+      "note": "컷신 (2배 밀도: 그릴 때 scale 2 → 논리 크기 = 프레임/2)"
+    },
+    "cs_hand": {
+      "file": "cs_hand.png",
+      "frame_w": 240,
+      "frame_h": 240,
+      "variants": {
+        "default": 0
+      },
+      "animations": {
+        "f0": {
+          "frames": [
+            0
+          ],
+          "fps": 1
+        },
+        "f1": {
+          "frames": [
+            1
+          ],
+          "fps": 1
+        },
+        "f2": {
+          "frames": [
+            2
+          ],
+          "fps": 1
+        },
+        "f3": {
+          "frames": [
+            3
+          ],
+          "fps": 1
+        },
+        "f4": {
+          "frames": [
+            4
+          ],
+          "fps": 1
+        }
+      },
+      "density": 2,
+      "note": "컷신 (2배 밀도: 그릴 때 scale 2 → 논리 크기 = 프레임/2)"
     }
   },
   "images": {
@@ -630,6 +991,90 @@ window.SPRITE_DEF = {
       "file": "bg_practice.png",
       "w": 1280,
       "h": 720
+    },
+    "cs_office_night": {
+      "file": "cs_office_night.png",
+      "w": 640,
+      "h": 360,
+      "density": 2,
+      "note": "컷신 배경 (2배 밀도: 논리 크기 = w/2 x h/2)"
+    },
+    "cs_office_fg": {
+      "file": "cs_office_fg.png",
+      "w": 640,
+      "h": 360,
+      "density": 2,
+      "note": "컷신 배경 (2배 밀도: 논리 크기 = w/2 x h/2)"
+    },
+    "cs_desk_close": {
+      "file": "cs_desk_close.png",
+      "w": 640,
+      "h": 360,
+      "density": 2,
+      "note": "컷신 배경 (2배 밀도: 논리 크기 = w/2 x h/2)"
+    },
+    "cs_desk_morning": {
+      "file": "cs_desk_morning.png",
+      "w": 640,
+      "h": 360,
+      "density": 2,
+      "note": "컷신 배경 (2배 밀도: 논리 크기 = w/2 x h/2)"
+    },
+    "cs_rage_bg": {
+      "file": "cs_rage_bg.png",
+      "w": 640,
+      "h": 360,
+      "density": 2,
+      "note": "컷신 배경 (2배 밀도: 논리 크기 = w/2 x h/2)"
+    },
+    "cs_window_tall": {
+      "file": "cs_window_tall.png",
+      "w": 640,
+      "h": 720,
+      "density": 2,
+      "note": "컷신 배경 (2배 밀도: 논리 크기 = w/2 x h/2)"
+    },
+    "cs_ceo_room": {
+      "file": "cs_ceo_room.png",
+      "w": 640,
+      "h": 360,
+      "density": 2,
+      "note": "컷신 배경 (2배 밀도: 논리 크기 = w/2 x h/2)"
+    },
+    "cs_tower_night": {
+      "file": "cs_tower_night.png",
+      "w": 640,
+      "h": 360,
+      "density": 2,
+      "note": "컷신 배경 (2배 밀도: 논리 크기 = w/2 x h/2)"
+    },
+    "cs_office_morning": {
+      "file": "cs_office_morning.png",
+      "w": 640,
+      "h": 360,
+      "density": 2,
+      "note": "컷신 배경 (2배 밀도: 논리 크기 = w/2 x h/2)"
+    },
+    "cs_office_morning_fg": {
+      "file": "cs_office_morning_fg.png",
+      "w": 640,
+      "h": 360,
+      "density": 2,
+      "note": "컷신 배경 (2배 밀도: 논리 크기 = w/2 x h/2)"
+    },
+    "cs_ceo_fg": {
+      "file": "cs_ceo_fg.png",
+      "w": 640,
+      "h": 360,
+      "density": 2,
+      "note": "컷신 배경 (2배 밀도: 논리 크기 = w/2 x h/2)"
+    },
+    "cs_button_close": {
+      "file": "cs_button_close.png",
+      "w": 640,
+      "h": 360,
+      "density": 2,
+      "note": "컷신 배경 (2배 밀도: 논리 크기 = w/2 x h/2)"
     }
   },
   "sounds": {
@@ -879,6 +1324,69 @@ window.SPRITE_DEF = {
       "files": {
         "mp3": "sfx_cue_envelope.mp3",
         "ogg": "sfx_cue_envelope.ogg"
+      }
+    },
+    "sfx_cs_type": {
+      "loop": false,
+      "files": {
+        "mp3": "sfx_cs_type.mp3",
+        "ogg": "sfx_cs_type.ogg"
+      }
+    },
+    "sfx_cs_slam": {
+      "loop": false,
+      "files": {
+        "mp3": "sfx_cs_slam.mp3",
+        "ogg": "sfx_cs_slam.ogg"
+      }
+    },
+    "sfx_cs_stamp": {
+      "loop": false,
+      "files": {
+        "mp3": "sfx_cs_stamp.mp3",
+        "ogg": "sfx_cs_stamp.ogg"
+      }
+    },
+    "sfx_cs_rage": {
+      "loop": false,
+      "files": {
+        "mp3": "sfx_cs_rage.mp3",
+        "ogg": "sfx_cs_rage.ogg"
+      }
+    },
+    "sfx_cs_whoosh": {
+      "loop": false,
+      "files": {
+        "mp3": "sfx_cs_whoosh.mp3",
+        "ogg": "sfx_cs_whoosh.ogg"
+      }
+    },
+    "sfx_cs_button": {
+      "loop": false,
+      "files": {
+        "mp3": "sfx_cs_button.mp3",
+        "ogg": "sfx_cs_button.ogg"
+      }
+    },
+    "sfx_cs_boom": {
+      "loop": false,
+      "files": {
+        "mp3": "sfx_cs_boom.mp3",
+        "ogg": "sfx_cs_boom.ogg"
+      }
+    },
+    "sfx_cs_alarm": {
+      "loop": false,
+      "files": {
+        "mp3": "sfx_cs_alarm.mp3",
+        "ogg": "sfx_cs_alarm.ogg"
+      }
+    },
+    "sfx_cs_title": {
+      "loop": false,
+      "files": {
+        "mp3": "sfx_cs_title.mp3",
+        "ogg": "sfx_cs_title.ogg"
       }
     }
   }

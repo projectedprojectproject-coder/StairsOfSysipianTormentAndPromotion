@@ -176,9 +176,15 @@ class PublisherAgent:
                 def wait_for(cond_js, timeout):
                     page.wait_for_function(cond_js, timeout=timeout * 1000)
 
+                def skip_cutscene(then):   # 컷신(켤 때 인트로, 보통 모드 새 판 시작)은 Esc로 건너뛴다. 컷신이 없는 판(파이프라인 PoC)은 그대로
+                    if state().get("screen") == "cutscene":
+                        page.keyboard.press("Escape")
+                        wait_for(f"window.__stairs.screen === '{then}'", 5)
+
                 # 시나리오 1: 자동 플레이로 마지막 승급 층까지 (게임이 __stairs.finalFloor·finalRank로 알려 줌, 없으면 20층·대리)
                 page.goto(base + "?seed=7&bot=1&mute=1")
                 wait_for("window.__stairs && window.__stairs.ready", 15)
+                skip_cutscene("title")
                 s = state()
                 record("에셋 불러오기", not s["assetErrors"], ", ".join(s["assetErrors"]))
                 record("타이틀 화면", s["screen"] == "title", s["screen"])
@@ -188,6 +194,7 @@ class PublisherAgent:
                 record("타이틀 -> 로비 이동", True)
                 page.screenshot(path=str(shots / "2_lobby.png"))
                 page.keyboard.press("Enter")
+                page.wait_for_timeout(200); skip_cutscene("play")
                 wait_for("window.__stairs.screen === 'play'", 5)
                 record("로비 -> 플레이 이동", True)
                 page.wait_for_timeout(3000)
@@ -212,9 +219,11 @@ class PublisherAgent:
                 # 시나리오 2: 아무 입력 없이 두면 구조조정
                 page.goto(base + "?seed=3&mute=1")
                 wait_for("window.__stairs && window.__stairs.ready", 15)
+                skip_cutscene("title")
                 page.keyboard.press("Enter")
                 wait_for("window.__stairs.screen === 'lobby'", 5)
                 page.keyboard.press("Enter")
+                page.wait_for_timeout(200); skip_cutscene("play")
                 wait_for("window.__stairs.screen === 'play'", 5)
                 t0 = time.time()
                 wait_for("window.__stairs.screen === 'result'", 30)
