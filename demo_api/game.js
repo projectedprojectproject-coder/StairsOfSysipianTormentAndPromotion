@@ -52,9 +52,9 @@ const CONFIG = {
   vanishWarn: 1.0,         // 기획서 미정: 없어지기 전 깜박이는 시간(초)
   gazeFromFloor: 61,       // 결정: 61층부터(보통·무한) 상사의 눈. 멀리서 쏜 빨간 레이저가 화면을 위에서 아래로 훑을 때 오르면 하트 -1
   gazeWarn: 5.0,           // 결정: 훑기 전 5초 예고 (화면이 붉어지고 위쪽 끝에 레이저가 차오름, 숫자). 눈은 보이지 않는다
-  gazeSweep: 1.5,          // 결정: 1.5초 동안 화면 위 끝에서 아래 끝까지 훑는다
+  gazeSweep: 0.6,          // 결정(2026-11-25): 0.6초 만에 화면 위 끝에서 아래 끝까지 쓸어내린다 (순식간에 훑는 감시 레이저)
   gazeRest: 6.0,           // 기획서 미정: 다음 예고까지 쉬는 시간(초)
-  gazeWidth: 24,           // 기획서 미정: 레이저 띠의 두께(px). 띠가 플레이어 몸(28px)에 걸쳐 있는 동안 오르면 들킨다
+  gazeWidth: 40,           // 기획서 미정: 레이저 띠의 두께(px). 띠가 플레이어 몸(28px)에 걸쳐 있는 동안 오르면 들킨다
   rivalCrackTime: 0.8,     // 기획서 미정: 경쟁 사원이 금 간 칸에 이만큼(초) 서 있으면 무너져 떨어진다 (플레이어보다 무겁다)
   rivalVanishWait: 0.5,    // 기획서 미정: 경쟁 사원은 사라지기까지 이만큼(초)도 안 남은 칸에는 올라서지 않고 기다린다
   suitcaseBurst: 0.1,      // 결정: 도착 몇 초 전에 터지는지. 판정 창(도착 전 0.2초)의 한가운데 = 터지는 순간
@@ -746,7 +746,7 @@ function botTick(dt) {
   const vanishBad = vrun > 0 && (vs.gone || vs.goneIn < 0.2 + vrun * CONFIG.botStepInterval);
   const hereFatal = (isWet(r.steps) && !sh.live && sh.shockIn < 0.45) || (isCracked(r.steps) && r.crackT > 1.0);
   const hereVanishSoon = isVanish(r.steps) && vs.goneIn < 0.45;
-  const gazeNear = !!(gz && gz.sweep && gz.y > GAZE_BODY_Y - CONFIG.gazeWidth / 2 - GAZE_BODY_H - 40 && gz.y < GAZE_BODY_Y + CONFIG.gazeWidth / 2 + GAZE_BODY_H + 4);
+  const gazeNear = !!(gz && gz.sweep && gz.y < GAZE_BODY_Y + CONFIG.gazeWidth / 2 + GAZE_BODY_H + 4);   // 빨라서 훑는 동안은 몸을 지나갈 때까지 기다린다
   const wait = wetAhead || (!hereFatal && (vanishBad || (gazeNear && !hereVanishSoon)));
   if (r.botT >= CONFIG.botStepInterval) { if (wait) r.botT = CONFIG.botStepInterval; else { r.botT -= CONFIG.botStepInterval; keyStep(dirAt(r.steps)); } }
   if (r.ended) return;
@@ -1219,7 +1219,8 @@ function drawPlayWorld() {
   }
   if (gz && gz.sweep) {
     const half = CONFIG.gazeWidth / 2;
-    for (let i = 1; i <= 6; i++) rect(0, gz.y - half - i * 8, W, 8, '#C0302E', 0.05 * (7 - i) / 6 * 2);   // 지나간 자리의 꼬리
+    rect(0, 0, W, H, '#C0302E', 0.08);                                   // 훑는 동안 화면 전체가 붉게 번쩍
+    for (let i = 1; i <= 8; i++) rect(0, gz.y - half - i * 14, W, 14, '#C0302E', 0.06 * (9 - i) / 8 * 2);   // 지나간 자리의 꼬리 (빠르게 내려온 자국)
     rect(0, gz.y - half, W, CONFIG.gazeWidth, '#C0302E', 0.34);
     rect(0, gz.y - 2, W, 4, '#FF5A4E', 0.55); rect(0, gz.y - 1, W, 2, '#FFD0C8', 0.35);
   }
@@ -1617,7 +1618,7 @@ const DEMOS = [
   { id: 'vanish', name: '사라지는 칸', how: '하늘색 선 칸은 5초 있다가 1초 없어져요. 깜박이면 기다렸다가 다시 생기면 건너기', at: 261, wait: 'vanish', vanishPhase: 3.8 },
   { id: 'rivalwait', name: '경쟁 사원과 사라지는 칸', how: '경쟁 사원도 사라지는 칸·전기가 흐르는 칸 앞에서는 멈춰 기다려요', at: 356, threat: 'rival', vanishPhase: 3.6 },
   { id: 'rivalcrack', name: '경쟁 사원과 금 간 칸', how: '경쟁 사원은 금 간 칸에 0.8초만 서 있어도 떨어지고, 젖은 칸에서 전기가 흐르면 감전돼요', at: 212, threat: 'rival' },
-  { id: 'gaze', name: '상사의 눈', how: '화면이 붉어지고 5초 뒤 빨간 레이저가 위에서 아래로 1.5초 동안 훑어요. 레이저가 내 위를 지날 때는 오르지 않기', at: 402, wait: 'gaze', gazeT0: -3.6 },
+  { id: 'gaze', name: '상사의 눈', how: '화면이 붉어지고 5초 뒤 빨간 레이저가 순식간에(0.6초) 위에서 아래로 훑어요. 레이저가 내 위를 지날 때는 오르지 않기', at: 402, wait: 'gaze', gazeT0: -3.6 },
   { id: 'flash', name: '카메라 플래시', how: '막을 수 없지만 피해도 없어요. 눈이 부셔도 계속 오르세요', at: 372, flash: 0.8, climb: [1.5, 1.85, 2.2], dur: 3.2 },
 ];
 const DEMO_KEY_X = [114, 136, 166, 188];
