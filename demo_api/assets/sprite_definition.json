@@ -112,6 +112,62 @@
             4
           ],
           "fps": 18
+        },
+        "parry_left2": {
+          "frames": [
+            24
+          ],
+          "fps": 1
+        },
+        "parry_hit_left2": {
+          "frames": [
+            25,
+            26,
+            24
+          ],
+          "fps": 18
+        },
+        "parry_left3": {
+          "frames": [
+            27
+          ],
+          "fps": 1
+        },
+        "parry_hit_left3": {
+          "frames": [
+            28,
+            29,
+            27
+          ],
+          "fps": 18
+        },
+        "parry_right2": {
+          "frames": [
+            30
+          ],
+          "fps": 1
+        },
+        "parry_hit_right2": {
+          "frames": [
+            31,
+            32,
+            30
+          ],
+          "fps": 18
+        },
+        "parry_right3": {
+          "frames": [
+            33
+          ],
+          "fps": 1
+        },
+        "parry_hit_right3": {
+          "frames": [
+            34,
+            35,
+            33
+          ],
+          "fps": 18
         }
       }
     },
@@ -163,6 +219,13 @@
             25
           ],
           "fps": 8
+        },
+        "idle": {
+          "frames": [
+            26,
+            27
+          ],
+          "fps": 2
         }
       }
     },
@@ -699,6 +762,24 @@
       "files": {
         "mp3": "sfx_parry_perfect.mp3",
         "ogg": "sfx_parry_perfect.ogg"
+      }
+    },
+    "sfx_cue_chair": {
+      "files": {
+        "mp3": "sfx_cue_chair.mp3",
+        "ogg": "sfx_cue_chair.ogg"
+      }
+    },
+    "sfx_chair_hop": {
+      "files": {
+        "mp3": "sfx_chair_hop.mp3",
+        "ogg": "sfx_chair_hop.ogg"
+      }
+    },
+    "sfx_cue_envelope": {
+      "files": {
+        "mp3": "sfx_cue_envelope.mp3",
+        "ogg": "sfx_cue_envelope.ogg"
       }
     }
   }
