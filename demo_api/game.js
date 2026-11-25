@@ -541,7 +541,7 @@ function vanishState(r) {
 }
 // 상사의 눈: 61층에 처음 닿은 때부터 (예고 5초 → 훑기 1.5초 → 쉬기)를 되풀이. 멀리서 쏜 레이저 띠가 화면 위에서 아래로 내려온다 (y = 띠 가운데, 화면 좌표)
 const GAZE_BODY_Y = PLAYER_Y - 14, GAZE_BODY_H = 14;   // 플레이어 몸 가운데와 반 높이 (레이저가 몸에 걸쳤는지)
-const GAZE_SRC_Y = 50;                                 // 레이저를 쏘는 먼 창문의 높이 (화면 좌표). 창문은 번갈아 왼쪽·오른쪽
+const GAZE_SRC_Y = 50;                                 // 레이저가 시작되는 먼 불꽃의 높이 (화면 좌표). 번갈아 왼쪽·오른쪽
 function gazeSrcX(cycle) { return cycle % 2 ? 252 : 68; }
 function gazeState(r) {
   if (r.mode === 'practice' || r.gazeT0 === null) return null;
@@ -1219,18 +1219,16 @@ function drawPlayWorld() {
     for (let y = -24; y < H + 24; y += 24) rect(0, y + off, W, 1, PAL.gray, 0.25);
   }
   rect(0, 0, W, H, PAL.bg, 0.15);
-  // 상사의 눈 (배경): 눈은 보이지 않는다. 예고 5초 동안 화면이 붉어지고 먼 창문(바깥 세상)에서 무언가 반짝이며,
-  // 훑을 때는 그 창문에서 쏜 거대한 레이저가 부채꼴로 퍼져 화면 전체를 위에서 아래로 쓸어내린다
+  // 상사의 눈 (배경): 눈은 보이지 않는다. 예고 5초 동안 화면이 붉어지고 먼 배경에 불꽃 하나가 천천히 나타났다 사라졌다 하며
+  // (상사의 눈인지 아닌지 모르게), 훑을 때는 그 불꽃에서 거대한 레이저가 부채꼴로 퍼져 화면 전체를 위에서 아래로 쓸어내린다
   const gz = gazeState(r);
   if (gz && (gz.warn || gz.sweep)) {
     const sx0 = gazeSrcX(gz.cycle), sy0 = GAZE_SRC_Y;
-    rect(sx0 - 10, sy0 - 8, 20, 16, '#9AA0A8'); rect(sx0 - 9, sy0 - 7, 18, 14, gz.sweep ? '#FF5A4E' : '#141A24');   // 먼 창문
-    rect(sx0 - 1, sy0 - 7, 1, 14, '#9AA0A8'); rect(sx0 - 9, sy0, 18, 1, '#9AA0A8');
     if (gz.warn) {
       const k = 1 - gz.left / CONFIG.gazeWarn, late = gz.left < 1.5;
       rect(0, 0, W, H, '#C0302E', 0.12 * k);                            // 예고 동안 화면이 조금씩 붉어진다
-      const pulse = 0.5 + 0.5 * Math.sin(time * (late ? 26 : 9));       // 반짝임: 점점 커지고, 마지막 1.5초는 빠르게 번쩍
-      drawGlint(sx0 + 3, sy0 - 3, 2 + k * 6 + pulse * (late ? 4 : 1.5), 0.45 + 0.55 * pulse * Math.min(1, k * 3));
+      const e = CONFIG.gazeWarn - gz.left, fade = 0.5 - 0.5 * Math.cos(e * 2 * Math.PI / 1.25);   // 불꽃 하나: 1.25초마다 천천히 나타났다 사라짐
+      drawGlint(sx0, sy0, 2 + (late ? 2 : 0) + fade * 1.5, fade * Math.min(1, e / 0.6));
     } else {
       const half = CONFIG.gazeWidth / 2, top = gz.y - half;
       rect(0, 0, W, H, '#C0302E', 0.08);                                // 훑는 동안 화면 전체가 붉게 번쩍
@@ -1651,7 +1649,7 @@ const DEMOS = [
   { id: 'vanish', name: '사라지는 칸', how: '하늘색 선 칸은 5초 있다가 1초 없어져요. 깜박이면 기다렸다가 다시 생기면 건너기', at: 261, wait: 'vanish', vanishPhase: 3.8 },
   { id: 'rivalwait', name: '경쟁 사원과 사라지는 칸', how: '경쟁 사원도 사라지는 칸·전기가 흐르는 칸 앞에서는 멈춰 기다려요', at: 356, threat: 'rival', vanishPhase: 3.6 },
   { id: 'rivalcrack', name: '경쟁 사원과 금 간 칸', how: '경쟁 사원은 금 간 칸에 0.8초만 서 있어도 떨어지고, 젖은 칸에서 전기가 흐르면 감전돼요', at: 212, threat: 'rival' },
-  { id: 'gaze', name: '상사의 눈', how: '먼 창문이 반짝이고 5초 뒤 거대한 레이저가 순식간에(0.6초) 화면을 쓸어내려요. 레이저가 내 위를 지날 때는 오르지 않기', at: 402, wait: 'gaze', gazeT0: -3.6 },
+  { id: 'gaze', name: '상사의 눈', how: '먼 곳에서 불꽃이 깜박이고 5초 뒤 거대한 레이저가 순식간에(0.6초) 화면을 쓸어내려요. 레이저가 내 위를 지날 때는 오르지 않기', at: 402, wait: 'gaze', gazeT0: -3.6 },
   { id: 'flash', name: '카메라 플래시', how: '막을 수 없지만 피해도 없어요. 눈이 부셔도 계속 오르세요', at: 372, flash: 0.8, climb: [1.5, 1.85, 2.2], dur: 3.2 },
 ];
 const DEMO_KEY_X = [114, 136, 166, 188];
