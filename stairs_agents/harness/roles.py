@@ -15,7 +15,7 @@ import re
 from ..designer import DesignerAgent
 from ..developer import DeveloperAgent
 from ..llm import ReplayClient
-from ..mechanics import MechanicsAgent, load_rules, repair, validate
+from ..mechanics import MechanicsAgent, assist_profile, load_rules, repair, validate
 from ..publisher import PublisherAgent
 from ..qa_designer import DesignerQAAgent
 from ..qa_developer import DeveloperQAAgent
@@ -65,7 +65,27 @@ class MechanicsRole(_LLMRole):
             raise RuntimeError("Mechanics 응답이 없습니다 (재생 폴더에 mechanics_spec.txt 필요)")
 
     def evaluators(self):
-        return [self.eval_schema, self.eval_balance]
+        return [self.eval_schema, self.eval_balance, self.eval_bm_fairness]
+
+    def eval_bm_fairness(self, _role) -> Evaluation:
+        """노동 경감 단계별로 도달률이 얼마나 오르는지 재고, '돈 > 실력'이 되면 문제로 돌려준다."""
+        spec, g = self.spec(), self.rules["bm"]["guard"]
+        if not spec.get("bm", {}).get("assist"):
+            return Evaluation("BM 공정성")
+        base = reach_rates(spec, runs=self.sim_runs)
+        tiers = {t: reach_rates(spec, runs=self.sim_runs, assist=assist_profile(spec, t))[g["paidProfile"]]["reach"]
+                 for t in (1, 2, 3)}
+        paid = tiers[g["paidTier"]][g["floor"]]
+        skilled = base[g["mustStayBelow"]]["reach"][g["floor"]]
+        issues = []
+        if paid >= skilled:
+            issues.append(Issue("BM 공정성", "mid", f"bm.assist.tier{g['paidTier']}",
+                                f"{g['paidTier']}단계까지 산 {g['paidProfile']} {g['floor']}층 도달률 {paid:.0%} ≥ 무지원 "
+                                f"{g['mustStayBelow']} {skilled:.0%} — 돈이 실력을 앞지름",
+                                "3단계 효과(autoFloors, drainFactor, shield)를 줄인다"))
+        metrics = {"unpaid": base[g["paidProfile"]]["reach"], **{f"tier{t}": r for t, r in tiers.items()},
+                   "skilledUnpaid": base[g["mustStayBelow"]]["reach"]}
+        return Evaluation("BM 공정성", issues, metrics, round(max(0.0, paid - skilled) * 10, 2))
 
     def eval_schema(self, _role) -> Evaluation:
         return Evaluation("명세 검사", [Issue("명세 검사", p["severity"], p["target"], p["problem"], p["fix"])
@@ -93,6 +113,17 @@ class MechanicsRole(_LLMRole):
         """재생 모드: 형식 수리 후, 밸런스 목표에서 벗어난 구간의 난이도를 비율로 조정한다."""
         spec = self.spec()
         changed = repair(spec, self.rules)
+        for e in evaluations:   # BM 공정성: 3단계 효과를 20%씩 줄인다
+            for i in e.issues:
+                if i.source == "BM 공정성":
+                    for a in spec.get("bm", {}).get("assist", []):
+                        if a.get("tier") == 3:
+                            eff = a["effect"]
+                            if "autoFloors" in eff:
+                                eff["autoFloors"] = max(0, int(eff["autoFloors"] * 0.8))
+                            if "drainFactor" in eff:
+                                eff["drainFactor"] = round(1 - (1 - eff["drainFactor"]) * 0.8, 3)
+                    changed.append("3단계 노동 경감 효과 20% 축소")
         zone_of = {"20": (1, 20), "40": (21, 40), "60": (21, 60), "80": (61, 80), "100": (61, 99)}
         for e in evaluations:
             for i in e.issues:

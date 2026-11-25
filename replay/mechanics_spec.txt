@@ -2113,32 +2113,10 @@
     "reward": 1000
    }
   ],
-  "cosmetics": [
-   {
-    "id": "badge_gold",
-    "slot": "사원증",
-    "price": 5000
-   },
-   {
-    "id": "tie_red",
-    "slot": "넥타이",
-    "price": 3000
-   },
-   {
-    "id": "desk_plant",
-    "slot": "책상 소품",
-    "price": 2000
-   },
-   {
-    "id": "stairs_marble",
-    "slot": "계단 스킨",
-    "price": 8000
-   }
-  ],
   "season": {
    "length": "월간 '인사고과 시즌'",
-   "reward": "상위 10% 칭호·사원증 테두리",
-   "reset": "랭킹만 초기화, 문서·꾸미기는 유지"
+   "reward": "리그별 상위 10% 칭호·사원증 테두리",
+   "reset": "랭킹만 초기화, 문서는 유지"
   },
   "revive": {
    "name": "재심 청구",
@@ -2146,13 +2124,98 @@
    "limitPerRun": 1,
    "hearts": 1,
    "days": 10
+  }
+ },
+ "bm": {
+  "principle": "게임은 탑 오르기, 동기는 랭킹·점수 갱신. BM은 ① 높은 기록 보상의 기간제 체험 ② 오르는 노동을 덜어 주는 3단계. 랭킹은 리그로 지킨다.",
+  "preview": [
+   {
+    "id": "pv_ceo_badge",
+    "name": "CEO 황금 사원증 체험",
+    "earnedBy": "100층 CEO 엔딩",
+    "durationDays": 7,
+    "permanent": false,
+    "mark": "체험 표식"
+   },
+   {
+    "id": "pv_ceo_room",
+    "name": "CEO실 계단 스킨 체험",
+    "earnedBy": "100층 3회",
+    "durationDays": 7,
+    "permanent": false,
+    "mark": "체험 표식"
+   },
+   {
+    "id": "pv_legend_title",
+    "name": "'전설의 신입' 칭호 체험",
+    "earnedBy": "시즌 정규직 리그 상위 1%",
+    "durationDays": 3,
+    "permanent": false,
+    "mark": "체험 표식"
+   },
+   {
+    "id": "pv_exec_tour",
+    "name": "임원층 견학 (81~99층 연습 모드)",
+    "earnedBy": "81층 도달",
+    "durationDays": 1,
+    "permanent": false,
+    "mark": "기록 미반영"
+   }
+  ],
+  "assist": [
+   {
+    "id": "as_elevator",
+    "tier": 1,
+    "name": "엘리베이터 이용권",
+    "effect": {
+     "startFloor": 21
+    },
+    "league": "main",
+    "note": "이미 도달한 승급층(21·41·61·81층)에서 시작. 시간만 아낀다. 점수는 시작층부터라 랭킹 점수엔 불리"
+   },
+   {
+    "id": "as_coffee",
+    "tier": 2,
+    "name": "출근 커피",
+    "effect": {
+     "startDays": 5,
+     "shield": 1
+    },
+    "league": "free",
+    "note": "시작 D+5(최대 30일 안에서), 첫 피격 1회 무시"
+   },
+   {
+    "id": "as_leave",
+    "tier": 2,
+    "name": "연차 쿠폰",
+    "effect": {
+     "extraRevive": 1
+    },
+    "league": "free",
+    "note": "재심 청구(광고) 외 이어하기 +1, 한 판 합계 2회까지"
+   },
+   {
+    "id": "as_intern",
+    "tier": 3,
+    "name": "인턴 비서",
+    "effect": {
+     "autoFloors": 10,
+     "drainFactor": 0.9
+    },
+    "league": "free",
+    "note": "시작층부터 10층 자동 등반, 판 전체 일수 감소 -10%"
+   }
+  ],
+  "leagues": {
+   "main": "정규직 리그 — 무지원 또는 1단계만 쓴 판",
+   "free": "자유 리그 — 2·3단계를 쓴 판. 같은 시즌 보상, 다른 표"
   },
   "revenue": [
-   "꾸미기 판매(연봉 또는 유료 재화)",
-   "시즌 패스(꾸미기 전용)",
-   "보상형 광고(재심 청구)"
-  ],
-  "rule": "능력치를 파는 상품은 없다. 돈은 시간·외형만 산다"
+   "체험 패스(기간제)",
+   "노동 경감 단계 상품",
+   "보상형 광고(재심 청구)",
+   "꾸미기"
+  ]
  },
  "events": [
   "step_ok",
@@ -2175,7 +2238,7 @@
  ],
  "problems": [],
  "changes": [
-  "v2: PoC 결정(위협 8종, 승급 80층, x10) 반영, 플레이 동기(motivation) 추가"
+  "v2: PoC 결정(위협 8종, 승급 80층, x10) 반영, 플레이 동기(motivation)·BM(체험·노동 경감 3단계·리그) 추가"
  ]
 }
 </file>

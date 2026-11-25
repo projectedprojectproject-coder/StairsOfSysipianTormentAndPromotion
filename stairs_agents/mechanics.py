@@ -89,18 +89,56 @@ def validate(spec: dict, rules: dict) -> list[dict]:
     for k in mv_rule["required"]:
         if k not in mv:
             bad("high", f"motivation.{k}", "플레이 동기 항목이 없음 (왜 오르는가)")
-    if mv.get("revive", {}).get("limitPerRun", 0) > mv_rule["maxRevivePerRun"]:
-        bad("high", "motivation.revive", f"이어하기는 한 판에 {mv_rule['maxRevivePerRun']}번까지")
     docs = mv.get("documents", [])
     if docs and len(docs) < mv_rule["minDocuments"]:
         bad("mid", "motivation.documents", f"사내 문서가 {len(docs)}개 (최소 {mv_rule['minDocuments']})")
     if len({d.get("floor") for d in docs}) != len(docs):
         bad("low", "motivation.documents", "같은 층에 문서가 둘 이상")
-    for c in mv.get("cosmetics", []):
-        stat = set(c) & set(mv_rule["forbiddenCosmeticFields"])
-        if stat:
-            bad("high", f"motivation.cosmetics.{c.get('id')}", f"꾸미기 상품에 능력치가 있음: {sorted(stat)}", "능력치를 빼고 꾸미기만")
+
+    br, bm = rules["bm"], spec.get("bm", {})
+    for k in br["required"]:
+        if k not in bm:
+            bad("high", f"bm.{k}", "BM 항목이 없음")
+    for p in bm.get("preview", []):   # 체험: 높은 기록 보상을 기간제로만. 영구 지급하면 진짜 보상의 가치가 무너진다
+        if p.get("permanent") or not 0 < p.get("durationDays", 0) <= br["previewMaxDays"]:
+            bad("high", f"bm.preview.{p.get('id')}", f"체험 보상은 {br['previewMaxDays']}일 이하 기간제여야 함",
+                "permanent false, durationDays 설정")
+        if not p.get("earnedBy"):
+            bad("mid", f"bm.preview.{p.get('id')}", "실제로 얻는 조건(earnedBy)이 없음")
+    revives = 0
+    for a in bm.get("assist", []):    # 노동 경감 3단계
+        aid, tier = a.get("id"), str(a.get("tier"))
+        if tier not in br["tierLeague"]:
+            bad("high", f"bm.assist.{aid}", f"tier는 1~3 (현재 {tier})")
+            continue
+        if a.get("league") != br["tierLeague"][tier]:
+            bad("high", f"bm.assist.{aid}", f"{tier}단계는 {br['tierLeague'][tier]} 리그에만 기록되어야 함",
+                f"league \"{br['tierLeague'][tier]}\"")
+        unknown = set(a.get("effect", {})) - set(br["allowedEffects"])
+        if unknown:
+            bad("high", f"bm.assist.{aid}", f"정의되지 않은 효과: {sorted(unknown)}")
+        revives += a.get("effect", {}).get("extraRevive", 0)
+    if revives + spec.get("motivation", {}).get("revive", {}).get("limitPerRun", 0) > br["maxRevivePerRun"]:
+        bad("high", "bm.assist", f"이어하기 합계가 한 판 {br['maxRevivePerRun']}번을 넘음")
+    leagues = bm.get("leagues", {})
+    if not {"main", "free"} <= set(leagues):
+        bad("high", "bm.leagues", "main(정규직)·free(자유) 두 리그가 있어야 함")
     return out
+
+
+def assist_profile(spec: dict, tier: int) -> dict:
+    """tier 이하 노동 경감 효과를 모두 산 경우의 효과 합 (시뮬레이션용)."""
+    eff = {"startFloor": 1, "startDays": 0, "extraRevive": 0, "shield": 0, "autoFloors": 0, "drainFactor": 1.0}
+    for a in spec.get("bm", {}).get("assist", []):
+        if a.get("tier", 9) <= tier:
+            for k, v in a.get("effect", {}).items():
+                if k == "drainFactor":
+                    eff[k] *= v
+                elif k == "startFloor":
+                    eff[k] = max(eff[k], v)
+                else:
+                    eff[k] += v
+    return eff
 
 
 def repair(spec: dict, rules: dict) -> list[str]:

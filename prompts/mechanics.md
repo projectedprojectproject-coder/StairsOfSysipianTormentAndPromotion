@@ -25,9 +25,14 @@
    - documents: 사내 문서 목록 [{id, floor, title}], 검사 기준 minDocuments 이상, 한 층에 하나
    - ghost: 고스트 깃발(랭킹 바로 위 1명)과 추월 연출, 랭킹이 없을 때 대체
    - daily: 일일 업무 3개 [{id, goal, reward}]
-   - cosmetics: 꾸미기 상품 [{id, slot, price}] — 능력치 필드(hearts, days, parryWindow 등)를 넣지 않는다
-   - season: 기간, 보상, 초기화 범위
-   - revive: 보상형 광고 "재심 청구" {source, limitPerRun(최대 maxRevivePerRun), hearts, days}
+   - season: 기간, 리그별 보상, 초기화 범위
+   - revive: 보상형 광고 "재심 청구" {source, limitPerRun, hearts, days}
+8-1. BM bm (01-1) — 동기는 랭킹·점수 갱신, BM은 두 축
+   - preview(체험): 높은 기록으로만 얻는 보상을 기간제로 맛보기 [{id, name, earnedBy, durationDays(≤ previewMaxDays), permanent: false}]
+   - assist(노동 경감 3단계): [{id, tier 1~3, name, effect, league}] — effect는 allowedEffects만(startFloor, startDays, extraRevive, shield, autoFloors, drainFactor). league는 tierLeague를 따른다(1단계 main, 2·3단계 free)
+   - leagues: main(정규직), free(자유)
+   - 이어하기 합계(revive + extraRevive)는 한 판 maxRevivePerRun 이하
+   - 하네스가 "3단계까지 산 보통 플레이어 < 무지원 숙련자"(100층 도달률)를 시뮬레이션으로 확인한다. 어기면 3단계 효과를 줄인다
 9. 랭킹: 올릴 값과 정렬, 시즌 단위.
 10. 빌드 범위: scope.buildFloors (현재 [1, 100]).
 
@@ -36,7 +41,7 @@
 - 고칠 때는 문제가 난 구간만 고친다: 어렵다면 attackInterval을 늘리거나 drainMult·hazards를 줄이고, 쉽다면 반대로. 주된 패배 원인이 발판(cracked, wet)이면 위험 칸 비율부터 고친다.
 
 ## 하지 않을 것
-- 튜토리얼, 능력치 상점·업그레이드, 실시간 대전 (00 비전 캔버스).
+- 튜토리얼, 정규직 리그를 돈으로 사는 구조, 실시간 대전 (00 비전 캔버스).
 - 검사 기준에 없는 위협이나 발판 위험을 새로 만들지 않는다. 필요하면 changes에 제안만 적는다.
 - 화면 배치, 색, 스프라이트, 사운드는 정하지 않는다. 이벤트 이름만 넘긴다(예: "parry_success", "salary_up", "document_unlock").
 
@@ -55,7 +60,8 @@
   "scoring": { "step": 10, "parry": 50, "floor": 100, "comboStepEvery": 3, "comboMax": 10, "comboBreak": "설명" },
   "endings": { "normal": { "floor": 60 }, "ceo": { "floor": 100 }, "gameover": { "when": [...] } },
   "loop": { ... }, "ranking": { ... },
-  "motivation": { "salary": {...}, "documents": [...], "ghost": {...}, "daily": [...], "cosmetics": [...], "season": {...}, "revive": {...} },
+  "motivation": { "salary": {...}, "documents": [...], "ghost": {...}, "daily": [...], "season": {...}, "revive": {...} },
+  "bm": { "preview": [...], "assist": [...], "leagues": { "main": "...", "free": "..." } },
   "events": [ ... ],
   "problems": [],
   "changes": [ "앞 판과 달라진 값과 이유" ]

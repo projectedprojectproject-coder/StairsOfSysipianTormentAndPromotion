@@ -33,22 +33,53 @@ class Sim:
         off = 0.1 + rng.gauss(0, sigma)   # 도착 0.1초 전을 노린다
         return 0 <= off <= self.C["parryWindow"]
 
-    def run(self, prof, rng, start_floor: int = 1, max_floor: int = 100):
+    def run(self, prof, rng, start_floor: int = 1, max_floor: int = 100, assist: dict | None = None):
+        """assist: 노동 경감 효과 (mechanics.assist_profile). 없으면 무지원."""
+        a = assist or {}
         rate, miss_dir, sigma, miss_parry, coffee_err, hazard_avoid = prof
         C, FL, TH = self.C, self.floors, self.threats
-        hearts, days, t = C["maxHearts"], C["maxDays"], 0.0
-        floor, step = start_floor, 0
+        hearts, t = C["maxHearts"], 0.0
+        days = min(C["maxDays"], C["maxDays"] + a.get("startDays", 0))
+        floor = max(start_floor, a.get("startFloor", 1)) + a.get("autoFloors", 0)   # 인턴 비서: 시작층부터 n층 자동
+        step, revives, shield, drain_k = 0, a.get("extraRevive", 0), a.get("shield", 0), a.get("drainFactor", 1.0)
+        result = self._loop(prof, rng, floor, max_floor, hearts, days, t, step, revives, shield, drain_k)
+        return result
+
+    def _loop(self, prof, rng, floor, max_floor, hearts, days, t, step, revives, shield, drain_k):
+        rate, miss_dir, sigma, miss_parry, coffee_err, hazard_avoid = prof
+        C, FL, TH = self.C, self.floors, self.threats
         next_step, next_atk, pending = 1 / rate, C.get("firstAttackDelay", 3.0), []
         hits = Counter()
         gap = C.get("minAttackGap", 0.8)
+
+        def down(cause):
+            """구조조정 사유가 생겼을 때: 이어하기가 남았으면 하트 1, 일수 10으로 이어 간다. 이어 가면 True."""
+            nonlocal hearts, days, revives
+            hits[cause] += 1
+            if revives > 0:
+                revives -= 1
+                hearts, days = 1, max(days, 10)
+                return True
+            return False
+
+        def hurt(cause):
+            nonlocal hearts, shield
+            if shield > 0:          # 방탄 서류철: 피격 1회 무시
+                shield -= 1
+                return True
+            hearts -= 1
+            if hearts > 0:
+                hits[cause] += 1
+                return True
+            return down(cause)
+
         while True:
             if floor >= max_floor or FL[floor].get("ending") == "ceo":
                 return "CEO", floor, hits
             f = FL[floor]
             t += DT
-            days -= DT / C["dayDuration"] * f["drainMult"]
-            if days <= 0:
-                hits["일수 소진"] += 1
+            days -= DT / C["dayDuration"] * f["drainMult"] * drain_k
+            if days <= 0 and not down("일수 소진"):
                 return "구조조정", floor, hits
             if f.get("attackInterval") and t >= next_atk and f.get("mix"):
                 kind = rng.choices(list(f["mix"]), weights=list(f["mix"].values()))[0]
@@ -71,24 +102,22 @@ class Sim:
                 if ok:
                     if th.get("kind") != "dodge":
                         days = min(C["maxDays"], days + C["parryDays"])
-                else:
-                    hearts -= 1
-                    hits[kind] += 1
-                    if hearts <= 0:
-                        return "구조조정", floor, hits
+                elif not hurt(kind):
+                    return "구조조정", floor, hits
             if t >= next_step:
                 next_step = t + max(0.05, rng.gauss(1 / rate, 0.15 / rate))
                 if rng.random() < miss_dir:
-                    hearts -= 1
-                    hits["발판 실수"] += 1
-                    if hearts <= 0:
+                    if not hurt("발판 실수"):
                         return "구조조정", floor, hits
                     continue
-                hz = f.get("hazards", {})
-                for name, p in hz.items():   # 위험 칸에 올라섰고 피하지 못하면 즉시 구조조정
+                fell = False
+                for name, p in f.get("hazards", {}).items():   # 위험 칸에 올라섰고 피하지 못하면 즉시 구조조정
                     if rng.random() < p and rng.random() > hazard_avoid:
-                        hits[name] += 1
-                        return "구조조정", floor, hits
+                        fell = True
+                        if not down(name):
+                            return "구조조정", floor, hits
+                if fell:
+                    continue
                 days = min(C["maxDays"], days + C["stepDays"])
                 step += 1
                 if step >= f["stairs"]:
@@ -98,15 +127,14 @@ class Sim:
                     if "floorHeal" in C:
                         hearts = min(C["maxHearts"], hearts + C["floorHeal"])
 
-
-def reach_rates(spec: dict, runs: int = 200, seed: int = 7) -> dict:
-    """유형별 이정표(20/40/60/80/100층) 도달률과 주된 패배 원인."""
+def reach_rates(spec: dict, runs: int = 200, seed: int = 7, assist: dict | None = None) -> dict:
+    """유형별 이정표(20/40/60/80/100층) 도달률과 주된 패배 원인. assist를 주면 노동 경감을 산 경우."""
     sim, out = Sim(spec), {}
     for name, prof in PROFILES.items():
         rng = random.Random(f"{seed}-{name}")
         reach, cause, total = Counter(), Counter(), 0
         for _ in range(runs):
-            res, fl, hits = sim.run(prof, rng)
+            res, fl, hits = sim.run(prof, rng, assist=assist)
             total += fl
             for m in MILESTONES:
                 if fl >= m or res == "CEO":

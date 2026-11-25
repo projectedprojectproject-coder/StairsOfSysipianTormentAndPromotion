@@ -48,7 +48,7 @@ QA 고침 반복(qa_loop)이 있지만 다음 한계가 있었다.
 
 | 역할 | 만들기 | 평가기 | LLM 없이 고치기 |
 |---|---|---|---|
-| **mechanics** | MechanicsAgent (prompts/mechanics.md) | ① 명세 검사 — docs/mechanics_rules.json 대조 (고정값, 위협 8종·첫 층, 승급 심사 층, 엔딩, **플레이 동기**) ② **밸런스 시뮬레이션** — stairs_agents/sim.py로 유형별 도달률을 재 balanceTargets와 비교 | 형식 수리 + 목표에서 벗어난 구간의 공격 간격·일수 감소·위험 칸 비율 자동 조정 |
+| **mechanics** | MechanicsAgent (prompts/mechanics.md) | ① 명세 검사 — docs/mechanics_rules.json 대조 (고정값, 위협 8종·첫 층, 승급 심사 층, 엔딩, **플레이 동기·BM**) ② **밸런스 시뮬레이션** — stairs_agents/sim.py로 유형별 도달률을 재 balanceTargets와 비교 ③ **BM 공정성** — 노동 경감 1~3단계별 도달률을 재고, 3단계를 산 보통 플레이어가 무지원 숙련자를 넘으면 문제 | 형식 수리 + 구간 난이도 자동 조정 + 3단계 효과 축소 |
 | **developer** | DeveloperAgent | ① Developer QA(기존 규칙 검사 + Claude 코드 검토) ② 명세 일치 — mechanics.json 고정값이 CONFIG에 있는지 | 없음 |
 | **designer** | DesignerAgent | Designer QA (기존) | 없음 |
 | **publisher** | PublisherAgent | ① 동작 확인(Playwright) ② 화면 대조 | 없음 — 문제를 owner(developer/designer)로 넘김 |

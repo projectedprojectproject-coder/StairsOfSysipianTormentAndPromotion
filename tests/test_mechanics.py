@@ -57,15 +57,25 @@ class ValidateTest(unittest.TestCase):
         del spec["motivation"]["ghost"]
         self.assertIn("motivation.ghost", targets(spec))
 
-    def test_cosmetic_with_stats_fails(self):
+    def test_preview_must_expire(self):
         spec = replay_spec()
-        spec["motivation"]["cosmetics"][0]["hearts"] = 1
-        self.assertTrue(any(t.startswith("motivation.cosmetics") for t in targets(spec)))
+        spec["bm"]["preview"][0]["permanent"] = True
+        self.assertIn("bm.preview.pv_ceo_badge", targets(spec))
 
-    def test_revive_limit(self):
+    def test_paid_tier_must_be_free_league(self):
         spec = replay_spec()
-        spec["motivation"]["revive"]["limitPerRun"] = 3
-        self.assertIn("motivation.revive", targets(spec))
+        spec["bm"]["assist"][3]["league"] = "main"
+        self.assertIn("bm.assist.as_intern", targets(spec))
+
+    def test_revive_total_limit(self):
+        spec = replay_spec()
+        spec["bm"]["assist"][2]["effect"]["extraRevive"] = 2
+        self.assertIn("bm.assist", targets(spec))
+
+    def test_unknown_assist_effect(self):
+        spec = replay_spec()
+        spec["bm"]["assist"][0]["effect"]["parryWindow"] = 0.5
+        self.assertIn("bm.assist.as_elevator", targets(spec))
 
     def test_repair_restores_fixed_values(self):
         spec = replay_spec()
@@ -80,6 +90,13 @@ class SimTest(unittest.TestCase):
         r = reach_rates(replay_spec(), runs=30)
         self.assertEqual(set(r), {"숙련자", "보통", "초보"})
         self.assertGreaterEqual(r["숙련자"]["reach"]["20"], r["초보"]["reach"]["20"])
+
+    def test_assist_raises_reach(self):
+        from stairs_agents.mechanics import assist_profile
+        spec = replay_spec()
+        unpaid = reach_rates(spec, runs=60)["보통"]["reach"]["40"]
+        paid = reach_rates(spec, runs=60, assist=assist_profile(spec, 3))["보통"]["reach"]["40"]
+        self.assertGreater(paid, unpaid)
 
 
 class _Counter(Role):

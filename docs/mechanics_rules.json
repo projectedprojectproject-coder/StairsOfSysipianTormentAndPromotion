@@ -31,11 +31,18 @@
     "flash":   { "firstFloor": 61, "name": "카메라 플래시", "lethal": false }
   },
   "motivation": {
-    "_comment": "왜 계단을 오르는가 — 한 판 / 여러 판 / 시즌 세 겹. 능력치를 사는 상품은 금지(꾸미기만).",
-    "required": ["salary", "documents", "ghost", "daily", "cosmetics", "season", "revive"],
-    "maxRevivePerRun": 1,
-    "minDocuments": 20,
-    "forbiddenCosmeticFields": ["hearts", "days", "parryWindow", "stepDays", "parryDays", "attackInterval", "drainMult"]
+    "_comment": "왜 계단을 오르는가 — 랭킹·점수 갱신이 중심. 한 판 / 여러 판 / 시즌 세 겹.",
+    "required": ["salary", "documents", "ghost", "daily", "season"],
+    "minDocuments": 20
+  },
+  "bm": {
+    "_comment": "BM 두 축: ① 체험 — 높은 기록으로만 얻는 보상을 기간제로 맛보기 ② 노동 경감 — 오르는 수고를 덜어 주는 3단계. 랭킹은 리그로 나눠 지킨다.",
+    "required": ["preview", "assist", "leagues"],
+    "allowedEffects": ["startFloor", "startDays", "extraRevive", "shield", "autoFloors", "drainFactor"],
+    "tierLeague": { "1": "main", "2": "free", "3": "free" },
+    "maxRevivePerRun": 2,
+    "previewMaxDays": 7,
+    "guard": { "paidProfile": "보통", "paidTier": 3, "floor": "100", "mustStayBelow": "숙련자", "_comment": "3단계를 다 산 보통 플레이어도 무지원 숙련자보다 100층 도달률이 낮아야 한다 (실력 > 돈)" }
   },
   "balanceTargets": {
     "_comment": "시뮬레이션 목표 도달률 [최소, 최대]. 하네스가 이 범위를 벗어나면 Mechanics에 고칠 점을 돌려준다.",
