@@ -57,6 +57,11 @@ const CONFIG = {
   crackFromFloor: 21,      // 결정(2026-11-20): 21층부터 금 간 계단
   crackShare: 0.16,        // 기획서 미정: 금 간 계단 비율 (층이 바뀌는 칸은 빼고)
   crackTime: 1.5,          // 결정: 금 간 계단에 이만큼(초) 서 있으면 무너져 바로 구조조정
+  wetFromFloor: 30,        // 결정(2026-11-25): 30층부터 젖은 계단(WET HAZARD). 물 위에 전선이 올라 있다
+  wetShare: 0.14,          // 기획서 미정: 젖은 계단 비율 (층이 바뀌는 칸, 금 간 칸은 빼고)
+  shockPeriod: 3.0,        // 결정: 전기가 흐르는 주기(초)
+  shockTime: 0.5,          // 기획서 미정: 한 번 흐르는 시간(초). 이때 젖은 칸에 있으면 바로 구조조정
+  shockWarn: 0.6,          // 기획서 미정: 흐르기 전 불꽃이 튀는 예고 시간(초)
   flashFromFloor: 61,      // 결정(2026-11-20): 61층부터 카메라 플래시. 막을 수 없지만 피해도 없다 (눈부심만)
   flashGap: 3.5,           // 기획서 미정: 플래시 평균 간격(초, ±40%)
   flashTime: 0.28,         // 기획서 미정: 플래시가 번쩍이는 시간(초)
@@ -138,6 +143,7 @@ const TIPS = {
     suitcase: "서류가방은 \"펑!\" 하고 터지는 순간에 막으세요",
     wrong: "다음 계단이 어느 쪽인지 먼저 보고 누르세요. 틀리면 하트 -1",
     cracked: "금 간 계단에서는 멈추지 마세요. 1.5초면 무너집니다",
+    shock: "젖은 계단은 3초마다 감전! 불꽃이 튀면 건너기 전에 잠깐 기다리세요",
     days: "오르고 막을수록 남은 일수가 늘어납니다. 쉬지 말고 오르세요",
 };
 const PAL = { gray: '#5A5F66', green: '#8A9A5B', red: '#A13D3D', bg: '#1E1F22', text: '#E8E6DF' };
@@ -209,7 +215,7 @@ const D = DEF || { sprites: {}, images: {}, sounds: {} };
 const ASSET_DIR = (D.assets_dir || 'assets').replace(/\/$/, '');
 const SPRITE_IDS = ['player', 'rival', 'projectiles', 'warning', 'stairs', 'hud_icons', 'props', 'commuter', 'sticky'];
 const IMAGE_IDS = ['bg_zone1', 'bg_zone2', 'bg_zone3', 'bg_zone4', 'bg_zone5', 'title_bg', 'logo', 'bg_lobby', 'bg_result', 'bg_practice'];
-const SOUND_IDS = ['bgm_loop', 'bgm_loop_tense', 'amb_office', 'sfx_step', 'sfx_parry', 'sfx_hit', 'sfx_warning', 'sfx_promote', 'sfx_gameover', 'sfx_click', 'sfx_phone_ring', 'sfx_cue_clipboard', 'sfx_cue_rival', 'sfx_cue_paper', 'sfx_monitor_shatter', 'sfx_light_flicker', 'sfx_cue_coffee', 'sfx_stair_crack', 'sfx_camera_flash', 'sfx_cue_suitcase'];
+const SOUND_IDS = ['bgm_loop', 'bgm_loop_tense', 'amb_office', 'sfx_step', 'sfx_parry', 'sfx_hit', 'sfx_warning', 'sfx_promote', 'sfx_gameover', 'sfx_click', 'sfx_phone_ring', 'sfx_cue_clipboard', 'sfx_cue_rival', 'sfx_cue_paper', 'sfx_monitor_shatter', 'sfx_light_flicker', 'sfx_cue_coffee', 'sfx_stair_crack', 'sfx_camera_flash', 'sfx_cue_suitcase', 'bgm_stage1', 'bgm_stage2', 'bgm_stage3', 'bgm_stage4', 'bgm_stage5', 'sfx_electric'];
 const A = { sprites: {}, images: {} };
 let pending = 0;
 let assetsReady = false;
@@ -349,9 +355,15 @@ function sfx(id) {
   } catch (e) {}
 }
 let audioKey = null, audioSyncT = 0;
+// 구간(20층)마다 다른 음악: 1~20 사무실, 21~40 개방형, 41~60 회의실, 61~80 임원층, 81~100 CEO실 (없으면 기존 루프)
+const STAGE_BGM = ['bgm_stage1', 'bgm_stage2', 'bgm_stage3', 'bgm_stage4', 'bgm_stage5'];
 function desiredBgm() {
   if (screen === 'result') return null;
-  if ((screen === 'play' || screen === 'pause') && run && run.floor >= CONFIG.tenseFloor) return 'bgm_loop_tense';
+  if ((screen === 'play' || screen === 'pause') && run) {
+    const id = STAGE_BGM[Math.min(4, Math.floor((run.floor - 1) / 20))];   // 배경 구간(61~99층 한 구간)과 달리 음악은 20층마다
+    if (D.sounds && D.sounds[id]) return id;
+    if (run.floor >= CONFIG.tenseFloor) return 'bgm_loop_tense';
+  }
   return 'bgm_loop';
 }
 function syncAudio(force) {
@@ -365,7 +377,8 @@ function syncAudio(force) {
     if (b) want[b] = CONFIG.bgmVolume * (screen === 'pause' ? 0.4 : 1);
     want.amb_office = CONFIG.ambVolume;
   }
-  ['bgm_loop', 'bgm_loop_tense', 'amb_office'].forEach(function (id) {
+  ['bgm_loop', 'bgm_loop_tense', 'amb_office'].concat(STAGE_BGM).forEach(function (id) {
+    if (id.indexOf('bgm_stage') === 0 && !(id in want) && !(id in Snd.loops)) return;   // 안 쓴 구간 음악은 만들지 않는다
     const a = loopEl(id);
     if (!a || a._failed) return;
     if (id in want) {
@@ -451,7 +464,7 @@ function startRun(mode) {
     pvx: 0, pvy: 0, camX: 0, camY: 0,
     facing: dirAt(0), animState: '', animStart: 0,
     botT: 0, ended: null, endTimer: 0, rivalIdx: 8,
-    crackT: 0, nextFlash: CONFIG.flashGap, camFlash: null,
+    crackT: 0, nextFlash: CONFIG.flashGap, camFlash: null, shockCycle: -1,
     mode: mode, hits: 0,
   };
   if (mode === 'practice') {                   // 연습: 층 바닥이 있는 칸에 서서 시작, 카메라도 바로 그 자리
@@ -488,6 +501,18 @@ function keyParry(side) {
   doParry(side);
 }
 // 금 간 계단: 21층부터 일부 칸 (층이 바뀌는 칸은 빼고, 칸 번호로 정해져 매번 같다)
+// 젖은 계단(WET HAZARD): 30층부터 일부 칸 (층이 바뀌는 칸, 금 간 칸은 빼고, 칸 번호로 정해져 매번 같다)
+function isWet(i) {
+  if (run && run.mode === 'practice') return false;   // 연습 모드에는 계단 장애물이 없다
+  const from = run && run.mode === 'endless' ? 3 : CONFIG.wetFromFloor;
+  if (floorOfSteps(i) < from || i % CONFIG.stairsPerFloor === 0 || isCracked(i)) return false;
+  return (((i * 2246822519) >>> 0) % 1000) / 1000 < CONFIG.wetShare;
+}
+// 전기 상태: live(지금 흐름), warn(곧 흐름, 불꽃), shockIn(다음에 흐르기까지 초)
+function shockState(t) {
+  const P = CONFIG.shockPeriod, ph = t % P, start = P - CONFIG.shockTime;
+  return { live: ph >= start, warn: ph >= start - CONFIG.shockWarn && ph < start, shockIn: ph >= start ? 0 : start - ph, cycle: Math.floor(t / P) };
+}
 function isCracked(i) {
   if (run && run.mode === 'practice') return false;   // 연습 모드에는 계단 장애물이 없다
   const from = run && run.mode === 'endless' ? 2 : CONFIG.crackFromFloor;   // 무한 모드는 2층부터
@@ -631,7 +656,9 @@ function updateRival(p, dt) {
 function botTick(dt) {
   const r = run;
   r.botT += dt;
-  if (r.botT >= CONFIG.botStepInterval) { r.botT -= CONFIG.botStepInterval; keyStep(dirAt(r.steps)); }
+  // 봇: 다음 칸이 젖었고 전기가 흐르는 중이거나 곧 흐르면 건너지 않고 기다린다
+  const sh = shockState(r.time), wetAhead = isWet(r.steps + 1) && (sh.live || sh.shockIn < 0.3);
+  if (r.botT >= CONFIG.botStepInterval) { if (wetAhead) r.botT = CONFIG.botStepInterval; else { r.botT -= CONFIG.botStepInterval; keyStep(dirAt(r.steps)); } }
   if (r.ended) return;
   r.projs.forEach(function (p) {
     if (p.done) return;
@@ -667,6 +694,14 @@ function updatePlay(dt) {
   if (r.ended) return;
 
   if (r.mode !== 'practice') r.days -= dt / CONFIG.dayDuration * drainMult(r);   // 연습: 시간 제한 없음
+  const sh = shockState(r.time);                // 젖은 계단: 전기가 흐르는 순간 그 칸에 있으면 감전
+  if (sh.live && sh.cycle !== r.shockCycle) {
+    r.shockCycle = sh.cycle;
+    let near = false;
+    for (let i = Math.max(0, r.steps - 8); i < r.steps + 14 && !near; i++) near = isWet(i);
+    if (near) { sfx('sfx_electric'); log('shock pulse'); }
+  }
+  if (sh.live && isWet(r.steps)) { log('shock hit'); sfx('sfx_electric'); sfx('sfx_gameover'); endRun('gameover', 'shock'); return; }
   if (isCracked(r.steps)) {                    // 금 간 계단에 너무 오래 서 있으면 무너진다
     r.crackT += dt;
     if (r.crackT >= CONFIG.crackTime) { log('crack fall'); sfx('sfx_stair_crack'); sfx('sfx_gameover'); endRun('gameover', 'cracked'); return; }
@@ -740,7 +775,7 @@ function finishRun() {
   result = {
     kind: kind, cause: r.ended.cause, floor: r.floor, rankIdx: r.rankIdx, mode: r.mode,
     score: r.score, maxMult: r.maxMult, maxCombo: r.maxCombo, newBest: newBest,
-    tip: r.ended.cause === 'cracked' ? 'cracked' : r.ended.cause === 'days' ? 'days' : (r.lastKind || 'clipboard'), t0: time, stamped: false,
+    tip: r.ended.cause === 'cracked' ? 'cracked' : r.ended.cause === 'shock' ? 'shock' : r.ended.cause === 'days' ? 'days' : (r.lastKind || 'clipboard'), t0: time, stamped: false,
   };
   screen = 'result'; focus = 0; resultLock = 0.5;
   log('result ' + kind);
@@ -1066,7 +1101,19 @@ function drawPlayWorld() {
     const cracked = isCracked(i), shake = cracked && i === r.steps ? r.crackT / CONFIG.crackTime : 0;
     const jx = shake ? Math.round(Math.sin(r.time * 70) * shake * 1.5 * PX) / PX : 0;
     const sdef = A.sprites.stairs && A.sprites.stairs.def, hasCrack = !!(sdef && sdef.animations && sdef.animations.cracked);
-    const ok = drawSprite('stairs', 'zone' + zone, cracked && hasCrack ? 'cracked' : 'tile', time, sx + jx, sy, { anchor: 'tc', dw: tileW, dh: tileH, nofb: true });
+    const wet = isWet(i), hasWet = !!(sdef && sdef.animations && sdef.animations.wet);
+    const ok = drawSprite('stairs', 'zone' + zone, cracked && hasCrack ? 'cracked' : wet && hasWet ? 'wet' : 'tile', time, sx + jx, sy, { anchor: 'tc', dw: tileW, dh: tileH, nofb: true });
+    if (wet) {   // 전기: 예고 때는 전선 끝에서 불꽃이 튀고, 흐를 때는 물 위로 번개가 친다
+      const sh = shockState(r.time), x0 = sx - CONFIG.stepW / 2, w = CONFIG.stepW;
+      if (sh.live) {
+        rect(x0, sy - 2, w, 4, '#F2E678', 0.35);
+        const c = Math.floor(r.time * 30) % 2 ? '#FFF6B0' : '#9FE0FF';
+        for (let x = 0; x < w; x += 1 / PX) rect(x0 + x, sy - 1 + Math.round(Math.sin((x + r.time * 40) * 3.1) * 1.5 * PX) / PX, 1 / PX, 1 / PX, c);
+        rect(x0 + ((r.time * 97) % w), sy - 6, 1 / PX, 5, c); rect(x0 + ((r.time * 53 + 7) % w), sy - 5, 1 / PX, 4, c);
+      } else if (sh.warn && Math.floor(r.time * 20) % 2) {
+        rect(x0 + w * 0.82, sy - 3, 1 / PX, 1 / PX, '#FFE680'); rect(x0 + w * 0.86, sy - 4, 1 / PX, 1 / PX, '#FFE680'); rect(x0 + w * 0.78, sy - 2, 1 / PX, 1 / PX, '#FFE680');
+      }
+    }
     if (shake) {
       rect(sx - CONFIG.stepW / 2 + jx, sy, CONFIG.stepW, tileH, PAL.red, 0.45 * shake);
       for (let d = 0; d < 4; d++) rect(sx - CONFIG.stepW / 2 + ((d * 37 + r.steps * 11) % CONFIG.stepW) + jx, sy + tileH + ((r.time * 60 + d * 9) % 16), 1, 1, '#3A3D43');
@@ -1301,7 +1348,7 @@ function drawHelp() {
   });
   txt('"!" 1초 뒤 도착 · 도착 직전 0.2초 안에 맞는 쪽 키 (소리의 박)', 160, 101, { align: 'center', size: 6, color: PAL.green });
   txt('11층~ 경쟁 사원 · 커피(× 표시: 막으면 하트 -1)', 160, 108, { align: 'center', size: 6, color: PAL.red });
-  txt('21층~ 모니터 · 금 간 계단(1.5초 넘게 서 있으면 무너짐)', 160, 115, { align: 'center', size: 6, color: PAL.red });
+  txt('21층~ 모니터 · 금 간 계단(1.5초) · 30층~ 젖은 계단(3초마다 감전)', 160, 115, { align: 'center', size: 6, color: PAL.red });
   txt('31층~ 전화기 · 41층~ 서류(반대쪽) · 61층~ 포스트잇(색=횟수)', 160, 122, { align: 'center', size: 6, color: PAL.green });
   txt('61층~ 카메라 플래시(무해) · 71층~ 서류가방(터질 때 막기)', 160, 129, { align: 'center', size: 6, color: PAL.green });
   txt('틀린 방향·놓친 공격은 하트 -1, 새 층마다 하트 +1', 160, 136, { align: 'center', size: 6, color: PAL.text });
@@ -1339,9 +1386,10 @@ function drawResult() {
   drawSprite('player', rk, promo ? 'proud' : 'box_exit', time, 62, 176,
              { scale: 4.6, fw: 16, fh: 28, color: RANK_COLORS[r.rankIdx], flip: !promo, filter: promo ? undefined : 'grayscale(1) brightness(0.85) contrast(0.85)' });
   // 3 위 가운데 판정 판. 구조조정은 도장처럼 크게 떨어져 쾅 찍힌다 (화면 흔들림, 잉크 튐)
-  const rt = time - (r.t0 || 0), k = promo ? 1 : clamp((rt - 0.15) / 0.22, 0, 1);
-  if (!promo && k >= 1 && !r.stamped) { r.stamped = true; sfx('sfx_hit'); }
-  const shake = !promo && rt > 0.37 && rt < 0.62 ? Math.sin(rt * 90) * (0.62 - rt) * 10 : 0;
+  // 승급도 구조조정도 판정 판이 도장처럼 찍힌다
+  const rt = time - (r.t0 || 0), k = clamp((rt - 0.15) / 0.22, 0, 1);
+  if (k >= 1 && !r.stamped) { r.stamped = true; sfx('sfx_hit'); }
+  const shake = rt > 0.37 && rt < 0.62 ? Math.sin(rt * 90) * (0.62 - rt) * 10 : 0;
   if (k > 0) {
     ctx.save(); ctx.translate(160 + shake, 11); const s = 1 + (1 - k) * (1 - k) * 1.8; ctx.scale(s, s); ctx.rotate((1 - k) * -0.12); ctx.translate(-160, -11);
     ctx.globalAlpha = k;
@@ -1349,11 +1397,11 @@ function drawResult() {
     txt(promo ? '승급' : '구조조정 대상', 160, 11, { align: 'center', base: 'middle', size: 13, bold: true });
     ctx.restore(); ctx.globalAlpha = 1;
   }
-  if (!promo && rt > 0.37 && rt < 1.1) {   // 잉크 튐
+  if (rt > 0.37 && rt < 1.1) {   // 잉크 튐 (승급은 올리브)
     const f = 1 - (rt - 0.37) / 0.73;
-    [[58, 6], [262, 14], [70, 24], [250, 2], [150, 26], [184, 25]].forEach(function (d, i) { rect(d[0] + (i % 2 ? 1 : -1) * (1 - f) * 6, d[1], 2, 2, PAL.red, 0.8 * f); });
+    [[58, 6], [262, 14], [70, 24], [250, 2], [150, 26], [184, 25]].forEach(function (d, i) { rect(d[0] + (i % 2 ? 1 : -1) * (1 - f) * 6, d[1], 2, 2, promo ? PAL.green : PAL.red, 0.8 * f); });
   }
-  txt(promo ? CONFIG.rankNames[r.rankIdx - 1] + ' → ' + rk + ' · ' + r.floor + '층 도달 (PoC 종료)' : ((r.mode === 'endless' ? '무한 모드 · ' + r.floor + 'F 도달 (최고 ' + save.endless + 'F) · ' : '') + (r.cause === 'days' ? '남은 일수 소진' : r.cause === 'cracked' ? '금 간 계단이 무너짐' : '하트 소진')),
+  txt(promo ? CONFIG.rankNames[r.rankIdx - 1] + ' → ' + rk + ' · ' + r.floor + '층 도달 (PoC 종료)' : ((r.mode === 'endless' ? '무한 모드 · ' + r.floor + 'F 도달 (최고 ' + save.endless + 'F) · ' : '') + (r.cause === 'days' ? '남은 일수 소진' : r.cause === 'cracked' ? '금 간 계단이 무너짐' : r.cause === 'shock' ? '젖은 계단에서 감전' : '하트 소진')),
       160, 28, { align: 'center', base: 'middle', size: 6, color: '#9AA0A8' });
   // 4 인사 평가 결과 표 (칸마다 테두리, 값은 올리브 글자, 최고 콤보는 흰 테두리)
   rect(112, 34, 140, 100, '#18191C', 0.95); frameRect(112, 34, 140, 100, '#9AA0A8'); frameRect(114, 36, 136, 96, PAL.gray);
@@ -1451,6 +1499,8 @@ function publish() {
     S.score = run.score;
     S.maxMult = run.maxMult;
     S.steps = run.steps;
+    const sh = shockState(run.time);
+    S.hazard = { nextWet: isWet(run.steps + 1), onWet: isWet(run.steps), live: sh.live, shockIn: sh.shockIn };
   }
 }
 let last = performance.now(), acc = 0;
@@ -1562,7 +1612,8 @@ requestAnimationFrame(frame);
       "animations": [
         "tile",
         "riser",
-        "cracked"
+        "cracked",
+        "wet"
       ],
       "file": null,
       "frame_w": null,
@@ -1738,6 +1789,30 @@ requestAnimationFrame(frame);
       "files": null
     },
     "sfx_cue_suitcase": {
+      "loop": false,
+      "files": null
+    },
+    "bgm_stage1": {
+      "loop": true,
+      "files": null
+    },
+    "bgm_stage2": {
+      "loop": true,
+      "files": null
+    },
+    "bgm_stage3": {
+      "loop": true,
+      "files": null
+    },
+    "bgm_stage4": {
+      "loop": true,
+      "files": null
+    },
+    "bgm_stage5": {
+      "loop": true,
+      "files": null
+    },
+    "sfx_electric": {
       "loop": false,
       "files": null
     }

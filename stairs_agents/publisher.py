@@ -24,6 +24,7 @@ from PIL import Image
 
 from .util import Paths, log, read, write_json
 
+EXTERNAL_AUDIO = ("wav", "flac", "ogg", "mp3", "m4a")
 AUDIO_CODECS = {"ogg": ["-c:a", "libvorbis", "-q:a", "4"], "mp3": ["-c:a", "libmp3lame", "-b:a", "128k"]}
 
 
@@ -62,11 +63,20 @@ class PublisherAgent:
         for aid, e in manifest["images"].items():
             resolved["images"][aid] = {**e, "file": handle_image(aid, e)}
 
+        music_dir = self.paths.data / "music"   # 외부 음악(예: Suno로 만든 곡)이 있으면 Designer의 합성음 대신 쓴다
         for aid, e in manifest["sounds"].items():
             f = Path(e["file"])
             ext = f.suffix.lower().lstrip(".")
             files = {}
-            if ext in acc_aud:
+            ext_src = next((music_dir / f"{aid}.{x}" for x in EXTERNAL_AUDIO if (music_dir / f"{aid}.{x}").exists()), None)
+            if ext_src:
+                for target in acc_aud:
+                    out = f"{aid}.{target}"
+                    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-i", str(ext_src), *AUDIO_CODECS[target], str(dst / out)]
+                    subprocess.run(cmd, check=True)
+                    files[target] = out
+                action = f"외부 음악 사용 (data/music/{ext_src.name})"
+            elif ext in acc_aud:
                 shutil.copy2(src / f, dst / f.name)
                 files[ext] = f.name
                 action = "일치, 복사"

@@ -40,7 +40,9 @@ ENGINES = {
         "inject": "    window.__G = G; ",
         "inject_before": True,
         "state": """() => { const G = window.__G, T = window.__stairs; if (!G) return null;
+          const hz = T.hazard || {};
           return {t: G.t, dir: G.dirs[G.step], days: G.days, ended: T.screen !== 'play' && T.screen !== 'pause',
+                  wetDanger: !!(hz.nextWet && (hz.live || hz.shockIn < 0.3)),
                   atk: G.attacks.filter(a => !a.done && a.locked !== false && a.kind !== 'coffee').map(a => ({side: a.side, hitAt: a.hitAt}))}; }""",
         "result": """() => { const G = window.__G, T = window.__stairs;
           return {kind: G.result, floor: T.floor, steps: T.steps, score: T.score, hearts: T.hearts,
@@ -54,7 +56,9 @@ ENGINES = {
         "inject": "\nwindow.__dirAt = dirAt; window.__run = () => run;",
         "inject_before": False,
         "state": """() => { const r = window.__run(); if (!r) return null;
+          const hz = window.__stairs.hazard || {};
           return {t: r.time, dir: window.__dirAt(r.steps), days: r.days, ended: !!r.ended,
+                  wetDanger: !!(hz.nextWet && (hz.live || hz.shockIn < 0.3)),
                   atk: r.projs.filter(p => !p.done && p.locked !== false && p.type !== 'coffee').map(p => ({side: p.side, hitAt: p.impactT}))}; }""",
         "result": """() => { const r = window.__run(), log = window.__stairs.log;
           return {kind: r.ended.kind, floor: r.floor, steps: r.steps, score: r.score, hearts: r.hearts,
@@ -115,6 +119,8 @@ def run_one(page, engine: dict, url: str, prof, rng) -> dict:
         for key in [k for k, w in planned.items() if w is not None and w <= now]:
             page.keyboard.press("KeyQ" if key[0] < 0 else "KeyE")
             planned[key] = None
+        if now >= next_step and s.get("wetDanger"):   # 다음 칸이 젖었고 전기가 흐르거나 곧 흐르면 사람처럼 잠깐 기다린다
+            next_step = now + 0.05
         if now >= next_step:
             d = s["dir"]
             if rng.random() < miss_dir:

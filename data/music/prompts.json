@@ -1,0 +1,11 @@
+{
+  "_설명": "단계별 배경음악 프롬프트. Suno(또는 다른 음악 생성 서비스)에 그대로 넣는다. instrumental로 만들고, 받은 파일은 tools/music_import.py로 루프를 잘라 data/music/<id>.ogg로 둔다. bpm과 key는 지금 내장 8비트 합성음과 맞춘 값이다.",
+  "common_style": "8-bit chiptune, NES-style pulse and triangle waves, noise-channel drums, instrumental, no vocals, seamless loop, office-tower climbing game",
+  "tracks": {
+    "bgm_stage1": {"floors": "1~20층 사원", "bpm": 132, "key": "C major", "prompt": "upbeat cheerful 8-bit chiptune, bright square-wave lead, bouncy bass, first day at the office, hopeful"},
+    "bgm_stage2": {"floors": "21~40층 대리", "bpm": 138, "key": "D minor", "prompt": "driving 8-bit chiptune in D minor, busy arpeggios, ticking hi-hat noise, deadlines piling up, slightly anxious"},
+    "bgm_stage3": {"floors": "41~60층 과장", "bpm": 112, "key": "E minor", "prompt": "moody mid-tempo 8-bit chiptune in E minor, rainy evening overtime, melancholic triangle bass, steady march"},
+    "bgm_stage4": {"floors": "61~80층 차장", "bpm": 148, "key": "C minor", "prompt": "tense fast 8-bit chiptune in C minor, aggressive pulse lead, pounding noise drums, corporate power struggle, boss-fight energy"},
+    "bgm_stage5": {"floors": "81~100층 부장", "bpm": 156, "key": "G minor", "prompt": "epic climactic 8-bit chiptune in G minor, heroic square-wave fanfare over rapid arpeggios, final ascent to the CEO office"}
+  }
+}

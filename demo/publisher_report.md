@@ -25,6 +25,11 @@
 | bg_practice | image | bg_practice.png | bg_practice.png | 일치, 복사 |
 | bgm_loop | audio | bgm_loop.wav | bgm_loop.mp3, bgm_loop.ogg | 불일치, wav -> mp3, ogg 변환 |
 | bgm_loop_tense | audio | bgm_loop_tense.wav | bgm_loop_tense.mp3, bgm_loop_tense.ogg | 불일치, wav -> mp3, ogg 변환 |
+| bgm_stage1 | audio | bgm_stage1.wav | bgm_stage1.mp3, bgm_stage1.ogg | 불일치, wav -> mp3, ogg 변환 |
+| bgm_stage2 | audio | bgm_stage2.wav | bgm_stage2.mp3, bgm_stage2.ogg | 불일치, wav -> mp3, ogg 변환 |
+| bgm_stage3 | audio | bgm_stage3.wav | bgm_stage3.mp3, bgm_stage3.ogg | 불일치, wav -> mp3, ogg 변환 |
+| bgm_stage4 | audio | bgm_stage4.wav | bgm_stage4.mp3, bgm_stage4.ogg | 불일치, wav -> mp3, ogg 변환 |
+| bgm_stage5 | audio | bgm_stage5.wav | bgm_stage5.mp3, bgm_stage5.ogg | 불일치, wav -> mp3, ogg 변환 |
 | amb_office | audio | amb_office.wav | amb_office.mp3, amb_office.ogg | 불일치, wav -> mp3, ogg 변환 |
 | sfx_step | audio | sfx_step.wav | sfx_step.mp3, sfx_step.ogg | 불일치, wav -> mp3, ogg 변환 |
 | sfx_parry | audio | sfx_parry.wav | sfx_parry.mp3, sfx_parry.ogg | 불일치, wav -> mp3, ogg 변환 |
@@ -43,6 +48,7 @@
 | sfx_stair_crack | audio | sfx_stair_crack.wav | sfx_stair_crack.mp3, sfx_stair_crack.ogg | 불일치, wav -> mp3, ogg 변환 |
 | sfx_camera_flash | audio | sfx_camera_flash.wav | sfx_camera_flash.mp3, sfx_camera_flash.ogg | 불일치, wav -> mp3, ogg 변환 |
 | sfx_cue_suitcase | audio | sfx_cue_suitcase.wav | sfx_cue_suitcase.mp3, sfx_cue_suitcase.ogg | 불일치, wav -> mp3, ogg 변환 |
+| sfx_electric | audio | sfx_electric.wav | sfx_electric.mp3, sfx_electric.ogg | 불일치, wav -> mp3, ogg 변환 |
 
 ## 2. 코드와 디자인 연결
 
@@ -57,13 +63,13 @@
 | 타이틀 -> 로비 이동 | 통과 |  |
 | 로비 -> 플레이 이동 | 통과 |  |
 | 일시정지 (ESC)와 남은 일수 정지 | 통과 | 29.78 -> 29.78 |
-| 100층 도달과 승급 판정 | 통과 | 층 100, 직급 CEO (목표 100층 CEO), 점수 40100, 최고 배수 x10 |
-| 입력 없음 -> 구조조정 (게임 오버) | 통과 | 8.2초 뒤, 하트 0, 남은 일수 5.4 |
+| 100층 도달과 승급 판정 | 통과 | 층 100, 직급 CEO (목표 100층 CEO), 점수 43720, 최고 배수 x10 |
+| 입력 없음 -> 구조조정 (게임 오버) | 통과 | 8.1초 뒤, 하트 0, 남은 일수 5.4 |
 | 파일로 직접 열기 (file://) | 통과 |  |
 | 브라우저 오류 없음 | 통과 |  |
 
 ## 4. 내보내기
 
 - 파일: 승급의계단_PoC_web.zip
-- 포함 파일 수: 63
+- 포함 파일 수: 75
 - 동작 확인 전체 통과: 예

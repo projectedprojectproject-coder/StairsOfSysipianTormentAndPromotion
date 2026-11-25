@@ -48,6 +48,11 @@
     CRACK_FROM_FLOOR: 21,     // 결정(2026-11-20): 21층부터 금 간 계단
     CRACK_SHARE: 0.16,        // 기획서 미정: 금 간 계단 비율 (층이 바뀌는 칸은 빼고)
     CRACK_TIME: 1.5,          // 결정: 금 간 계단에 이만큼(초) 서 있으면 무너져 바로 구조조정
+    WET_FROM_FLOOR: 30,       // 결정(2026-11-25): 30층부터 젖은 계단(WET HAZARD). 물 위에 전선이 올라 있다
+    WET_SHARE: 0.14,          // 기획서 미정: 젖은 계단 비율 (층이 바뀌는 칸, 금 간 칸은 빼고)
+    SHOCK_PERIOD: 3.0,        // 결정: 전기가 흐르는 주기(초)
+    SHOCK_TIME: 0.5,          // 기획서 미정: 한 번 흐르는 시간(초). 이때 젖은 칸에 있으면 바로 구조조정
+    SHOCK_WARN: 0.6,          // 기획서 미정: 흐르기 전 불꽃이 튀는 예고 시간(초)
     FLASH_FROM_FLOOR: 61,     // 결정(2026-11-20): 61층부터 카메라 플래시. 막을 수 없지만 피해도 없다 (눈부심만)
     FLASH_GAP: 3.5,           // 기획서 미정: 플래시 평균 간격(초, ±40%)
     FLASH_TIME: 0.28,         // 기획서 미정: 플래시가 번쩍이는 시간(초)
@@ -111,6 +116,7 @@
     suitcase: "서류가방은 \"펑!\" 하고 터지는 순간에 막으세요",
     wrong: "다음 계단이 어느 쪽인지 먼저 보고 누르세요. 틀리면 하트 -1",
     cracked: "금 간 계단에서는 멈추지 마세요. 1.5초면 무너집니다",
+    shock: "젖은 계단은 3초마다 감전! 불꽃이 튀면 건너기 전에 잠깐 기다리세요",
     days: "오르고 막을수록 남은 일수가 늘어납니다. 쉬지 말고 오르세요",
   };
   const STICKY_COLORS = ["white", "white", "yellow", "green", "blue", "pink"];   // 포스트잇 남은 횟수 -> 색 (sticky 시트 변형)
@@ -196,8 +202,14 @@
     if (!id || muted || !audioUnlocked || !SND[id]) return;
     const a = SND[id];
     a.volume = 0.45;
-    if (a.duration && pos < a.duration) a.currentTime = pos; // 두 루프의 길이가 같아 이어서 재생
+    if (id.startsWith("bgm_stage")) a.currentTime = 0;       // 구간 음악은 처음부터
+    else if (a.duration && pos < a.duration) a.currentTime = pos; // bgm_loop·tense는 길이가 같아 이어서 재생
     a.play().catch(() => {});
+  }
+  // 구간(20층)마다 다른 음악: 1~20 사무실, 21~40 개방형, 41~60 회의실, 61~80 임원층, 81~100 CEO실 (없으면 기존 루프)
+  function stageBgm() {
+    const id = "bgm_stage" + Math.min(5, Math.floor((floorOf(G.step) - 1) / 20) + 1);   // 배경 구간(61~99층 한 구간)과 달리 음악은 20층마다
+    return SND[id] ? id : floorOf(G.step) >= CONFIG.TENSE_FROM_FLOOR ? "bgm_loop_tense" : "bgm_loop";
   }
   function setAmb(on) {
     const a = SND.amb_office; if (!a) return;
@@ -304,7 +316,7 @@
       dirs, step: 0, hearts: CONFIG.HEARTS, days: CONFIG.DAYS_MAX, score: 0, combo: 0, mult: 1, maxMult: 1, maxCombo: 0, lastKind: null,
       rankIdx: 0, t: 0, nextAttack: 1.5, attacks: [], facing: 1, pose: "idle", poseT: 0,
       camX: 0, camY: 0, result: null, botCool: 0, flash: 0, popups: [], banner: null,
-      crackT: 0, fell: false, nextFlash: CONFIG.FLASH_GAP, camFlash: null,
+      crackT: 0, fell: false, nextFlash: CONFIG.FLASH_GAP, camFlash: null, shocked: false, shockCycle: -1,
       mode, parries: 0, hits: 0,
     };
     if (mode === "practice") {                 // 연습: 층 바닥이 있는 칸에 서서 시작, 카메라도 바로 그 자리
@@ -346,7 +358,7 @@
       ]);
     } else if (next === "play") {
       setButtons([]); setAmb(true);
-      setBgm(floorOf(G.step) >= CONFIG.TENSE_FROM_FLOOR ? "bgm_loop_tense" : "bgm_loop");
+      setBgm(stageBgm());
     } else if (next === "pause") {
       setButtons([
         { label: "계속하기", x: 120, y: 70, w: 80, h: 14, on: () => go("play") },
@@ -398,6 +410,18 @@
     G.popups.push({ text, t: 0.6, side, lane, color });
   }
   // 금 간 계단: 21층부터 일부 칸 (층이 바뀌는 칸은 빼고, 칸 번호로 정해져 매번 같다)
+  // 젖은 계단(WET HAZARD): 30층부터 일부 칸 (층이 바뀌는 칸, 금 간 칸은 빼고, 칸 번호로 정해져 매번 같다)
+  function isWet(i) {
+    if (G && G.mode === "practice") return false;   // 연습 모드에는 계단 장애물이 없다
+    const from = G && G.mode === "endless" ? 3 : CONFIG.WET_FROM_FLOOR;
+    if (floorOf(i) < from || i % CONFIG.STEPS_PER_FLOOR === 0 || isCracked(i)) return false;
+    return (((i * 2246822519) >>> 0) % 1000) / 1000 < CONFIG.WET_SHARE;
+  }
+  // 전기 상태: live(지금 흐름), warn(곧 흐름, 불꽃), shockIn(다음에 흐르기까지 초)
+  function shockState(t) {
+    const P = CONFIG.SHOCK_PERIOD, ph = t % P, start = P - CONFIG.SHOCK_TIME;
+    return { live: ph >= start, warn: ph >= start - CONFIG.SHOCK_WARN && ph < start, shockIn: ph >= start ? 0 : start - ph, cycle: Math.floor(t / P) };
+  }
   function isCracked(i) {
     if (G && G.mode === "practice") return false;   // 연습 모드에는 계단 장애물이 없다
     const from = G && G.mode === "endless" ? 2 : CONFIG.CRACK_FROM_FLOOR;   // 무한 모드는 2층부터
@@ -421,7 +445,7 @@
         popup("하트 +1", 0, 1, PAL.sub);
         T.log.push("heal:floor" + f);
       }
-      if (f >= CONFIG.TENSE_FROM_FLOOR) setBgm("bgm_loop_tense");
+      setBgm(stageBgm());   // 새 구간에 들어서면 음악이 바뀐다
       if (f > floorOf(G.step - 1) && CONFIG.PROMO_FLOORS.includes(f)) promote(f);
       if (G.mode === "normal" && f >= CONFIG.FINAL_FLOOR && screen === "play") { play("sfx_promote", 0.6); T.log.push("finish:" + f); endRun("promote"); }   // 90층: PoC 마무리
     } else {
@@ -509,6 +533,14 @@
     // 난이도: 보통은 20층 구간마다, 무한은 60층에 걸쳐 끝까지, 연습은 가운데 값으로 고정
     const p = G.mode === "endless" ? Math.min(1, (floor - 1) / CONFIG.ENDLESS_RAMP_FLOORS) : G.mode === "practice" ? CONFIG.PRACTICE_P : zoneProgress(floor);
     if (G.mode !== "practice") G.days -= (dt / CONFIG.SEC_PER_DAY) * (1 + CONFIG.DRAIN_RAMP * p);   // 연습: 시간 제한 없음
+    const sh = shockState(G.t);                  // 젖은 계단: 전기가 흐르는 순간 그 칸에 있으면 감전
+    if (sh.live && sh.cycle !== G.shockCycle) {
+      G.shockCycle = sh.cycle;
+      let near = false;
+      for (let i = Math.max(0, G.step - 8); i < G.step + 14 && !near; i++) near = isWet(i);
+      if (near) { play("sfx_electric", 0.6); T.log.push("shock:pulse"); }
+    }
+    if (sh.live && isWet(G.step)) { G.shocked = true; T.log.push("shock:hit"); play("sfx_electric", 0.9); endRun("gameover"); return; }
     if (isCracked(G.step)) {                     // 금 간 계단에 너무 오래 서 있으면 무너진다
       G.crackT += dt;
       if (G.crackT >= CONFIG.CRACK_TIME) { G.fell = true; T.log.push("crack:fall"); play("sfx_stair_crack", 0.8); endRun("gameover"); return; }
@@ -584,7 +616,9 @@
     for (const a of G.attacks) {
       if (!a.done && a.kind !== "coffee" && a.locked !== false && a.hitAt - G.t <= 0.08) { pressKey(a.side < 0 ? "KeyQ" : "KeyE"); }
     }
-    if (G.botCool <= 0 && screen === "play") { G.botCool = 0.14; pressKey(G.dirs[G.step] < 0 ? "ArrowLeft" : "ArrowRight"); }
+    // 봇: 다음 칸이 젖었고 전기가 흐르는 중이거나 곧 흐르면 건너지 않고 기다린다
+    const sh = shockState(G.t), wetAhead = isWet(G.step + 1) && (sh.live || sh.shockIn < 0.3);
+    if (G.botCool <= 0 && screen === "play" && !wetAhead) { G.botCool = 0.14; pressKey(G.dirs[G.step] < 0 ? "ArrowLeft" : "ArrowRight"); }
   }
 
   // ------------------------------------------------------------------ 입력
@@ -724,7 +758,21 @@
       // 금 간 계단: 위에 서 있으면 시간이 갈수록 흔들리고 붉어지며 부스러기가 떨어진다
       const shake = cracked && i === G.step ? (G.crackT / CONFIG.CRACK_TIME) : 0;
       const jx = shake ? Math.round(Math.sin(G.t * 70) * shake * 1.5 * PX) / PX : 0;
-      sprite("stairs", cracked && anims && anims.cracked ? "cracked" : "tile", "zone" + zoneOf(tf), 0, sx + jx, sy + th, { fallback: PAL.main });
+      const wet = isWet(i);
+      sprite("stairs", cracked && anims && anims.cracked ? "cracked" : wet && anims && anims.wet ? "wet" : "tile", "zone" + zoneOf(tf), 0, sx + jx, sy + th, { fallback: PAL.main });
+      if (wet) {   // 전기: 예고 때는 전선 끝에서 불꽃이 튀고, 흐를 때는 물 위로 번개가 친다
+        const sh = shockState(G.t), x0 = sx - tw / 4, w = tw / 2;
+        if (sh.live) {
+          ctx.fillStyle = "rgba(242,230,120,0.35)"; ctx.fillRect(x0, sy - 2, w, 4);
+          ctx.fillStyle = Math.floor(G.t * 30) % 2 ? "#FFF6B0" : "#9FE0FF";
+          let y = sy - 1;
+          for (let x = 0; x < w; x += 1 / PX) { y = sy - 1 + Math.round(Math.sin((x + G.t * 40) * 3.1) * 1.5 * PX) / PX; ctx.fillRect(x0 + x, y, 1 / PX, 1 / PX); }
+          ctx.fillRect(x0 + ((G.t * 97) % w), sy - 6, 1 / PX, 5); ctx.fillRect(x0 + ((G.t * 53 + 7) % w), sy - 5, 1 / PX, 4);
+        } else if (sh.warn && Math.floor(G.t * 20) % 2) {
+          ctx.fillStyle = "#FFE680";
+          ctx.fillRect(x0 + w * 0.82, sy - 3, 1 / PX, 1 / PX); ctx.fillRect(x0 + w * 0.86, sy - 4, 1 / PX, 1 / PX); ctx.fillRect(x0 + w * 0.78, sy - 2, 1 / PX, 1 / PX);
+        }
+      }
       if (shake) {
         ctx.fillStyle = `rgba(161,61,61,${0.45 * shake})`; ctx.fillRect(sx - tw / 4 + jx, sy, tw / 2, th);
         ctx.fillStyle = "#3A3D43";
@@ -890,9 +938,10 @@
     sprite("player", promo ? "proud" : "box_exit", rankName(), clock, 62, 176,
            { scale: 4.6, flip: !promo, filter: promo ? undefined : "grayscale(1) brightness(0.85) contrast(0.85)" });
     // 요소 3: 위 가운데 판정 판. 구조조정은 도장처럼 크게 떨어져 쾅 찍힌다 (화면 흔들림, 잉크 튐)
-    const rt = clock - resultAt, k = promo ? 1 : Math.max(0, Math.min(1, (rt - 0.15) / 0.22));
-    if (!promo && k >= 1 && !stampLanded) { stampLanded = true; play("sfx_hit", 0.8); }
-    const shake = !promo && rt > 0.37 && rt < 0.62 ? Math.sin(rt * 90) * (0.62 - rt) * 10 : 0;
+    // 승급도 구조조정도 판정 판이 도장처럼 찍힌다
+    const rt = clock - resultAt, k = Math.max(0, Math.min(1, (rt - 0.15) / 0.22));
+    if (k >= 1 && !stampLanded) { stampLanded = true; play("sfx_hit", 0.8); }
+    const shake = rt > 0.37 && rt < 0.62 ? Math.sin(rt * 90) * (0.62 - rt) * 10 : 0;
     if (k > 0) {
       ctx.save(); ctx.translate(160 + shake, 11); const s = 1 + (1 - k) * (1 - k) * 1.8; ctx.scale(s, s); ctx.rotate((1 - k) * -0.12); ctx.translate(-160, -11);
       ctx.globalAlpha = k;
@@ -901,12 +950,12 @@
       text(promo ? "승급" : "구조조정 대상", 160, 4, 13, PAL.text, "center");
       ctx.restore(); ctx.globalAlpha = 1;
     }
-    if (!promo && rt > 0.37 && rt < 1.1) {   // 잉크 튐
+    if (rt > 0.37 && rt < 1.1) {   // 잉크 튐 (승급은 올리브)
       const f = 1 - (rt - 0.37) / 0.73;
-      ctx.fillStyle = `rgba(161,61,61,${0.8 * f})`;
+      ctx.fillStyle = promo ? `rgba(138,154,91,${0.8 * f})` : `rgba(161,61,61,${0.8 * f})`;
       [[58, 6], [262, 14], [70, 24], [250, 2], [150, 26], [184, 25]].forEach(([x, y], i) => ctx.fillRect(x + (i % 2 ? 1 : -1) * (1 - f) * 6, y, 2, 2));
     }
-    text(promo ? `${CONFIG.RANKS[G.rankIdx - 1]} → ${rankName()} · ${floorOf(G.step)}층 도달 (PoC 종료)` : (G.mode === "endless" ? `무한 모드 · ${floorOf(G.step)}F 도달 (최고 ${best.endless || 0}F)` : "") + (G.fell ? " 금 간 계단이 무너졌습니다" : G.mode === "endless" ? "" : "짐을 챙겨 주십시오"),
+    text(promo ? `${CONFIG.RANKS[G.rankIdx - 1]} → ${rankName()} · ${floorOf(G.step)}층 도달 (PoC 종료)` : (G.mode === "endless" ? `무한 모드 · ${floorOf(G.step)}F 도달 (최고 ${best.endless || 0}F)` : "") + (G.fell ? " 금 간 계단이 무너졌습니다" : G.shocked ? " 젖은 계단에서 감전되었습니다" : G.mode === "endless" ? "" : "짐을 챙겨 주십시오"),
          160, 25, 6, "#9AA0A8", "center", 400);
     // 요소 4: 인사 평가 결과 표 (칸마다 테두리, 값은 올리브 글자, 최고 콤보는 흰 테두리)
     panel(112, 34, 140, 100, "rgba(24,25,28,0.95)", "#9AA0A8"); ctx.strokeStyle = PAL.main; ctx.strokeRect(114.5, 36.5, 135, 95);
@@ -920,7 +969,7 @@
     });
     // 구조조정 팁: 도장이 찍힌 뒤 떠오른다
     if (!promo && G.mode !== "practice") {
-      const key = G.fell ? "cracked" : G.days <= 0 ? "days" : (G.lastKind || "clipboard"), a = Math.max(0, Math.min(1, (rt - 0.5) / 0.3));
+      const key = G.fell ? "cracked" : G.shocked ? "shock" : G.days <= 0 ? "days" : (G.lastKind || "clipboard"), a = Math.max(0, Math.min(1, (rt - 0.5) / 0.3));
       ctx.globalAlpha = a;
       panel(40, 137, 240, 14, "rgba(20,21,24,0.94)", PAL.warm);
       text("TIP", 50, 140, 6, PAL.warm, "center");
@@ -956,7 +1005,7 @@
     });
     text("\"!\" 1초 뒤 도착 · 도착 직전 0.2초 안에 맞는 쪽 키 (소리의 박)", LW / 2, 103, 6, PAL.warm, "center", 400);
     text("11층~ 경쟁 사원 · 커피(× 표시: 막으면 하트 -1)", LW / 2, 110, 6, PAL.accent, "center", 400);
-    text("21층~ 모니터 · 금 간 계단(1.5초 넘게 서 있으면 무너짐)", LW / 2, 117, 6, PAL.accent, "center", 400);
+    text("21층~ 모니터 · 금 간 계단(1.5초) · 30층~ 젖은 계단(3초마다 감전)", LW / 2, 117, 6, PAL.accent, "center", 400);
     text("31층~ 전화기 · 41층~ 서류(반대쪽) · 61층~ 포스트잇(색=횟수)", LW / 2, 124, 6, PAL.warm, "center", 400);
     text("61층~ 카메라 플래시(무해) · 71층~ 서류가방(터질 때 막기)", LW / 2, 131, 6, PAL.warm, "center", 400);
     text("틀린 방향·놓친 공격은 하트 -1, 새 층마다 하트 +1", LW / 2, 138, 6, PAL.sub, "center", 400);
@@ -984,6 +1033,7 @@
     if (G) Object.assign(T, {
       floor: floorOf(G.step), rank: rankName(), hearts: G.hearts, days: G.days,
       score: G.score, maxMult: G.maxMult, steps: G.step,
+      hazard: (() => { const sh = shockState(G.t); return { nextWet: isWet(G.step + 1), onWet: isWet(G.step), live: sh.live, shockIn: sh.shockIn }; })(),
     });
     T.screen = settingsOpen ? screen + (helpOpen ? ":help" : ":settings") : screen;
     requestAnimationFrame(frame);
@@ -1094,7 +1144,8 @@
       "animations": [
         "tile",
         "riser",
-        "cracked"
+        "cracked",
+        "wet"
       ],
       "file": null,
       "frame_w": null,
@@ -1270,6 +1321,30 @@
       "files": null
     },
     "sfx_cue_suitcase": {
+      "loop": false,
+      "files": null
+    },
+    "bgm_stage1": {
+      "loop": true,
+      "files": null
+    },
+    "bgm_stage2": {
+      "loop": true,
+      "files": null
+    },
+    "bgm_stage3": {
+      "loop": true,
+      "files": null
+    },
+    "bgm_stage4": {
+      "loop": true,
+      "files": null
+    },
+    "bgm_stage5": {
+      "loop": true,
+      "files": null
+    },
+    "sfx_electric": {
       "loop": false,
       "files": null
     }
