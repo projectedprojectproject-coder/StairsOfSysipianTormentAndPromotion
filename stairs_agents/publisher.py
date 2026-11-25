@@ -13,6 +13,7 @@ from __future__ import annotations
 import functools
 import http.server
 import json
+import os
 import shutil
 import subprocess
 import threading
@@ -31,10 +32,11 @@ AUDIO_CODECS = {"ogg": ["-c:a", "libvorbis", "-q:a", "4"], "mp3": ["-c:a", "libm
 class PublisherAgent:
     name = "publisher"
 
-    def __init__(self, paths: Paths, browser: str | None = None, test_timeout: float = 240.0):
+    def __init__(self, paths: Paths, browser: str | None = None, test_timeout: float | None = None):
         self.paths = paths
         self.browser = browser or shutil.which("google-chrome") or shutil.which("chromium") or shutil.which("chromium-browser")
-        self.test_timeout = test_timeout
+        # 봇이 끝(승급)까지 오르는 시간 제한. 100층까지 가는 지금 게임은 더 걸리므로 STAIRS_TEST_TIMEOUT(초)으로 늘릴 수 있다
+        self.test_timeout = test_timeout if test_timeout is not None else float(os.environ.get("STAIRS_TEST_TIMEOUT", "240"))
         self.report: dict = {"format_checks": [], "link_problems": [], "tests": [], "export": {}}
 
     # ------------------------------------------------------------ 1. 확장자 확인과 변환
