@@ -455,7 +455,7 @@ function makeRun(seed, mode) {
     nextAttack: CONFIG.firstAttackDelay, lastImpact: -9,
     projs: [], sparks: [], texts: [], leavers: [],
     parryStart: [-9, -9], parryEnd: [-9, -9], parryCd: [0, 0],
-    hitTimer: 0, stepTimer: 0, shake: 0, flash: 0,
+    hitTimer: 0, stepTimer: 0, lastStepT: -9, shake: 0, flash: 0,   // lastStepT: 마지막으로 오른 때 (그리기용)
     pvx: 0, pvy: 0, camX: 0, camY: 0,
     facing: dirAt(0), animState: '', animStart: 0,
     botT: 0, ended: null, endTimer: 0, rivalIdx: 8,
@@ -550,7 +550,7 @@ function gazeState(r) {
   if (ph < CONFIG.gazeWarn) return { warn: true, left: CONFIG.gazeWarn - ph, cycle: cycle };
   if (ph < CONFIG.gazeWarn + CONFIG.gazeSweep) {
     const u = (ph - CONFIG.gazeWarn) / CONFIG.gazeSweep, half = CONFIG.gazeWidth / 2;
-    return { sweep: true, u: u, y: lerp(GAZE_SRC_Y, H + half, u), cycle: cycle };   // 창문 높이에서 화면 아래 끝까지
+    return { sweep: true, u: u, y: lerp(GAZE_SRC_Y, H + half, u), cycle: cycle };   // 불꽃 높이에서 화면 아래 끝까지
   }
   return { rest: true, cycle: cycle };
 }
@@ -576,7 +576,7 @@ function doStep(dir) {
   if (isCracked(r.steps)) { sfx('sfx_stair_crack'); log('crack step'); }   // 금 간 계단에 올라섰다
   r.days = Math.min(CONFIG.maxDays, r.days + CONFIG.stepDays);
   r.score += CONFIG.stepPoints * r.mult;
-  r.stepTimer = 0.14;
+  r.stepTimer = 0.14; r.lastStepT = r.time;
   r.facing = dirAt(r.steps);
   sfx('sfx_step');
   const nf = floorOfSteps(r.steps);
@@ -1184,13 +1184,14 @@ function drawLobby() {
 /* ---------------------------------------------------------------------
  * 05-3 플레이
  * ------------------------------------------------------------------- */
-// 한 칸 오르기의 몸짓 (a = 0 → 1, 0.14초): 뛰어오르는 호, 도약할 때 늘어나고 착지할 때 눌림, 오르는 쪽으로 기울기.
-// sx·sy는 그림 가운데 기준이라 발이 칸에 붙어 있게 dy에서 보정한다 (h = 그림 높이)
-function hopFx(a, dir, h) {
-  if (!(a > 0 && a < 1)) return null;
-  const s = Math.sin(a * Math.PI);
-  const sy = a < 0.65 ? 1 + 0.16 * Math.sin(a / 0.65 * Math.PI) : 1 - 0.18 * Math.sin((a - 0.65) / 0.35 * Math.PI);
-  return { dy: -s * 7 + (1 - sy) * h / 2, sx: 1 + (1 - sy) * 0.9, sy: sy, rot: dir * 0.14 * s };
+// 사람 그림 크기: 1.5배 (원본 한 픽셀이 화면에서 고르게 3픽셀)
+const MAN_SCALE = 1.5;
+// 계단을 달려 오르는 몸짓. a = 한 칸 오르기 진행(0 → 1, 0.14초), run = 계속 오르는 중인 정도(1 → 멈추면 0.4초에 걸쳐 0).
+// 한 칸마다 낮고 빠르게 들썩이고(발을 딛는 순간 살짝 눌림), 오르는 쪽으로 앞으로 기운다
+function runFx(a, run, dir, h) {
+  const s = a > 0 && a < 1 ? Math.sin(a * Math.PI) : 0;
+  const sy = 1 + 0.05 * s - (a > 0.75 && a < 1 ? 0.06 * Math.sin((a - 0.75) / 0.25 * Math.PI) : 0);
+  return { dy: -s * 2.5 + (1 - sy) * h / 2, sx: 1 + (1 - sy) * 0.8, sy: sy, rot: dir * (0.07 + 0.08 * run) * Math.max(run, s) };
 }
 function playerAnim(r) {
   let s = 'idle';
@@ -1232,7 +1233,7 @@ function drawPlayWorld() {
     } else {
       const half = CONFIG.gazeWidth / 2, top = gz.y - half;
       rect(0, 0, W, H, '#C0302E', 0.08);                                // 훑는 동안 화면 전체가 붉게 번쩍
-      for (let yy = sy0; yy < top; yy += 3) {                           // 창문에서 띠까지 부채꼴로 퍼지는 빛
+      for (let yy = sy0; yy < top; yy += 3) {                           // 불꽃에서 띠까지 부채꼴로 퍼지는 빛
         const t = (yy - sy0) / Math.max(1, top - sy0), w = lerp(14, W * 2.4, t);
         rect(sx0 - w / 2, yy, w, 3, '#C0302E', 0.2); rect(sx0 - w * 0.12, yy, w * 0.24, 3, '#FF5A4E', 0.3);
       }
@@ -1339,17 +1340,25 @@ function drawPlayWorld() {
     const sx = 160 + (stairX(r.rivalIdx) - r.camX);
     const sy = PLAYER_Y + (-r.rivalIdx * CONFIG.stepH - r.camY);
     ctx.globalAlpha = 0.75;
-    drawSprite('rival', 'default', 'walk', time, sx, sy + 1 - Math.abs(Math.sin(time * 7)) * 1.5, { fw: 14, fh: 26, color: PAL.red, flip: dirAt(r.rivalIdx) < 0 });   // 걸으며 들썩
+    drawSprite('rival', 'default', 'walk', time, sx, sy + 1 - Math.abs(Math.sin(time * 7)) * 1.5, { scale: MAN_SCALE, fw: 14 * MAN_SCALE, fh: 26 * MAN_SCALE, color: PAL.red, flip: dirAt(r.rivalIdx) < 0 });   // 걸으며 들썩
     ctx.globalAlpha = 1;
   }
   // 플레이어
   const px = playerScreenX();
   const anim = playerAnim(r);
   const rc = RANK_COLORS[r.rankIdx];
-  const po = { fw: 16, fh: 28, color: rc, flip: r.facing < 0 && anim !== 'parry_left' && anim !== 'parry_right' };
-  const hop = anim === 'step' ? hopFx(1 - r.stepTimer / 0.14, dirAt(Math.max(0, r.steps - 1)), 28) : null;   // 한 칸 오르는 몸짓
-  if (hop) { po.sx = hop.sx; po.sy = hop.sy; po.rot = hop.rot; }
-  drawSprite('player', CONFIG.rankNames[r.rankIdx], anim, r.time - r.animStart, px, PLAYER_Y + 2 + (hop ? hop.dy : 0), po);
+  const po = { scale: MAN_SCALE, fw: 16 * MAN_SCALE, fh: 28 * MAN_SCALE, color: rc, flip: r.facing < 0 && anim !== 'parry_left' && anim !== 'parry_right' };
+  let pdy = 0;
+  if (anim === 'step' || anim === 'idle') {                                  // 계단을 달려 오르는 몸짓 (막기·맞기 동작은 그대로)
+    const since = r.time - r.lastStepT, run = clamp(1 - (since - 0.14) / 0.4, 0, 1), mdir = dirAt(Math.max(0, r.steps - 1));
+    const fx = runFx(r.stepTimer > 0 ? 1 - r.stepTimer / 0.14 : 0, run, mdir, 28 * MAN_SCALE);
+    po.sx = fx.sx; po.sy = fx.sy; po.rot = fx.rot; pdy = fx.dy;
+    if (r.stepTimer > 0) {                                                  // 발밑 먼지: 디딘 칸 뒤쪽으로 흩어진다
+      const k = 1 - r.stepTimer / 0.14;
+      for (let j = 0; j < 3; j++) rect(px - mdir * (5 + k * (6 + j * 4)), PLAYER_Y + 1 - k * (2 + j * 2), 2, 2, '#C9CCD1', 0.6 * (1 - k));
+    }
+  }
+  drawSprite('player', CONFIG.rankNames[r.rankIdx], anim, r.time - r.animStart, px, PLAYER_Y + 2 + pdy, po);
   // 투척물 + 예고
   // 월드 좌표 -> 화면 좌표 (경쟁 사원 발 위치)
   const sx = function (wx) { return 160 + (wx - r.camX); };
@@ -1357,11 +1366,11 @@ function drawPlayWorld() {
   r.leavers.forEach(function (l) {
     const k = (r.time - l.t0) / 0.5;
     ctx.globalAlpha = clamp(1 - k, 0, 1);
-    drawSprite('rival', 'default', 'leave', r.time - l.t0, sx(l.wx) + l.side * k * 90, sy(l.wy), { fw: 14, fh: 26, color: PAL.red, flip: l.side < 0 });
+    drawSprite('rival', 'default', 'leave', r.time - l.t0, sx(l.wx) + l.side * k * 90, sy(l.wy), { scale: MAN_SCALE, fw: 14 * MAN_SCALE, fh: 26 * MAN_SCALE, color: PAL.red, flip: l.side < 0 });
     ctx.globalAlpha = 1;
   });
   r.fallers.forEach(function (f) {   // 계단 장애물에 당한 경쟁 사원: 감전은 하얗게 떨다 사라지고, 떨어지면 돌며 아래로
-    const t = r.time - f.t0, k = t / 0.8, o = { fw: 14, fh: 26, color: PAL.red, flip: f.side < 0 };
+    const t = r.time - f.t0, k = t / 0.8, o = { scale: MAN_SCALE, fw: 14 * MAN_SCALE, fh: 26 * MAN_SCALE, color: PAL.red, flip: f.side < 0 };
     if (f.kind === 'shock') {
       ctx.globalAlpha = clamp(1 - k, 0, 1);
       drawSprite('rival', 'default', 'walk', 0, sx(f.wx) + Math.sin(t * 80) * 1.5, sy(f.wy), o);
@@ -1383,12 +1392,12 @@ function drawPlayWorld() {
         const k = 1 - left / CONFIG.rivalLeap;
         x = lerp(x, px + p.side * 12, k); y = lerp(y, PLAYER_Y + 1, k) - Math.sin(k * Math.PI) * 8; anim = 'attack';
       }
-      const ro = { fw: 14, fh: 26, color: PAL.red, flip: x > px };
-      if (anim === 'walk' && p.phase === 'climb' && !p.waiting && p.ri < r.steps - 1 - 1e-6) {   // 계단을 오를 때: 칸마다 뛰어오른다
-        const f = p.ri - Math.floor(p.ri), s = Math.sin(f * Math.PI);
-        y -= s * 5; ro.rot = dirAt(Math.floor(p.ri)) * 0.16 * s; ro.sy = 1 + 0.12 * s; ro.sx = 1 - 0.1 * s; y -= 0.12 * s * 13;
-      } else if (anim === 'walk' && p.phase === 'walk') {                       // 층 바닥을 걸을 때: 들썩이며 앞으로 기운다
-        y -= Math.abs(Math.sin(at * 14)) * 2; ro.rot = (x > px ? -1 : 1) * 0.08;
+      const ro = { scale: MAN_SCALE, fw: 14 * MAN_SCALE, fh: 26 * MAN_SCALE, color: PAL.red, flip: x > px };
+      if (anim === 'walk' && p.phase === 'climb' && !p.waiting && p.ri < r.steps - 1 - 1e-6) {   // 계단을 달려 오를 때: 앞으로 기울고 다리를 빨리, 칸마다 낮게 들썩
+        const f = p.ri - Math.floor(p.ri);
+        y -= Math.sin(f * Math.PI) * 2; ro.rot = dirAt(Math.floor(p.ri)) * 0.15; at *= 2;
+      } else if (anim === 'walk' && p.phase === 'walk') {                       // 층 바닥을 달려올 때: 들썩이며 앞으로 기운다
+        y -= Math.abs(Math.sin(at * 16)) * 2; ro.rot = (x > px ? -1 : 1) * 0.1; at *= 1.6;
       }
       drawSprite('rival', 'default', anim, at, x, y, ro);
       if (p.waiting) txt('…', x + 10, y - 36, { align: 'center', base: 'middle', size: 9, bold: true, color: '#E3B65C' });   // 계단 장애물 앞에서 기다리는 중
