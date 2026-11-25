@@ -1416,7 +1416,7 @@ function drawPlayWorld() {
     const sx = 160 + (stairX(r.rivalIdx) - r.camX);
     const sy = PLAYER_Y + (-r.rivalIdx * CONFIG.stepH - r.camY);
     ctx.globalAlpha = 0.75;
-    drawSprite('rival', 'default', 'walk', time, sx, sy + 1 - Math.abs(Math.sin(time * 7)) * 1.5, { scale: MAN_SCALE, fw: 14 * MAN_SCALE, fh: 26 * MAN_SCALE, color: PAL.red, flip: dirAt(r.rivalIdx) < 0 });   // 걸으며 들썩
+    drawSprite('rival', 'default', 'idle', time, sx, sy + 1, { scale: MAN_SCALE, fw: 14 * MAN_SCALE, fh: 26 * MAN_SCALE, color: PAL.red, flip: dirAt(r.rivalIdx) < 0 });   // 계단 아래 끝에 서 있는 경쟁 사원 (서 있기)
     ctx.globalAlpha = 1;
   }
   // 플레이어
@@ -1599,16 +1599,21 @@ function drawChair(x, y, rot) {   // 사무실 의자: 남색 등받이·앉는 
   rect(-1, 0, 2, 4, '#9AA0A8'); rect(-5, 4, 10, 1, '#2A2C31'); rect(-5, 5, 2, 2, '#1E1F22'); rect(3, 5, 2, 2, '#1E1F22');
   ctx.restore();
 }
-function drawRollingChair(p, px) {   // 굴러오는 의자: 위 계단에서 통통 튀며 굴러 내려온다. 넘어가는 의자는 마지막에 크게 튀어 머리 위로 넘어가 아래로 계속 떨어진다
-  const r = run, s = p.side, tx = px + s * 8, ty = PLAYER_Y - 8, x0 = px + s * 90, y0 = PLAYER_Y - 70;
-  const u = clamp((r.time - p.spawnT) / Math.max(0.01, p.impactT - p.spawnT), 0, 1);
+function drawRollingChair(p, px) {   // 굴러오는 의자: 위 계단 칸들을 따라 한 칸씩 통통 튀며 굴러 내려온다 (칸 윗면 위).
+  // 넘어가는 의자는 바로 윗칸에서 크게 튀어 내 머리 위를 넘어 뒤쪽으로, 계단 아래로 계속 굴러 떨어진다
+  const r = run, s = p.side;
   if (r.time < p.spawnT) return;
+  const u = clamp((r.time - p.spawnT) / Math.max(0.01, p.impactT - p.spawnT), 0, 1);
+  const onTile = function (fi) { const i = Math.floor(fi), f = fi - i; return [160 + (lerp(stairX(i), stairX(i + 1), f) - r.camX), PLAYER_Y + (-fi * CONFIG.stepH - r.camY) - 7]; };   // 바퀴가 칸 윗면에 닿는 자리
   let x, y;
-  if (p.over && u > 0.75 || p.passed) {
-    const xa = lerp(x0, tx, 0.75), ya = lerp(y0, ty, 0.75);
-    if (r.time < p.impactT) { const v = (u - 0.75) / 0.25; x = lerp(xa, px - s * 30, v); y = lerp(ya, ty + 6, v) - Math.sin(v * Math.PI) * 40; }
-    else { const e = r.time - p.impactT; x = px - s * (30 + 60 * e); y = ty + 6 + 25 * e + 90 * e * e; }
-  } else { x = lerp(x0, tx, u); y = lerp(y0, ty, u) - Math.abs(Math.sin(u * Math.PI * 4)) * 8; }
+  if (p.over && (u > 0.8 || p.passed)) {
+    const a0 = onTile(r.steps + 1.2), bx = px - s * 28, by = PLAYER_Y + 4;                // 바로 윗칸에서 내 머리 위를 넘어 뒤쪽으로
+    if (r.time < p.impactT) { const v = (u - 0.8) / 0.2; x = lerp(a0[0], bx, v); y = lerp(a0[1], by, v) - Math.sin(v * Math.PI) * 38; }
+    else { const e = r.time - p.impactT; x = bx - s * 60 * e; y = by + 25 * e + 140 * e * e; }   // 계단 아래로 계속 굴러 떨어진다
+  } else {
+    const fi = lerp(r.steps + 5, p.over ? r.steps + 1.2 : r.steps + 0.35, p.over ? u / 0.8 : u), q = onTile(fi);
+    x = q[0]; y = q[1] - Math.abs(Math.sin((fi - Math.floor(fi)) * Math.PI)) * 5;          // 칸 모서리마다 튄다
+  }
   drawChair(x, y, -s * (r.time - p.spawnT) * 9);
   if (r.time >= p.spawnT && showMarks() && !p.passed) {
     const wx = clamp(x, 8, W - 8), wy = y - 20;
