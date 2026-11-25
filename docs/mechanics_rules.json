@@ -1,0 +1,46 @@
+{
+  "_comment": "Mechanics 검사 기준. 기획서 04 고정값 + PoC 결정(prompts/developer.md, 2026-11-20/25)으로 바뀐 게임을 그대로 옮긴 표. 게임 규칙이 바뀌면 이 파일만 고친다 (mechanics.py는 하드코딩하지 않는다).",
+  "fixed": {
+    "maxHearts": 3,
+    "maxDays": 30,
+    "dayDuration": 0.33,
+    "stepDays": 1,
+    "parryDays": 1.5,
+    "parryWindow": 0.2,
+    "warnTime": 1.0,
+    "promoteHeal": 1,
+    "promoteFloors": [20, 40, 60, 80],
+    "comboStepEvery": 3,
+    "comboMax": 10
+  },
+  "floors": { "first": 1, "last": 100, "reviewFloors": [20, 40, 60, 80] },
+  "endings": { "normal": 60, "ceo": 100 },
+  "threats": {
+    "clipboard": { "firstFloor": 1,  "kind": "parry",  "name": "결재판" },
+    "rival":     { "firstFloor": 11, "kind": "parry",  "name": "경쟁 사원" },
+    "coffee":    { "firstFloor": 11, "kind": "dodge",  "name": "커피 (막으면 안 됨)" },
+    "monitor":   { "firstFloor": 21, "kind": "parry",  "name": "모니터" },
+    "phone":     { "firstFloor": 31, "kind": "parry",  "name": "전화기" },
+    "paper":     { "firstFloor": 41, "kind": "parry",  "name": "서류" },
+    "sticky":    { "firstFloor": 61, "kind": "multi",  "name": "포스트잇 (1~5회)" },
+    "briefcase": { "firstFloor": 71, "kind": "parry",  "name": "서류가방" }
+  },
+  "hazards": {
+    "cracked": { "firstFloor": 21, "name": "금 간 계단", "lethal": true },
+    "wet":     { "firstFloor": 30, "name": "젖은 계단 (감전)", "lethal": true },
+    "flash":   { "firstFloor": 61, "name": "카메라 플래시", "lethal": false }
+  },
+  "motivation": {
+    "_comment": "왜 계단을 오르는가 — 한 판 / 여러 판 / 시즌 세 겹. 능력치를 사는 상품은 금지(꾸미기만).",
+    "required": ["salary", "documents", "ghost", "daily", "cosmetics", "season", "revive"],
+    "maxRevivePerRun": 1,
+    "minDocuments": 20,
+    "forbiddenCosmeticFields": ["hearts", "days", "parryWindow", "stepDays", "parryDays", "attackInterval", "drainMult"]
+  },
+  "balanceTargets": {
+    "_comment": "시뮬레이션 목표 도달률 [최소, 최대]. 하네스가 이 범위를 벗어나면 Mechanics에 고칠 점을 돌려준다.",
+    "보통":   { "20": [0.55, 0.90], "60": [0.10, 0.45] },
+    "초보":   { "20": [0.25, 0.75] },
+    "숙련자": { "100": [0.15, 0.70] }
+  }
+}
