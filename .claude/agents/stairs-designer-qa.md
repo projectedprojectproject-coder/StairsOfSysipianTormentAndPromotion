@@ -160,18 +160,19 @@ class DesignerQAAgent:
                 share = max(_alpha_share(_frame(sh, m, an, None)) for an in m["animations"])
                 rep.check(f"{aid} 배경 투명", share < 0.92, f"가장 꽉 찬 프레임 불투명 {share:.0%}", "mid", aid,
                           "캐릭터·소품 주위를 '.'(투명)으로 비운다")
-            n = _colors(sh)
-            rep.check(f"{aid} 색 수", n <= 48, f"{n}색", "low", aid, "명암 단계를 줄여 16비트 느낌을 지킨다")
+            n = _colors(sh); lim = 48 if man.get("pixel_scale", PIXEL_SCALE) <= 2 else 1024   # 32비트(4배 밀도) 판은 부드러운 명암 단계가 많다
+            rep.check(f"{aid} 색 수", n <= lim, f"{n}색", "low", aid, "명암 단계를 줄여 16비트 느낌을 지킨다" if lim == 48 else "명암 단계를 줄인다")
 
         # ---- 이미지
         sizes = {}
+        ps = man.get("pixel_scale", PIXEL_SCALE)   # 밀도: 매니페스트에 적힌 값 (32비트 판은 4)
         for aid, m in man["images"].items():
             im = Image.open(out / m["file"]).convert("RGB")
             sizes[aid] = im.size
-            if aid != "logo":
-                ok = im.size == (LOGICAL[0] * PIXEL_SCALE, LOGICAL[1] * PIXEL_SCALE)
+            if aid != "logo" and not m.get("density"):   # 컷신 배경(density 적힘)은 크기가 장면마다 다르다
+                ok = im.size == (LOGICAL[0] * ps, LOGICAL[1] * ps)
                 rep.check(f"{aid} 크기", ok, f"{im.size[0]}x{im.size[1]}", "mid", aid,
-                          f"{LOGICAL[0] * PIXEL_SCALE}x{LOGICAL[1] * PIXEL_SCALE}로 그린다")
+                          f"{LOGICAL[0] * ps}x{LOGICAL[1] * ps}로 그린다")
             lo, hi = im.convert("L").getextrema()
             rep.check(f"{aid} 내용", hi - lo > 20, f"밝기 범위 {lo}~{hi}", "high", aid, "비어 있는 이미지를 다시 그린다")
 

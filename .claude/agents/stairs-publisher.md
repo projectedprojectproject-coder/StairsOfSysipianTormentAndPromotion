@@ -55,6 +55,7 @@ from __future__ import annotations
 import functools
 import http.server
 import json
+import os
 import shutil
 import subprocess
 import threading
@@ -66,16 +67,18 @@ from PIL import Image
 
 from .util import Paths, log, read, write_json
 
+EXTERNAL_AUDIO = ("wav", "flac", "ogg", "mp3", "m4a")
 AUDIO_CODECS = {"ogg": ["-c:a", "libvorbis", "-q:a", "4"], "mp3": ["-c:a", "libmp3lame", "-b:a", "128k"]}
 
 
 class PublisherAgent:
     name = "publisher"
 
-    def __init__(self, paths: Paths, browser: str | None = None, test_timeout: float = 240.0):
+    def __init__(self, paths: Paths, browser: str | None = None, test_timeout: float | None = None):
         self.paths = paths
         self.browser = browser or shutil.which("google-chrome") or shutil.which("chromium") or shutil.which("chromium-browser")
-        self.test_timeout = test_timeout
+        # 봇이 끝(승급)까지 오르는 시간 제한. 100층까지 가는 지금 게임은 더 걸리므로 STAIRS_TEST_TIMEOUT(초)으로 늘릴 수 있다
+        self.test_timeout = test_timeout if test_timeout is not None else float(os.environ.get("STAIRS_TEST_TIMEOUT", "240"))
         self.report: dict = {"format_checks": [], "link_problems": [], "tests": [], "export": {}}
 
     # ------------------------------------------------------------ 1. 확장자 확인과 변환
@@ -104,11 +107,20 @@ class PublisherAgent:
         for aid, e in manifest["images"].items():
             resolved["images"][aid] = {**e, "file": handle_image(aid, e)}
 
+        music_dir = self.paths.data / "music"   # 외부 음악(예: Suno로 만든 곡)이 있으면 Designer의 합성음 대신 쓴다
         for aid, e in manifest["sounds"].items():
             f = Path(e["file"])
             ext = f.suffix.lower().lstrip(".")
             files = {}
-            if ext in acc_aud:
+            ext_src = next((music_dir / f"{aid}.{x}" for x in EXTERNAL_AUDIO if (music_dir / f"{aid}.{x}").exists()), None)
+            if ext_src:
+                for target in acc_aud:
+                    out = f"{aid}.{target}"
+                    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-i", str(ext_src), *AUDIO_CODECS[target], str(dst / out)]
+                    subprocess.run(cmd, check=True)
+                    files[target] = out
+                action = f"외부 음악 사용 (data/music/{ext_src.name})"
+            elif ext in acc_aud:
                 shutil.copy2(src / f, dst / f.name)
                 files[ext] = f.name
                 action = "일치, 복사"
@@ -206,9 +218,15 @@ class PublisherAgent:
                 def wait_for(cond_js, timeout):
                     page.wait_for_function(cond_js, timeout=timeout * 1000)
 
+                def skip_cutscene(then):   # 컷신(켤 때 인트로, 보통 모드 새 판 시작)은 Esc로 건너뛴다. 컷신이 없는 판(파이프라인 PoC)은 그대로
+                    if state().get("screen") == "cutscene":
+                        page.keyboard.press("Escape")
+                        wait_for(f"window.__stairs.screen === '{then}'", 5)
+
                 # 시나리오 1: 자동 플레이로 마지막 승급 층까지 (게임이 __stairs.finalFloor·finalRank로 알려 줌, 없으면 20층·대리)
                 page.goto(base + "?seed=7&bot=1&mute=1")
                 wait_for("window.__stairs && window.__stairs.ready", 15)
+                skip_cutscene("title")
                 s = state()
                 record("에셋 불러오기", not s["assetErrors"], ", ".join(s["assetErrors"]))
                 record("타이틀 화면", s["screen"] == "title", s["screen"])
@@ -218,6 +236,7 @@ class PublisherAgent:
                 record("타이틀 -> 로비 이동", True)
                 page.screenshot(path=str(shots / "2_lobby.png"))
                 page.keyboard.press("Enter")
+                page.wait_for_timeout(200); skip_cutscene("play")
                 wait_for("window.__stairs.screen === 'play'", 5)
                 record("로비 -> 플레이 이동", True)
                 page.wait_for_timeout(3000)
@@ -242,9 +261,11 @@ class PublisherAgent:
                 # 시나리오 2: 아무 입력 없이 두면 구조조정
                 page.goto(base + "?seed=3&mute=1")
                 wait_for("window.__stairs && window.__stairs.ready", 15)
+                skip_cutscene("title")
                 page.keyboard.press("Enter")
                 wait_for("window.__stairs.screen === 'lobby'", 5)
                 page.keyboard.press("Enter")
+                page.wait_for_timeout(200); skip_cutscene("play")
                 wait_for("window.__stairs.screen === 'play'", 5)
                 t0 = time.time()
                 wait_for("window.__stairs.screen === 'result'", 30)

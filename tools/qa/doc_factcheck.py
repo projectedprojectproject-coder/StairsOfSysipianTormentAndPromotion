@@ -18,7 +18,7 @@ if not (ROOT / 'demo_api').exists() and (ROOT / 'WebReference').exists():   # Un
     UNITY = ROOT
 GAME = next((p for p in (ROOT / 'demo_api' / 'game.js', ROOT / 'WebReference' / 'game.js', UNITY / 'WebReference' / 'game.js') if p.exists()), None)
 args = sys.argv[1:]
-docs = [Path(a) for a in args] or [p for p in (ROOT / 'README.md', ROOT / 'README.txt', ROOT / 'HOWTOPLAY.txt', UNITY / 'README.md') if p.exists()]
+docs = [Path(a) for a in args] or list(dict.fromkeys(p.resolve() for p in (ROOT / 'README.md', ROOT / 'README.txt', ROOT / 'HOWTOPLAY.txt', UNITY / 'README.md') if p.exists()))
 src = GAME.read_text(encoding='utf-8') if GAME else ''
 cs_src = '\n'.join(p.read_text(encoding='utf-8', errors='ignore') for p in UNITY.glob('Assets/**/*.cs')) if UNITY.exists() else ''
 
@@ -61,7 +61,7 @@ RULES = [   # (문서 정규식, 기대값 함수, 설명). 정규식의 첫 묶
     (r'(\d+)층 위에서는 "!" 없이', lambda: float(marks.group(1)) if marks else None, '"!" 표시가 사라지는 층'),
     (r'(\d+)초 뒤 레이저', lambda: cfg.get('gazeWarn'), '상사의 눈 예고(초)'),
     (r'(\d+)층까지', lambda: cfg.get('finalFloor'), '마지막 층'),
-    (r'(\d+)장면', lambda: float(demos), '장애물 보기 장면 수'),
+    (r'(\d{2,})장면', lambda: float(demos), '장애물 보기 장면 수'),   # 두 자리 이상 = 전체 수 ("…2장면 포함" 같은 일부는 빼고)
     (r'한 층 = 계단 (\d+)칸', lambda: cfg.get('stairsPerFloor'), '한 층 계단 수'),
 ]
 HISTORY = [r'결정\s*\(?20\d\d', r'\(20\d\d-\d\d-\d\d', r'기획서 미정', r'PoC 범위', r'범위 밖', r'승급 심사', r'플레이테스트 반영',
@@ -115,7 +115,7 @@ for doc in docs:
         # 4) 경로와 명령
         for tok in re.findall(r'`([^`\s]+)`', line) + re.findall(r'^\s*([\w~.-]+/)\s', line):
             t = tok.rstrip('/').split('?')[0]
-            if not re.search(r'/|\.(py|js|md|txt|json|html|exe|cs|png)$', t) or t.startswith(('http', '-')) or '<' in t or '*' in t: continue
+            if not re.search(r'/|\.(py|js|md|txt|json|html|exe|cs|png)$', t) or t.startswith(('http', '-', 'Builds/', 'shots/', 'output')) or '<' in t or '*' in t: continue
             if any((b / t).exists() for b in (base, ROOT, UNITY)): oks += 1
             elif '/' not in t and find_name(t): oks += 1                    # 표의 폴더 칸에 딸린 파일 이름 (`index.html`)
             elif 'Unity' in line or 'unity' in line or t.startswith(('PlayNow', 'Assets/', 'Tools~')): warn(rel, ln, f'Unity 판 경로 {t} — 이 브랜치에 없음 (unity 브랜치에서 확인)')
